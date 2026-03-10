@@ -1,0 +1,80 @@
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { PermissionKey } from '../../common/enums/permission-key.enum';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { CreateInventoryLotDto } from '../dto/create-inventory-lot.dto';
+import { UpdateInventoryLotDto } from '../dto/update-inventory-lot.dto';
+import { InventoryLotsService } from '../services/inventory-lots.service';
+
+@ApiTags('inventory-lots')
+@ApiCookieAuth('access-cookie')
+@ApiUnauthorizedResponse({ description: 'Access token invalido o ausente.' })
+@ApiForbiddenResponse({ description: 'Permisos insuficientes.' })
+@Controller('inventory-lots')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+export class InventoryLotsController {
+  constructor(private readonly inventory_lots_service: InventoryLotsService) {}
+
+  @Get()
+  @RequirePermissions(PermissionKey.INVENTORY_LOTS_VIEW)
+  @ApiOperation({ summary: 'Listar lotes de inventario' })
+  get_lots(@CurrentUser() current_user: AuthenticatedUserContext) {
+    return this.inventory_lots_service.get_lots(current_user);
+  }
+
+  @Post()
+  @RequirePermissions(PermissionKey.INVENTORY_LOTS_CREATE)
+  @ApiOperation({ summary: 'Crear lote de inventario' })
+  @ApiBody({ type: CreateInventoryLotDto })
+  create_lot(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Body() dto: CreateInventoryLotDto,
+  ) {
+    return this.inventory_lots_service.create_lot(current_user, dto);
+  }
+
+  @Get(':id')
+  @RequirePermissions(PermissionKey.INVENTORY_LOTS_VIEW)
+  @ApiOperation({ summary: 'Obtener lote por id' })
+  @ApiParam({ name: 'id', type: Number })
+  get_lot(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) lot_id: number,
+  ) {
+    return this.inventory_lots_service.get_lot(current_user, lot_id);
+  }
+
+  @Patch(':id')
+  @RequirePermissions(PermissionKey.INVENTORY_LOTS_UPDATE)
+  @ApiOperation({ summary: 'Actualizar lote de inventario' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ type: UpdateInventoryLotDto })
+  update_lot(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) lot_id: number,
+    @Body() dto: UpdateInventoryLotDto,
+  ) {
+    return this.inventory_lots_service.update_lot(current_user, lot_id, dto);
+  }
+}

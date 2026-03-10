@@ -1,0 +1,52 @@
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseIntPipe,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { PermissionKey } from '../../common/enums/permission-key.enum';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { UpdateProductPriceDto } from '../dto/update-product-price.dto';
+import { PricingService } from '../services/pricing.service';
+
+@ApiTags('product-prices')
+@ApiCookieAuth('access-cookie')
+@ApiUnauthorizedResponse({ description: 'Access token invalido o ausente.' })
+@ApiForbiddenResponse({ description: 'Permisos insuficientes.' })
+@Controller('product-prices')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+export class ProductPricesController {
+  constructor(private readonly pricing_service: PricingService) {}
+
+  @Patch(':id')
+  @RequirePermissions(PermissionKey.PRODUCT_PRICES_UPDATE)
+  @ApiOperation({ summary: 'Actualizar precio de producto' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ type: UpdateProductPriceDto })
+  update_product_price(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) product_price_id: number,
+    @Body() dto: UpdateProductPriceDto,
+  ) {
+    return this.pricing_service.update_product_price(
+      current_user,
+      product_price_id,
+      dto,
+    );
+  }
+}
