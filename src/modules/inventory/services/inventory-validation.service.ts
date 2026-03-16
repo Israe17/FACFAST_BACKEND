@@ -1,13 +1,15 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy';
 import { BranchesRepository } from '../../branches/repositories/branches.repository';
 import { ContactType } from '../../contacts/enums/contact-type.enum';
 import { ContactsRepository } from '../../contacts/repositories/contacts.repository';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import {
+  resolve_effective_branch_scope_ids,
+  resolve_effective_business_id,
+} from '../../common/utils/tenant-context.util';
 import { ProductType } from '../enums/product-type.enum';
 import { Brand } from '../entities/brand.entity';
 import { InventoryLot } from '../entities/inventory-lot.entity';
@@ -52,9 +54,7 @@ export class InventoryValidationService {
   resolve_accessible_branch_ids(
     current_user: AuthenticatedUserContext,
   ): number[] | undefined {
-    return this.branch_access_policy.is_owner(current_user)
-      ? undefined
-      : current_user.branch_ids;
+    return resolve_effective_branch_scope_ids(current_user);
   }
 
   async get_branch_for_operation(
@@ -63,10 +63,16 @@ export class InventoryValidationService {
   ) {
     const branch = await this.branches_repository.find_by_id_in_business(
       branch_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!branch) {
-      throw new NotFoundException('Branch not found.');
+      throw new DomainNotFoundException({
+        code: 'BRANCH_NOT_FOUND',
+        messageKey: 'branches.not_found',
+        details: {
+          branch_id,
+        },
+      });
     }
 
     this.branch_access_policy.assert_can_access_branch(current_user, branch.id);
@@ -83,7 +89,13 @@ export class InventoryValidationService {
         business_id,
       );
     if (!category) {
-      throw new NotFoundException('Product category not found.');
+      throw new DomainNotFoundException({
+        code: 'CATEGORY_NOT_FOUND',
+        messageKey: 'inventory.category_not_found',
+        details: {
+          category_id,
+        },
+      });
     }
 
     return category;
@@ -98,7 +110,13 @@ export class InventoryValidationService {
       business_id,
     );
     if (!brand) {
-      throw new NotFoundException('Brand not found.');
+      throw new DomainNotFoundException({
+        code: 'BRAND_NOT_FOUND',
+        messageKey: 'inventory.brand_not_found',
+        details: {
+          brand_id,
+        },
+      });
     }
 
     return brand;
@@ -114,7 +132,13 @@ export class InventoryValidationService {
         business_id,
       );
     if (!measurement_unit) {
-      throw new NotFoundException('Measurement unit not found.');
+      throw new DomainNotFoundException({
+        code: 'MEASUREMENT_UNIT_NOT_FOUND',
+        messageKey: 'inventory.measurement_unit_not_found',
+        details: {
+          measurement_unit_id,
+        },
+      });
     }
 
     return measurement_unit;
@@ -130,7 +154,13 @@ export class InventoryValidationService {
         business_id,
       );
     if (!tax_profile) {
-      throw new NotFoundException('Tax profile not found.');
+      throw new DomainNotFoundException({
+        code: 'TAX_PROFILE_NOT_FOUND',
+        messageKey: 'inventory.tax_profile_not_found',
+        details: {
+          tax_profile_id,
+        },
+      });
     }
 
     return tax_profile;
@@ -146,7 +176,13 @@ export class InventoryValidationService {
         business_id,
       );
     if (!warranty_profile) {
-      throw new NotFoundException('Warranty profile not found.');
+      throw new DomainNotFoundException({
+        code: 'WARRANTY_PROFILE_NOT_FOUND',
+        messageKey: 'inventory.warranty_profile_not_found',
+        details: {
+          warranty_profile_id,
+        },
+      });
     }
 
     return warranty_profile;
@@ -161,7 +197,13 @@ export class InventoryValidationService {
       business_id,
     );
     if (!product) {
-      throw new NotFoundException('Product not found.');
+      throw new DomainNotFoundException({
+        code: 'PRODUCT_NOT_FOUND',
+        messageKey: 'inventory.product_not_found',
+        details: {
+          product_id,
+        },
+      });
     }
 
     return product;
@@ -176,7 +218,13 @@ export class InventoryValidationService {
       business_id,
     );
     if (!price_list) {
-      throw new NotFoundException('Price list not found.');
+      throw new DomainNotFoundException({
+        code: 'PRICE_LIST_NOT_FOUND',
+        messageKey: 'inventory.price_list_not_found',
+        details: {
+          price_list_id,
+        },
+      });
     }
 
     return price_list;
@@ -188,15 +236,27 @@ export class InventoryValidationService {
   ): Promise<Warehouse> {
     const warehouse = await this.warehouses_repository.find_by_id_in_business(
       warehouse_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!warehouse) {
-      throw new NotFoundException('Warehouse not found.');
+      throw new DomainNotFoundException({
+        code: 'WAREHOUSE_NOT_FOUND',
+        messageKey: 'inventory.warehouse_not_found',
+        details: {
+          warehouse_id,
+        },
+      });
     }
 
-    this.branch_access_policy.assert_can_access_branch(
-      current_user,
+    const accessible_branch_ids = [
       warehouse.branch_id,
+      ...(warehouse.branch_links
+        ?.filter((branch_link) => branch_link.is_active)
+        .map((branch_link) => branch_link.branch_id) ?? []),
+    ];
+    this.branch_access_policy.assert_can_access_any_branch(
+      current_user,
+      Array.from(new Set(accessible_branch_ids)),
     );
     return warehouse;
   }
@@ -208,10 +268,16 @@ export class InventoryValidationService {
     const location =
       await this.warehouse_locations_repository.find_by_id_in_business(
         location_id,
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
       );
     if (!location) {
-      throw new NotFoundException('Warehouse location not found.');
+      throw new DomainNotFoundException({
+        code: 'WAREHOUSE_LOCATION_NOT_FOUND',
+        messageKey: 'inventory.warehouse_location_not_found',
+        details: {
+          location_id,
+        },
+      });
     }
 
     this.branch_access_policy.assert_can_access_branch(
@@ -228,10 +294,16 @@ export class InventoryValidationService {
     const inventory_lot =
       await this.inventory_lots_repository.find_by_id_in_business(
         inventory_lot_id,
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
       );
     if (!inventory_lot) {
-      throw new NotFoundException('Inventory lot not found.');
+      throw new DomainNotFoundException({
+        code: 'INVENTORY_LOT_NOT_FOUND',
+        messageKey: 'inventory.inventory_lot_not_found',
+        details: {
+          inventory_lot_id,
+        },
+      });
     }
 
     this.branch_access_policy.assert_can_access_branch(
@@ -250,16 +322,26 @@ export class InventoryValidationService {
       business_id,
     );
     if (!contact) {
-      throw new NotFoundException('Supplier contact not found.');
+      throw new DomainNotFoundException({
+        code: 'SUPPLIER_CONTACT_NOT_FOUND',
+        messageKey: 'inventory.supplier_contact_not_found',
+        details: {
+          contact_id,
+        },
+      });
     }
 
     if (
       contact.type !== ContactType.SUPPLIER &&
       contact.type !== ContactType.BOTH
     ) {
-      throw new BadRequestException(
-        'The selected contact is not a supplier-enabled contact.',
-      );
+      throw new DomainBadRequestException({
+        code: 'SUPPLIER_CONTACT_TYPE_INVALID',
+        messageKey: 'inventory.supplier_contact_type_invalid',
+        details: {
+          contact_id,
+        },
+      });
     }
 
     return contact;
@@ -270,9 +352,14 @@ export class InventoryValidationService {
     warehouse_id: number,
   ): void {
     if (location.warehouse_id !== warehouse_id) {
-      throw new BadRequestException(
-        'The warehouse location does not belong to the selected warehouse.',
-      );
+      throw new DomainBadRequestException({
+        code: 'WAREHOUSE_LOCATION_MISMATCH',
+        messageKey: 'inventory.warehouse_location_mismatch',
+        details: {
+          warehouse_id,
+          location_id: location.id,
+        },
+      });
     }
   }
 
@@ -284,18 +371,26 @@ export class InventoryValidationService {
       product_type === ProductType.PRODUCT &&
       tax_profile.item_kind !== TaxProfileItemKind.GOODS
     ) {
-      throw new BadRequestException(
-        'Goods products require a goods tax profile.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PRODUCT_TAX_PROFILE_ITEM_KIND_INVALID',
+        messageKey: 'inventory.product_tax_profile_goods_required',
+        details: {
+          tax_profile_id: tax_profile.id,
+        },
+      });
     }
 
     if (
       product_type === ProductType.SERVICE &&
       tax_profile.item_kind !== TaxProfileItemKind.SERVICE
     ) {
-      throw new BadRequestException(
-        'Service items require a service tax profile.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PRODUCT_TAX_PROFILE_ITEM_KIND_INVALID',
+        messageKey: 'inventory.product_tax_profile_service_required',
+        details: {
+          tax_profile_id: tax_profile.id,
+        },
+      });
     }
   }
 
@@ -304,9 +399,13 @@ export class InventoryValidationService {
       product.type === ProductType.SERVICE ||
       product.track_inventory === false
     ) {
-      throw new BadRequestException(
-        'This product does not support inventory tracking.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PRODUCT_INVENTORY_TRACKING_REQUIRED',
+        messageKey: 'inventory.product_inventory_tracking_required',
+        details: {
+          product_id: product.id,
+        },
+      });
     }
   }
 }

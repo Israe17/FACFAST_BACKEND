@@ -1,11 +1,9 @@
-import {
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Request, Response } from 'express';
+import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
+import { DomainUnauthorizedException } from '../../common/errors/exceptions/domain-unauthorized.exception';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { JwtAccessPayload } from '../../common/interfaces/jwt-access-payload.interface';
@@ -32,18 +30,19 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto, request: Request, response: Response) {
-    const user = await this.users_service.find_user_for_login(
-      dto.business_id,
-      dto.email,
-    );
+    const user = await this.users_service.find_user_for_login(dto.email);
     if (!user || !user.password_hash) {
-      throw new UnauthorizedException('Invalid credentials.');
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        messageKey: 'auth.invalid_credentials',
+      });
     }
 
     if (user.status !== UserStatus.ACTIVE || user.allow_login === false) {
-      throw new ForbiddenException(
-        'This user is not allowed to login in the current state.',
-      );
+      throw new DomainForbiddenException({
+        code: 'AUTH_LOGIN_FORBIDDEN_STATE',
+        messageKey: 'auth.login_forbidden_state',
+      });
     }
 
     const password_matches = await this.password_hash_service.verify(
@@ -51,7 +50,10 @@ export class AuthService {
       dto.password,
     );
     if (!password_matches) {
-      throw new UnauthorizedException('Invalid credentials.');
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        messageKey: 'auth.invalid_credentials',
+      });
     }
 
     const authenticated_user =
@@ -61,15 +63,17 @@ export class AuthService {
         false,
       );
     if (!authenticated_user) {
-      throw new UnauthorizedException(
-        'Could not resolve authenticated user context.',
-      );
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_CONTEXT_RESOLUTION_FAILED',
+        messageKey: 'auth.context_resolution_failed',
+      });
     }
 
     if (!authenticated_user.permissions.includes('auth.login')) {
-      throw new ForbiddenException(
-        'The user does not have permission to login.',
-      );
+      throw new DomainForbiddenException({
+        code: 'AUTH_LOGIN_PERMISSION_DENIED',
+        messageKey: 'auth.login_permission_denied',
+      });
     }
 
     const token_pair = await this.issue_session(authenticated_user, request);
@@ -77,7 +81,7 @@ export class AuthService {
     this.set_auth_cookies(response, token_pair);
 
     return {
-      user: authenticated_user,
+      user: this.sanitize_authenticated_user(authenticated_user),
     };
   }
 
@@ -88,9 +92,10 @@ export class AuthService {
     response: Response,
   ) {
     if (!refresh_user.permissions.includes('auth.refresh')) {
-      throw new ForbiddenException(
-        'The user does not have permission to refresh sessions.',
-      );
+      throw new DomainForbiddenException({
+        code: 'AUTH_REFRESH_PERMISSION_DENIED',
+        messageKey: 'auth.refresh_permission_denied',
+      });
     }
 
     const persisted_token =
@@ -98,25 +103,36 @@ export class AuthService {
         refresh_user.session_id,
       );
     if (!persisted_token?.token_hash) {
-      throw new UnauthorizedException('Refresh session not found.');
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_REFRESH_SESSION_NOT_FOUND',
+        messageKey: 'auth.refresh_session_not_found',
+      });
     }
 
     if (persisted_token.user_id !== refresh_user.id) {
-      throw new UnauthorizedException(
-        'Refresh session does not belong to the user.',
-      );
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_REFRESH_SESSION_USER_MISMATCH',
+        messageKey: 'auth.refresh_session_user_mismatch',
+      });
     }
     if (persisted_token.business_id !== refresh_user.business_id) {
-      throw new UnauthorizedException(
-        'Refresh session does not belong to the business.',
-      );
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_REFRESH_SESSION_BUSINESS_MISMATCH',
+        messageKey: 'auth.refresh_session_business_mismatch',
+      });
     }
     if (persisted_token.revoked_at) {
-      throw new UnauthorizedException('Refresh session has been revoked.');
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_REFRESH_SESSION_REVOKED',
+        messageKey: 'auth.refresh_session_revoked',
+      });
     }
     if (persisted_token.expires_at.getTime() <= Date.now()) {
       await this.refresh_tokens_repository.revoke(persisted_token.id);
-      throw new UnauthorizedException('Refresh session has expired.');
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_REFRESH_SESSION_EXPIRED',
+        messageKey: 'auth.refresh_session_expired',
+      });
     }
 
     const token_matches = await this.password_hash_service.verify(
@@ -125,7 +141,10 @@ export class AuthService {
     );
     if (!token_matches) {
       await this.refresh_tokens_repository.revoke(persisted_token.id);
-      throw new UnauthorizedException('Refresh token mismatch.');
+      throw new DomainUnauthorizedException({
+        code: 'AUTH_REFRESH_TOKEN_MISMATCH',
+        messageKey: 'auth.refresh_token_mismatch',
+      });
     }
 
     await this.refresh_tokens_repository.revoke(persisted_token.id);
@@ -133,7 +152,7 @@ export class AuthService {
     this.set_auth_cookies(response, token_pair);
 
     return {
-      user: refresh_user,
+      user: this.sanitize_authenticated_user(refresh_user),
     };
   }
 
@@ -167,7 +186,7 @@ export class AuthService {
   }
 
   get_me(current_user: AuthenticatedUserContext) {
-    return current_user;
+    return this.sanitize_authenticated_user(current_user);
   }
 
   private async issue_session(
@@ -185,6 +204,8 @@ export class AuthService {
     let refresh_session = this.refresh_tokens_repository.create({
       user_id: authenticated_user.id,
       business_id: authenticated_user.business_id,
+      acting_business_id: authenticated_user.acting_business_id,
+      acting_branch_id: authenticated_user.acting_branch_id,
       token_hash: 'pending',
       expires_at,
       revoked_at: null,
@@ -199,11 +220,9 @@ export class AuthService {
       sub: authenticated_user.id,
       business_id: authenticated_user.business_id,
       email: authenticated_user.email,
-    };
-    const refresh_payload: JwtRefreshPayload = {
-      ...access_payload,
       session_id: refresh_session.id,
     };
+    const refresh_payload: JwtRefreshPayload = { ...access_payload };
 
     const [access_token, refresh_token] = await Promise.all([
       this.jwt_service.signAsync(access_payload, {
@@ -308,5 +327,19 @@ export class AuthService {
         secure,
       },
     );
+  }
+
+  private sanitize_authenticated_user(
+    current_user: AuthenticatedUserContext,
+  ): Omit<AuthenticatedUserContext, 'session_id'> {
+    return this.strip_session_id(current_user);
+  }
+
+  private strip_session_id({
+    session_id,
+    ...safe_user
+  }: AuthenticatedUserContext): Omit<AuthenticatedUserContext, 'session_id'> {
+    void session_id;
+    return safe_user;
   }
 }

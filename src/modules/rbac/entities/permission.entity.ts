@@ -1,8 +1,9 @@
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, Index, OneToMany } from 'typeorm';
 import { BaseCodeEntity } from '../../common/entities/base-code.entity';
 import { RolePermission } from './role-permission.entity';
 
 @Entity('permissions')
+@Index(['code'], { unique: true })
 export class Permission extends BaseCodeEntity {
   @Column({
     type: 'varchar',

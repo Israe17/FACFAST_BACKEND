@@ -5,6 +5,7 @@ import { EntityCodeService } from '../../common/services/entity-code.service';
 import { User } from '../entities/user.entity';
 
 const user_relations = {
+  business: true,
   user_roles: {
     role: {
       role_permissions: {
@@ -70,6 +71,7 @@ export class UsersRepository {
     return this.user_repository
       .createQueryBuilder('user')
       .addSelect('user.password_hash')
+      .leftJoinAndSelect('user.business', 'business')
       .leftJoinAndSelect('user.user_roles', 'user_role')
       .leftJoinAndSelect('user_role.role', 'role')
       .leftJoinAndSelect('role.role_permissions', 'role_permission')
@@ -81,33 +83,28 @@ export class UsersRepository {
       .getOne();
   }
 
-  async find_by_email_for_login(
-    business_id: number,
-    email: string,
-  ): Promise<User | null> {
+  async find_by_email_for_login(email: string): Promise<User | null> {
     return this.user_repository
       .createQueryBuilder('user')
       .addSelect('user.password_hash')
+      .leftJoinAndSelect('user.business', 'business')
       .leftJoinAndSelect('user.user_roles', 'user_role')
       .leftJoinAndSelect('user_role.role', 'role')
       .leftJoinAndSelect('role.role_permissions', 'role_permission')
       .leftJoinAndSelect('role_permission.permission', 'permission')
       .leftJoinAndSelect('user.user_branch_access', 'user_branch_access')
       .leftJoinAndSelect('user_branch_access.branch', 'branch')
-      .where('user.business_id = :business_id', { business_id })
-      .andWhere('LOWER(user.email) = LOWER(:email)', { email })
+      .where('LOWER(user.email) = LOWER(:email)', { email })
       .getOne();
   }
 
-  async exists_email_in_business(
-    business_id: number,
+  async exists_email(
     email: string,
     excluded_user_id?: number,
   ): Promise<boolean> {
     const query_builder = this.user_repository
       .createQueryBuilder('user')
-      .where('user.business_id = :business_id', { business_id })
-      .andWhere('LOWER(user.email) = LOWER(:email)', { email });
+      .where('LOWER(user.email) = LOWER(:email)', { email });
 
     if (excluded_user_id) {
       query_builder.andWhere('user.id != :excluded_user_id', {

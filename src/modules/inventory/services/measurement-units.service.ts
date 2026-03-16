@@ -1,10 +1,9 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateMeasurementUnitDto } from '../dto/create-measurement-unit.dto';
 import { UpdateMeasurementUnitDto } from '../dto/update-measurement-unit.dto';
 import { MeasurementUnit } from '../entities/measurement-unit.entity';
@@ -18,9 +17,9 @@ export class MeasurementUnitsService {
   ) {}
 
   async get_measurement_units(current_user: AuthenticatedUserContext) {
-    const units = await this.measurement_units_repository.find_all_by_business(
-      current_user.business_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const units =
+      await this.measurement_units_repository.find_all_by_business(business_id);
     return units.map((unit) => this.serialize_unit(unit));
   }
 
@@ -28,16 +27,21 @@ export class MeasurementUnitsService {
     current_user: AuthenticatedUserContext,
     dto: CreateMeasurementUnitDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     if (
       await this.measurement_units_repository.exists_name_or_symbol_in_business(
-        current_user.business_id,
+        business_id,
         dto.name.trim(),
         dto.symbol.trim(),
       )
     ) {
-      throw new ConflictException(
-        'A measurement unit with this name or symbol already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'MEASUREMENT_UNIT_NAME_OR_SYMBOL_DUPLICATE',
+        messageKey: 'inventory.measurement_unit_name_or_symbol_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -47,7 +51,7 @@ export class MeasurementUnitsService {
     return this.serialize_unit(
       await this.measurement_units_repository.save(
         this.measurement_units_repository.create({
-          business_id: current_user.business_id,
+          business_id,
           code: dto.code?.trim() ?? null,
           name: dto.name.trim(),
           symbol: dto.symbol.trim(),
@@ -63,7 +67,7 @@ export class MeasurementUnitsService {
   ) {
     return this.serialize_unit(
       await this.get_measurement_unit_entity(
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
         measurement_unit_id,
       ),
     );
@@ -74,8 +78,9 @@ export class MeasurementUnitsService {
     measurement_unit_id: number,
     dto: UpdateMeasurementUnitDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const measurement_unit = await this.get_measurement_unit_entity(
-      current_user.business_id,
+      business_id,
       measurement_unit_id,
     );
 
@@ -83,15 +88,19 @@ export class MeasurementUnitsService {
     const next_symbol = dto.symbol?.trim() ?? measurement_unit.symbol;
     if (
       await this.measurement_units_repository.exists_name_or_symbol_in_business(
-        current_user.business_id,
+        business_id,
         next_name,
         next_symbol,
         measurement_unit.id,
       )
     ) {
-      throw new ConflictException(
-        'A measurement unit with this name or symbol already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'MEASUREMENT_UNIT_NAME_OR_SYMBOL_DUPLICATE',
+        messageKey: 'inventory.measurement_unit_name_or_symbol_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -123,7 +132,13 @@ export class MeasurementUnitsService {
         business_id,
       );
     if (!measurement_unit) {
-      throw new NotFoundException('Measurement unit not found.');
+      throw new DomainNotFoundException({
+        code: 'MEASUREMENT_UNIT_NOT_FOUND',
+        messageKey: 'inventory.measurement_unit_not_found',
+        details: {
+          measurement_unit_id,
+        },
+      });
     }
 
     return measurement_unit;

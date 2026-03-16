@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { Branch } from '../../branches/entities/branch.entity';
 import { Business } from '../../common/entities/business.entity';
 import { CreatedCodeEntity } from '../../common/entities/created-code.entity';
@@ -11,6 +11,7 @@ import { WarehouseLocation } from './warehouse-location.entity';
 import { Warehouse } from './warehouse.entity';
 
 @Entity('inventory_movements')
+@Index(['business_id', 'code'], { unique: true })
 export class InventoryMovement extends CreatedCodeEntity {
   @Column({
     type: 'int',

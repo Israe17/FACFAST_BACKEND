@@ -13,6 +13,7 @@ import { Product } from './product.entity';
 
 @Entity('warranty_profiles')
 @Index(['business_id', 'name'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class WarrantyProfile extends AuditedCodeEntity {
   @Column({
     type: 'int',

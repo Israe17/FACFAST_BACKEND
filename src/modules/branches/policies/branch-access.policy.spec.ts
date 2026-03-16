@@ -1,3 +1,5 @@
+import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
+import { AuthenticatedUserMode } from '../../common/enums/authenticated-user-mode.enum';
 import { UserType } from '../../common/enums/user-type.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { BranchAccessPolicy } from './branch-access.policy';
@@ -20,6 +22,11 @@ describe('BranchAccessPolicy', () => {
       branch_ids: [],
       max_sale_discount: 100,
       user_type: UserType.OWNER,
+      is_platform_admin: false,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.TENANT,
+      session_id: null,
     };
 
     expect(() =>
@@ -38,10 +45,31 @@ describe('BranchAccessPolicy', () => {
       branch_ids: [1, 2],
       max_sale_discount: 0,
       user_type: UserType.STAFF,
+      is_platform_admin: false,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.TENANT,
+      session_id: null,
     };
 
     expect(() => policy.assert_can_access_branch(current_user, 3)).toThrow(
-      'The user does not have access to this branch.',
+      DomainForbiddenException,
     );
+
+    try {
+      policy.assert_can_access_branch(current_user, 3);
+    } catch (error) {
+      const response = (error as DomainForbiddenException).getResponse() as {
+        code: string;
+        messageKey: string;
+        details: Record<string, unknown>;
+      };
+
+      expect(response.code).toBe('BRANCH_ACCESS_FORBIDDEN');
+      expect(response.messageKey).toBe('branches.access_forbidden');
+      expect(response.details).toEqual({
+        branch_id: 3,
+      });
+    }
   });
 });

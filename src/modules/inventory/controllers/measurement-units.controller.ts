@@ -17,11 +17,14 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
+import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { CreateMeasurementUnitDto } from '../dto/create-measurement-unit.dto';
 import { UpdateMeasurementUnitDto } from '../dto/update-measurement-unit.dto';
@@ -32,7 +35,9 @@ import { MeasurementUnitsService } from '../services/measurement-units.service';
 @ApiUnauthorizedResponse({ description: 'Access token invalido o ausente.' })
 @ApiForbiddenResponse({ description: 'Permisos insuficientes.' })
 @Controller('measurement-units')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AllowPlatformPermissionOverride()
+@AllowPlatformTenantContext()
+@UseGuards(JwtAuthGuard, TenantContextGuard, PermissionsGuard)
 export class MeasurementUnitsController {
   constructor(
     private readonly measurement_units_service: MeasurementUnitsService,

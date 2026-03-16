@@ -13,7 +13,9 @@ export function validate_env(env: Environment): Environment {
   assert_required(env.JWT_REFRESH_SECRET, 'JWT_REFRESH_SECRET');
   assert_required(env.FIELD_ENCRYPTION_KEY, 'FIELD_ENCRYPTION_KEY');
 
-  if (env.DB_USE_PG_MEM !== 'true') {
+  const has_database_url = Boolean(env.DATABASE_URL);
+
+  if (env.DB_USE_PG_MEM !== 'true' && !has_database_url) {
     assert_required(env.DB_HOST, 'DB_HOST');
     assert_required(env.DB_PORT, 'DB_PORT');
     assert_required(env.DB_USERNAME, 'DB_USERNAME');

@@ -15,11 +15,14 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
+import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
+import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { UpdateProductPriceDto } from '../dto/update-product-price.dto';
 import { PricingService } from '../services/pricing.service';
@@ -29,7 +32,9 @@ import { PricingService } from '../services/pricing.service';
 @ApiUnauthorizedResponse({ description: 'Access token invalido o ausente.' })
 @ApiForbiddenResponse({ description: 'Permisos insuficientes.' })
 @Controller('product-prices')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AllowPlatformPermissionOverride()
+@AllowPlatformTenantContext()
+@UseGuards(JwtAuthGuard, TenantContextGuard, PermissionsGuard)
 export class ProductPricesController {
   constructor(private readonly pricing_service: PricingService) {}
 

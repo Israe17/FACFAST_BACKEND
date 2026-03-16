@@ -1,9 +1,11 @@
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Request, Response } from 'express';
 import type { RefreshToken } from '../entities/refresh-token.entity';
+import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
+import { DomainUnauthorizedException } from '../../common/errors/exceptions/domain-unauthorized.exception';
 import type { User } from '../../users/entities/user.entity';
+import { AuthenticatedUserMode } from '../../common/enums/authenticated-user-mode.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserType } from '../../common/enums/user-type.enum';
 import { PasswordHashService } from '../../common/services/password-hash.service';
@@ -95,6 +97,11 @@ describe('AuthService', () => {
       branch_ids: [1],
       max_sale_discount: 0,
       user_type: UserType.STAFF,
+      is_platform_admin: false,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.TENANT,
+      session_id: null,
     });
     refresh_tokens_repository.save
       .mockResolvedValueOnce({ id: 1, code: 'RT-0001' } as RefreshToken)
@@ -110,7 +117,6 @@ describe('AuthService', () => {
     };
     const result = await service.login(
       {
-        business_id: 4,
         email: 'admin@test.com',
         password: 'Password123',
       },
@@ -124,6 +130,7 @@ describe('AuthService', () => {
     );
 
     expect(result.user.email).toBe('admin@test.com');
+    expect(result.user).not.toHaveProperty('session_id');
     expect(response.cookie).toHaveBeenCalledTimes(2);
     expect(users_service.update_last_login.mock.calls).toContainEqual([10, 4]);
   });
@@ -148,19 +155,23 @@ describe('AuthService', () => {
       branch_ids: [1],
       max_sale_discount: 0,
       user_type: UserType.STAFF,
+      is_platform_admin: false,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.TENANT,
+      session_id: null,
     });
 
     await expect(
       service.login(
         {
-          business_id: 4,
           email: 'admin@test.com',
           password: 'Password123',
         },
         { headers: {}, ip: '127.0.0.1' } as Request,
         { cookie: jest.fn(), clearCookie: jest.fn() } as unknown as Response,
       ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(DomainForbiddenException);
   });
 
   it('rotates refresh tokens during refresh', async () => {
@@ -168,6 +179,8 @@ describe('AuthService', () => {
       id: 5,
       user_id: 10,
       business_id: 4,
+      acting_business_id: null,
+      acting_branch_id: null,
       token_hash: 'stored-hash',
       expires_at: new Date(Date.now() + 60_000),
       revoked_at: null,
@@ -191,6 +204,10 @@ describe('AuthService', () => {
         branch_ids: [1],
         max_sale_discount: 0,
         user_type: UserType.STAFF,
+        is_platform_admin: false,
+        acting_business_id: null,
+        acting_branch_id: null,
+        mode: AuthenticatedUserMode.TENANT,
         session_id: 5,
       },
       'presented-refresh-token',
@@ -208,7 +225,12 @@ describe('AuthService', () => {
   });
 
   it('clears cookies on logout even with invalid refresh token', async () => {
-    jwt_service.verifyAsync.mockRejectedValue(new UnauthorizedException());
+    jwt_service.verifyAsync.mockRejectedValue(
+      new DomainUnauthorizedException({
+        code: 'AUTH_REFRESH_SESSION_NOT_FOUND',
+        messageKey: 'auth.refresh_session_not_found',
+      }),
+    );
 
     const response: MockCookieResponse = {
       cookie: jest.fn(),

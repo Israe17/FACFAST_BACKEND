@@ -15,6 +15,7 @@ import { TaxType } from '../enums/tax-type.enum';
 
 @Entity('tax_profiles')
 @Index(['business_id', 'name'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class TaxProfile extends AuditedCodeEntity {
   @Column({
     type: 'int',

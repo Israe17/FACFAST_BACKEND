@@ -1,18 +1,19 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy';
+import { BusinessesRepository } from '../../businesses/repositories/businesses.repository';
+import { AuthenticatedUserMode } from '../../common/enums/authenticated-user-mode.enum';
 import { BranchesRepository } from '../../branches/repositories/branches.repository';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserType } from '../../common/enums/user-type.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { PasswordHashService } from '../../common/services/password-hash.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { RolesRepository } from '../../rbac/repositories/roles.repository';
 import { AssignUserBranchesDto } from '../dto/assign-user-branches.dto';
 import { AssignUserRolesDto } from '../dto/assign-user-roles.dto';
@@ -26,12 +27,19 @@ import { User } from '../entities/user.entity';
 import { UserManagementPolicy } from '../policies/user-management.policy';
 import { UsersRepository } from '../repositories/users.repository';
 
+type SessionContextState = {
+  session_id?: number | null;
+  acting_business_id?: number | null;
+  acting_branch_id?: number | null;
+};
+
 @Injectable()
 export class UsersService {
   constructor(
     private readonly users_repository: UsersRepository,
     private readonly roles_repository: RolesRepository,
     private readonly branches_repository: BranchesRepository,
+    private readonly businesses_repository: BusinessesRepository,
     private readonly user_management_policy: UserManagementPolicy,
     private readonly branch_access_policy: BranchAccessPolicy,
     private readonly password_hash_service: PasswordHashService,
@@ -43,8 +51,9 @@ export class UsersService {
   ) {}
 
   async get_users(current_user: AuthenticatedUserContext) {
+    const effective_business_id = resolve_effective_business_id(current_user);
     const users = await this.users_repository.find_all_by_business(
-      current_user.business_id,
+      effective_business_id,
     );
     return users.map((user) => this.serialize_user(user));
   }
@@ -53,15 +62,17 @@ export class UsersService {
     current_user: AuthenticatedUserContext,
     dto: CreateUserDto,
   ) {
-    if (
-      await this.users_repository.exists_email_in_business(
-        current_user.business_id,
-        dto.email,
-      )
-    ) {
-      throw new ConflictException(
-        'A user with this email already exists in the business.',
-      );
+    const effective_business_id = resolve_effective_business_id(current_user);
+    const normalized_email = this.normalize_email(dto.email);
+
+    if (await this.users_repository.exists_email(normalized_email)) {
+      throw new DomainConflictException({
+        code: 'USER_EMAIL_DUPLICATE',
+        messageKey: 'users.email_duplicate',
+        details: {
+          field: 'email',
+        },
+      });
     }
 
     if (dto.code) {
@@ -71,10 +82,10 @@ export class UsersService {
     this.assert_user_type_assignment(current_user, dto.user_type);
 
     const user = this.users_repository.create({
-      business_id: current_user.business_id,
+      business_id: effective_business_id,
       code: dto.code ?? null,
       name: dto.name.trim(),
-      email: dto.email.trim().toLowerCase(),
+      email: normalized_email,
       password_hash: await this.password_hash_service.hash(dto.password),
       status: dto.status ?? UserStatus.ACTIVE,
       allow_login: dto.allow_login ?? true,
@@ -107,17 +118,21 @@ export class UsersService {
     const user = await this.get_user_entity(current_user, user_id);
 
     if (dto.email) {
-      const duplicated = await this.users_repository.exists_email_in_business(
-        current_user.business_id,
-        dto.email,
+      const normalized_email = this.normalize_email(dto.email);
+      const duplicated = await this.users_repository.exists_email(
+        normalized_email,
         user.id,
       );
       if (duplicated) {
-        throw new ConflictException(
-          'A user with this email already exists in the business.',
-        );
+        throw new DomainConflictException({
+          code: 'USER_EMAIL_DUPLICATE',
+          messageKey: 'users.email_duplicate',
+          details: {
+            field: 'email',
+          },
+        });
       }
-      user.email = dto.email.trim().toLowerCase();
+      user.email = normalized_email;
     }
 
     if (dto.code) {
@@ -195,13 +210,16 @@ export class UsersService {
     user_id: number,
   ) {
     const user = await this.get_user_entity(current_user, user_id);
-    return this.build_authenticated_context(user);
+    const active_business_language =
+      await this.resolve_active_business_language(user);
+    return this.build_authenticated_context(user, active_business_language);
   }
 
   async get_authenticated_context(
     user_id: number,
     business_id: number,
     active_only = true,
+    session_context?: SessionContextState,
   ): Promise<AuthenticatedUserContext | null> {
     const user = await this.users_repository.find_by_id_in_business(
       user_id,
@@ -218,14 +236,19 @@ export class UsersService {
       return null;
     }
 
-    return this.build_authenticated_context(user);
+    const active_business_language =
+      await this.resolve_active_business_language(user, session_context);
+    return this.build_authenticated_context(
+      user,
+      active_business_language,
+      session_context,
+    );
   }
 
-  async find_user_for_login(
-    business_id: number,
-    email: string,
-  ): Promise<User | null> {
-    return this.users_repository.find_by_email_for_login(business_id, email);
+  async find_user_for_login(email: string): Promise<User | null> {
+    return this.users_repository.find_by_email_for_login(
+      this.normalize_email(email),
+    );
   }
 
   async update_last_login(user_id: number, business_id: number): Promise<void> {
@@ -248,10 +271,16 @@ export class UsersService {
   ): Promise<User> {
     const user = await this.users_repository.find_by_id_in_business(
       user_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!user) {
-      throw new NotFoundException('User not found.');
+      throw new DomainNotFoundException({
+        code: 'USER_NOT_FOUND',
+        messageKey: 'users.not_found',
+        details: {
+          user_id,
+        },
+      });
     }
 
     this.user_management_policy.assert_can_manage_user(current_user, user);
@@ -265,12 +294,16 @@ export class UsersService {
   ): Promise<void> {
     const roles = await this.roles_repository.find_many_by_ids_in_business(
       role_ids,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (roles.length !== role_ids.length) {
-      throw new BadRequestException(
-        'One or more roles do not belong to the business.',
-      );
+      throw new DomainBadRequestException({
+        code: 'USER_INVALID_ROLES_FOR_BUSINESS',
+        messageKey: 'users.invalid_roles_for_business',
+        details: {
+          field: 'role_ids',
+        },
+      });
     }
 
     await this.user_role_repository.delete({
@@ -301,12 +334,16 @@ export class UsersService {
     const branches =
       await this.branches_repository.find_many_by_ids_in_business(
         branch_ids,
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
       );
     if (branches.length !== branch_ids.length) {
-      throw new BadRequestException(
-        'One or more branches do not belong to the authenticated business.',
-      );
+      throw new DomainBadRequestException({
+        code: 'USER_INVALID_BRANCHES_FOR_BUSINESS',
+        messageKey: 'users.invalid_branches_for_business',
+        details: {
+          field: 'branch_ids',
+        },
+      });
     }
 
     await this.user_branch_access_repository.delete({
@@ -333,9 +370,10 @@ export class UsersService {
     }
 
     if (user_type === UserType.SYSTEM) {
-      throw new BadRequestException(
-        'System users cannot be created or updated through the API.',
-      );
+      throw new DomainBadRequestException({
+        code: 'USER_SYSTEM_API_FORBIDDEN',
+        messageKey: 'users.system_user_api_forbidden',
+      });
     }
 
     if (user_type === UserType.OWNER) {
@@ -345,10 +383,39 @@ export class UsersService {
     }
   }
 
-  private build_authenticated_context(user: User): AuthenticatedUserContext {
-    const roles = user.user_roles
+  private normalize_email(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  private async resolve_active_business_language(
+    user: User,
+    session_context?: SessionContextState,
+  ): Promise<string | null> {
+    const active_business_id = user.is_platform_admin
+      ? (session_context?.acting_business_id ?? null)
+      : user.business_id;
+
+    if (active_business_id === null) {
+      return null;
+    }
+
+    if (active_business_id === user.business_id) {
+      return user.business?.language ?? null;
+    }
+
+    return (
+      (await this.businesses_repository.find_by_id(active_business_id))
+        ?.language ?? null
+    );
+  }
+
+  private collect_role_keys(user: User): string[] {
+    return user.user_roles
       ?.map((user_role) => user_role.role?.role_key)
       .filter(Boolean) as string[];
+  }
+
+  private collect_permissions(user: User): string[] {
     const permissions = new Set<string>();
     for (const user_role of user.user_roles ?? []) {
       for (const role_permission of user_role.role?.role_permissions ?? []) {
@@ -358,20 +425,59 @@ export class UsersService {
       }
     }
 
-    const branch_ids = [
+    if (user.is_platform_admin) {
+      permissions.add('auth.login');
+      permissions.add('auth.refresh');
+    }
+
+    return [...permissions].sort();
+  }
+
+  private collect_branch_ids(user: User): number[] {
+    return [
       ...new Set((user.user_branch_access ?? []).map((item) => item.branch_id)),
     ].sort((left, right) => left - right);
+  }
+
+  private build_authenticated_context(
+    user: User,
+    active_business_language: string | null,
+    session_context?: SessionContextState,
+  ): AuthenticatedUserContext {
+    const roles = this.collect_role_keys(user);
+    const permissions = this.collect_permissions(user);
+    const branch_ids = this.collect_branch_ids(user);
+
+    const is_platform_admin = user.is_platform_admin ?? false;
+    const acting_business_id = is_platform_admin
+      ? (session_context?.acting_business_id ?? null)
+      : null;
+    const acting_branch_id =
+      is_platform_admin && acting_business_id !== null
+        ? (session_context?.acting_branch_id ?? null)
+        : null;
+    const mode = !is_platform_admin
+      ? AuthenticatedUserMode.TENANT
+      : acting_business_id !== null
+        ? AuthenticatedUserMode.TENANT_CONTEXT
+        : AuthenticatedUserMode.PLATFORM;
 
     return {
       id: user.id,
       business_id: user.business_id,
+      active_business_language,
       email: user.email,
       name: user.name,
       roles,
-      permissions: [...permissions].sort(),
+      permissions,
       branch_ids,
       max_sale_discount: Number(user.max_sale_discount ?? 0),
       user_type: user.user_type,
+      is_platform_admin,
+      acting_business_id,
+      acting_branch_id,
+      mode,
+      session_id: session_context?.session_id ?? null,
     };
   }
 
@@ -385,6 +491,7 @@ export class UsersService {
       status: user.status,
       allow_login: user.allow_login,
       user_type: user.user_type,
+      is_platform_admin: user.is_platform_admin ?? false,
       max_sale_discount: Number(user.max_sale_discount ?? 0),
       last_login_at: user.last_login_at,
       created_at: user.created_at,
@@ -407,7 +514,7 @@ export class UsersService {
           branch_number: item.branch?.branch_number,
           business_name: item.branch?.business_name,
         })) ?? [],
-      effective_permissions: this.build_authenticated_context(user).permissions,
+      effective_permissions: this.collect_permissions(user),
     };
   }
 }

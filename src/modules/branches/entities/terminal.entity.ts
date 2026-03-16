@@ -4,6 +4,7 @@ import { Branch } from './branch.entity';
 
 @Entity('terminals')
 @Index(['branch_id', 'terminal_number'], { unique: true })
+@Index(['code'], { unique: true })
 export class Terminal extends AuditedCodeEntity {
   @Column({
     type: 'int',

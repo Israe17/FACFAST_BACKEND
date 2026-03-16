@@ -17,6 +17,7 @@ import { WarehouseLocation } from './warehouse-location.entity';
 import { Warehouse } from './warehouse.entity';
 
 @Entity('inventory_lots')
+@Index(['business_id', 'code'], { unique: true })
 @Index(['warehouse_id', 'product_id', 'lot_number'], { unique: true })
 export class InventoryLot extends AuditedCodeEntity {
   @Column({

@@ -1,17 +1,17 @@
 # Backend Auth Architecture
 
-## Objetivo de esta fase
+## Objetivo
 
 Base backend en NestJS para:
 
-- autenticación con JWT access + refresh rotativo
+- autenticacion con JWT access + refresh rotativo
 - cookies HttpOnly para frontend separado con `credentials: include`
 - sesiones persistidas y revocables por dispositivo
 - usuarios, roles y permisos
 - aislamiento multiempresa por `business_id`
 - acceso operativo por `branch_id`
 
-## Estructura de módulos
+## Estructura de modulos
 
 ```text
 src/
@@ -61,15 +61,15 @@ src/
 
 ## Ajustes de estructura
 
-- Se agregó `common/services` porque `argon2`, AES-GCM y generación de `code` son providers inyectables, no simples utilidades.
-- `Business` quedó en `common/entities` porque en esta fase no existe módulo `businesses`, pero sí se necesita FK real desde tablas tenant-aware.
-- `roles.role_key` se agregó para conservar el código funcional del rol (`owner`, `admin`, etc.) porque `roles.code` ahora es el identificador funcional autogenerado (`RL-0001`).
+- `common/services` contiene providers inyectables para Argon2, AES-GCM y generacion de `code`.
+- `Business` vive en `common/entities` porque se necesita FK real sin abrir aun un modulo `businesses`.
+- `roles.role_key` conserva el identificador funcional (`owner`, `admin`, etc.) mientras `roles.code` es el identificador visible autogenerado (`RL-0001`).
 
 ## Modelo de identificadores
 
 - PK internas: `id` autoincremental.
-- Relaciones/FK: siempre por `id`, nunca por `code`.
-- `code` funcional separado, único por tabla, editable con validación.
+- Relaciones/FK: siempre por `id`.
+- `code` funcional separado, unico por tabla y editable con validacion.
 - Prefijos implementados:
   - `BS` businesses
   - `US` users
@@ -100,16 +100,16 @@ Formato soportado:
 
 Restricciones clave:
 
-- `users.email` único por `business_id`
-- `roles.role_key` único por `business_id`
-- `branches.branch_number` único por `business_id`
-- `terminals.terminal_number` único por `branch_id`
-- `permissions.key` único global
-- `branch_number` de 3 dígitos
-- `terminal_number` de 5 dígitos
-- `cedula_juridica` numérica
+- `users.email` unico global
+- `roles.role_key` unico por `business_id`
+- `branches.branch_number` unico por `business_id`
+- `terminals.terminal_number` unico por `branch_id`
+- `permissions.key` unico global
+- `branch_number` de 3 digitos
+- `terminal_number` de 5 digitos
+- `cedula_juridica` numerica
 
-## Bootstrap técnico
+## Bootstrap tecnico
 
 - `ConfigModule` global
 - `TypeOrmModule` con PostgreSQL
@@ -134,13 +134,13 @@ Restricciones clave:
 
 `POST /auth/login`
 
-1. recibe `business_id`, `email`, `password`
-2. busca usuario dentro del tenant
+1. recibe `email`, `password`
+2. busca usuario por email y resuelve su `business_id`
 3. bloquea si `status != active` o `allow_login = false`
 4. valida password Argon2id
 5. resuelve contexto autenticado con roles, permisos y sucursales
 6. exige permiso `auth.login`
-7. crea sesión `refresh_tokens`
+7. crea sesion en `refresh_tokens`
 8. firma `access_token` y `refresh_token`
 9. guarda el refresh token hasheado
 10. responde cookies HttpOnly
@@ -153,10 +153,10 @@ Restricciones clave:
 2. valida firma JWT con estrategia `jwt-refresh`
 3. resuelve usuario activo
 4. exige permiso `auth.refresh`
-5. busca la sesión persistida por `session_id`
-6. valida tenant, usuario, expiración y hash del token
-7. revoca sesión anterior
-8. emite nueva sesión y nuevo par de tokens
+5. busca la sesion persistida por `session_id`
+6. valida tenant, usuario, expiracion y hash del token
+7. revoca sesion anterior
+8. emite nueva sesion y nuevo par de tokens
 9. actualiza cookies HttpOnly
 
 ## Flujo de logout
@@ -164,11 +164,11 @@ Restricciones clave:
 `POST /auth/logout`
 
 1. intenta leer y verificar el refresh token de cookie
-2. si la sesión existe, la revoca
+2. si la sesion existe, la revoca
 3. limpia cookies de access y refresh
-4. responde éxito aunque el token ya no sea válido
+4. responde exito aunque el token ya no sea valido
 
-## Cookies y sesión
+## Cookies y sesion
 
 Cookies configurables por ENV:
 
@@ -236,14 +236,14 @@ Roles sugeridos sembrados:
 ### Tenant
 
 - toda consulta sensible se filtra por `business_id`
-- login resuelve usuario por `email + business_id`
+- login resuelve usuario por `email`
 - roles y usuarios no pueden cruzar empresa
 
 ### Branch
 
 - operaciones de sucursal validan `branch_id` contra `branch_ids` del usuario
-- `owner` puede operar sin restricción de sucursal
-- asignación de sucursales valida:
+- `owner` puede operar sin restriccion de sucursal
+- asignacion de sucursales valida:
   - pertenencia al mismo `business_id`
   - alcance operativo del usuario autenticado
 
@@ -251,9 +251,9 @@ Roles sugeridos sembrados:
 
 - aislamiento por `business_id`
 - acceso operativo por `branch_id`
-- gestión de usuarios dentro de la misma empresa
-- protección de usuarios `owner` y `system`
-- asignación válida de sucursales del mismo negocio
+- gestion de usuarios dentro de la misma empresa
+- proteccion de usuarios `owner` y `system`
+- asignacion valida de sucursales del mismo negocio
 
 ## Endpoints implementados
 
@@ -318,14 +318,14 @@ Unit tests:
 - login
 - refresh rotativo
 - logout
-- políticas tenant/branch
-- validación DTO de `code`
-- resolución de permisos efectivos
+- politicas tenant/branch
+- validacion DTO de `code`
+- resolucion de permisos efectivos
 
 E2E:
 
 - `login -> me -> refresh -> logout`
-- denegación por branch no asignada
-- denegación por cross-business
-- denegación por permisos faltantes
-- denegación de asignación cruzada inválida
+- denegacion por branch no asignada
+- denegacion por cross-business
+- denegacion por permisos faltantes
+- denegacion de asignacion cruzada invalida

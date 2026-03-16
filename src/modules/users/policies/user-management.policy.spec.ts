@@ -1,3 +1,4 @@
+import { AuthenticatedUserMode } from '../../common/enums/authenticated-user-mode.enum';
 import { UserType } from '../../common/enums/user-type.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { User } from '../entities/user.entity';
@@ -21,6 +22,11 @@ describe('UserManagementPolicy', () => {
       branch_ids: [1],
       max_sale_discount: 0,
       user_type: UserType.STAFF,
+      is_platform_admin: false,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.TENANT,
+      session_id: null,
     };
     const target_user = {
       business_id: 2,
@@ -43,6 +49,11 @@ describe('UserManagementPolicy', () => {
       branch_ids: [1],
       max_sale_discount: 0,
       user_type: UserType.STAFF,
+      is_platform_admin: false,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.TENANT,
+      session_id: null,
     };
     const target_user = {
       id: 11,

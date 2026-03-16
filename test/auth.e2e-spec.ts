@@ -21,12 +21,28 @@ jest.setTimeout(30000);
 describe('Auth and Security (e2e)', () => {
   let app: INestApplication;
   let http_server: App;
-  let business_one_id: number;
   let business_one_branch_one_id: number;
   let business_one_branch_two_id: number;
   let business_two_branch_id: number;
   let business_one_cashier_id: number;
+  let business_one_id: number;
+  let platform_admin_email: string;
   let app_module: { AppModule: new (...args: never[]) => unknown };
+
+  type AuthMeResponse = {
+    permissions: string[];
+    branch_ids: number[];
+    mode: string;
+    acting_business_id: number | null;
+    acting_branch_id?: number | null;
+  };
+
+  type PlatformContextResponse = {
+    success: boolean;
+    mode: string;
+    acting_business_id: number | null;
+    acting_branch_id: number | null;
+  };
 
   beforeAll(async () => {
     process.env.PORT = '0';
@@ -253,11 +269,28 @@ describe('Auth and Security (e2e)', () => {
       }),
     );
 
-    business_one_id = business_one.id;
+    await users_repository.save(
+      users_repository.create({
+        business_id: business_one.id,
+        code: null,
+        name: 'Platform Admin',
+        email: 'platform@fastfact.test',
+        password_hash: await password_hash_service.hash('Password123'),
+        status: UserStatus.ACTIVE,
+        allow_login: true,
+        user_type: UserType.SYSTEM,
+        is_platform_admin: true,
+        max_sale_discount: 0,
+        last_login_at: null,
+      }),
+    );
+
     business_one_branch_one_id = branch_one.id;
     business_one_branch_two_id = branch_two.id;
     business_two_branch_id = branch_other_business.id;
     business_one_cashier_id = cashier_user.id;
+    business_one_id = business_one.id;
+    platform_admin_email = 'platform@fastfact.test';
   });
 
   afterAll(async () => {
@@ -270,7 +303,6 @@ describe('Auth and Security (e2e)', () => {
     const agent = request.agent(http_server);
 
     const login_response = await agent.post('/auth/login').send({
-      business_id: business_one_id,
       email: 'admin@business-one.test',
       password: 'Password123',
     });
@@ -286,13 +318,12 @@ describe('Auth and Security (e2e)', () => {
     );
 
     const me_response = await agent.get('/auth/me');
-    const me_body = me_response.body as {
-      permissions: string[];
-      branch_ids: number[];
-    };
+    const me_body = me_response.body as AuthMeResponse;
     expect(me_response.status).toBe(200);
     expect(me_body.permissions).toContain('users.view');
     expect(me_body.branch_ids).toEqual([business_one_branch_one_id]);
+    expect(me_body.mode).toBe('tenant');
+    expect(me_body.acting_business_id).toBeNull();
 
     const refresh_response = await agent.post('/auth/refresh');
     expect(refresh_response.status).toBe(200);
@@ -310,7 +341,6 @@ describe('Auth and Security (e2e)', () => {
   it('denies branch access outside the assigned branch scope', async () => {
     const agent = request.agent(http_server);
     await agent.post('/auth/login').send({
-      business_id: business_one_id,
       email: 'admin@business-one.test',
       password: 'Password123',
     });
@@ -322,7 +352,6 @@ describe('Auth and Security (e2e)', () => {
   it('denies cross-business branch access', async () => {
     const agent = request.agent(http_server);
     await agent.post('/auth/login').send({
-      business_id: business_one_id,
       email: 'admin@business-one.test',
       password: 'Password123',
     });
@@ -334,7 +363,6 @@ describe('Auth and Security (e2e)', () => {
   it('denies access when permissions are missing', async () => {
     const agent = request.agent(http_server);
     await agent.post('/auth/login').send({
-      business_id: business_one_id,
       email: 'cashier@business-one.test',
       password: 'Password123',
     });
@@ -346,7 +374,6 @@ describe('Auth and Security (e2e)', () => {
   it('rejects invalid cross-business branch assignments', async () => {
     const agent = request.agent(http_server);
     await agent.post('/auth/login').send({
-      business_id: business_one_id,
       email: 'admin@business-one.test',
       password: 'Password123',
     });
@@ -357,5 +384,70 @@ describe('Auth and Security (e2e)', () => {
         branch_ids: [business_two_branch_id],
       });
     expect(response.status).toBe(403);
+  });
+
+  it('supports platform admins entering and clearing tenant context', async () => {
+    const agent = request.agent(http_server);
+    await agent.post('/auth/login').send({
+      email: platform_admin_email,
+      password: 'Password123',
+    });
+
+    const me_in_platform_mode = await agent.get('/auth/me');
+    const me_in_platform_mode_body = me_in_platform_mode.body as AuthMeResponse;
+    expect(me_in_platform_mode.status).toBe(200);
+    expect(me_in_platform_mode_body.mode).toBe('platform');
+    expect(me_in_platform_mode_body.acting_business_id).toBeNull();
+
+    const tenant_users_without_context = await agent.get('/users');
+    expect(tenant_users_without_context.status).toBe(403);
+
+    const enter_context_response = await agent
+      .post('/platform/enter-business-context')
+      .send({
+        business_id: business_one_id,
+        branch_id: business_one_branch_one_id,
+      });
+    const enter_context_body =
+      enter_context_response.body as PlatformContextResponse;
+    expect(enter_context_response.status).toBe(201);
+    expect(enter_context_body.mode).toBe('tenant_context');
+    expect(enter_context_body.acting_business_id).toBe(business_one_id);
+    expect(enter_context_body.acting_branch_id).toBe(
+      business_one_branch_one_id,
+    );
+
+    const me_in_tenant_context = await agent.get('/auth/me');
+    const me_in_tenant_context_body =
+      me_in_tenant_context.body as AuthMeResponse;
+    expect(me_in_tenant_context.status).toBe(200);
+    expect(me_in_tenant_context_body.mode).toBe('tenant_context');
+    expect(me_in_tenant_context_body.acting_business_id).toBe(business_one_id);
+    expect(me_in_tenant_context_body.acting_branch_id).toBe(
+      business_one_branch_one_id,
+    );
+
+    const tenant_users_with_context = await agent.get('/users');
+    const tenant_users_with_context_body = tenant_users_with_context.body as {
+      email?: string;
+    }[];
+    expect(tenant_users_with_context.status).toBe(200);
+    expect(
+      tenant_users_with_context_body.some(
+        (user) => user.email === 'admin@business-one.test',
+      ),
+    ).toBe(true);
+
+    const clear_context_response = await agent.post(
+      '/platform/clear-business-context',
+    );
+    const clear_context_body =
+      clear_context_response.body as PlatformContextResponse;
+    expect(clear_context_response.status).toBe(201);
+    expect(clear_context_body.mode).toBe('platform');
+    expect(clear_context_body.acting_business_id).toBeNull();
+
+    const tenant_users_after_clear = await agent.get('/users');
+    expect(tenant_users_after_clear.status).toBe(403);
   });
 });

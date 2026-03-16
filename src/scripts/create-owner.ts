@@ -98,10 +98,8 @@ async function bootstrap() {
     await rbac_seed_service.seed_base_permissions();
     await rbac_seed_service.ensure_suggested_roles_for_business(business.id);
 
-    if (await users_repository.exists_email_in_business(business.id, email)) {
-      throw new Error(
-        `A user with email ${email} already exists in business ${business.id}.`,
-      );
+    if (await users_repository.exists_email(email)) {
+      throw new Error(`A user with email ${email} already exists.`);
     }
 
     const owner_role = await roles_repository.find_by_role_key(

@@ -1,6 +1,8 @@
 export enum PermissionKey {
   AUTH_LOGIN = 'auth.login',
   AUTH_REFRESH = 'auth.refresh',
+  BUSINESSES_VIEW = 'businesses.view',
+  BUSINESSES_UPDATE = 'businesses.update',
   USERS_VIEW = 'users.view',
   USERS_CREATE = 'users.create',
   USERS_UPDATE = 'users.update',

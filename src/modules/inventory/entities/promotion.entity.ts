@@ -13,6 +13,7 @@ import { PromotionItem } from './promotion-item.entity';
 
 @Entity('promotions')
 @Index(['business_id', 'name'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class Promotion extends AuditedCodeEntity {
   @Column({
     type: 'int',

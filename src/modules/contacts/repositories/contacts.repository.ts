@@ -66,10 +66,15 @@ export class ContactsRepository {
     });
   }
 
-  async exists_code(code: string, exclude_id?: number): Promise<boolean> {
+  async exists_code(
+    business_id: number,
+    code: string,
+    exclude_id?: number,
+  ): Promise<boolean> {
     const query = this.contact_repository
       .createQueryBuilder('contact')
-      .where('contact.code = :code', { code });
+      .where('contact.business_id = :business_id', { business_id })
+      .andWhere('contact.code = :code', { code });
 
     if (exclude_id !== undefined) {
       query.andWhere('contact.id != :exclude_id', { exclude_id });

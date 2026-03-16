@@ -1,11 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreatePromotionItemDto } from '../dto/create-promotion-item.dto';
 import { CreatePromotionDto } from '../dto/create-promotion.dto';
 import { UpdatePromotionDto } from '../dto/update-promotion.dto';
@@ -24,9 +23,9 @@ export class PromotionsService {
   ) {}
 
   async get_promotions(current_user: AuthenticatedUserContext) {
-    const promotions = await this.promotions_repository.find_all_by_business(
-      current_user.business_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const promotions =
+      await this.promotions_repository.find_all_by_business(business_id);
     return promotions.map((promotion) => this.serialize_promotion(promotion));
   }
 
@@ -34,13 +33,20 @@ export class PromotionsService {
     current_user: AuthenticatedUserContext,
     dto: CreatePromotionDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     if (
       await this.promotions_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         dto.name.trim(),
       )
     ) {
-      throw new ConflictException('A promotion with this name already exists.');
+      throw new DomainConflictException({
+        code: 'PROMOTION_NAME_DUPLICATE',
+        messageKey: 'inventory.promotion_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -48,15 +54,11 @@ export class PromotionsService {
     }
     this.assert_valid_date_range(dto.valid_from, dto.valid_to);
 
-    await this.validate_promotion_items(
-      current_user.business_id,
-      dto.type,
-      dto.items ?? [],
-    );
+    await this.validate_promotion_items(business_id, dto.type, dto.items ?? []);
 
     const promotion = await this.promotions_repository.save(
       this.promotions_repository.create({
-        business_id: current_user.business_id,
+        business_id,
         code: dto.code?.trim() ?? null,
         name: dto.name.trim(),
         type: dto.type,
@@ -82,10 +84,16 @@ export class PromotionsService {
 
     const hydrated = await this.promotions_repository.find_by_id_in_business(
       promotion.id,
-      current_user.business_id,
+      business_id,
     );
     if (!hydrated) {
-      throw new NotFoundException('Promotion not found.');
+      throw new DomainNotFoundException({
+        code: 'PROMOTION_NOT_FOUND',
+        messageKey: 'inventory.promotion_not_found',
+        details: {
+          promotion_id: promotion.id,
+        },
+      });
     }
 
     return this.serialize_promotion(hydrated);
@@ -96,7 +104,10 @@ export class PromotionsService {
     promotion_id: number,
   ) {
     return this.serialize_promotion(
-      await this.get_promotion_entity(current_user.business_id, promotion_id),
+      await this.get_promotion_entity(
+        resolve_effective_business_id(current_user),
+        promotion_id,
+      ),
     );
   }
 
@@ -105,20 +116,27 @@ export class PromotionsService {
     promotion_id: number,
     dto: UpdatePromotionDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const promotion = await this.get_promotion_entity(
-      current_user.business_id,
+      business_id,
       promotion_id,
     );
 
     const next_name = dto.name?.trim() ?? promotion.name;
     if (
       await this.promotions_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         next_name,
         promotion.id,
       )
     ) {
-      throw new ConflictException('A promotion with this name already exists.');
+      throw new DomainConflictException({
+        code: 'PROMOTION_NAME_DUPLICATE',
+        messageKey: 'inventory.promotion_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     const next_type = dto.type ?? promotion.type;
@@ -131,11 +149,7 @@ export class PromotionsService {
     this.assert_valid_date_range(next_valid_from, next_valid_to);
 
     if (dto.items) {
-      await this.validate_promotion_items(
-        current_user.business_id,
-        next_type,
-        dto.items,
-      );
+      await this.validate_promotion_items(business_id, next_type, dto.items);
     }
 
     if (dto.code) {
@@ -175,10 +189,16 @@ export class PromotionsService {
 
     const hydrated = await this.promotions_repository.find_by_id_in_business(
       saved.id,
-      current_user.business_id,
+      business_id,
     );
     if (!hydrated) {
-      throw new NotFoundException('Promotion not found.');
+      throw new DomainNotFoundException({
+        code: 'PROMOTION_NOT_FOUND',
+        messageKey: 'inventory.promotion_not_found',
+        details: {
+          promotion_id: saved.id,
+        },
+      });
     }
 
     return this.serialize_promotion(hydrated);
@@ -193,7 +213,13 @@ export class PromotionsService {
       business_id,
     );
     if (!promotion) {
-      throw new NotFoundException('Promotion not found.');
+      throw new DomainNotFoundException({
+        code: 'PROMOTION_NOT_FOUND',
+        messageKey: 'inventory.promotion_not_found',
+        details: {
+          promotion_id,
+        },
+      });
     }
 
     return promotion;
@@ -208,9 +234,13 @@ export class PromotionsService {
       ...new Set(items.map((item) => item.product_id)),
     ];
     if (unique_product_ids.length !== items.length) {
-      throw new BadRequestException(
-        'Promotion items cannot repeat the same product.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PROMOTION_DUPLICATE_ITEMS',
+        messageKey: 'inventory.promotion_duplicate_items',
+        details: {
+          field: 'items',
+        },
+      });
     }
 
     const products =
@@ -219,9 +249,13 @@ export class PromotionsService {
         unique_product_ids,
       );
     if (products.length !== unique_product_ids.length) {
-      throw new BadRequestException(
-        'One or more promotion items reference products outside the business.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PROMOTION_ITEMS_OUTSIDE_BUSINESS',
+        messageKey: 'inventory.promotion_items_outside_business',
+        details: {
+          field: 'items',
+        },
+      });
     }
 
     for (const item of items) {
@@ -240,18 +274,26 @@ export class PromotionsService {
       type === PromotionType.FIXED_AMOUNT
     ) {
       if (item.discount_value === undefined || item.discount_value === null) {
-        throw new BadRequestException(
-          'Discount promotions require discount_value on each item.',
-        );
+        throw new DomainBadRequestException({
+          code: 'PROMOTION_DISCOUNT_VALUE_REQUIRED',
+          messageKey: 'inventory.promotion_discount_value_required',
+          details: {
+            field: 'items.discount_value',
+          },
+        });
       }
       return;
     }
 
     if (type === PromotionType.PRICE_OVERRIDE) {
       if (item.override_price === undefined || item.override_price === null) {
-        throw new BadRequestException(
-          'Price override promotions require override_price on each item.',
-        );
+        throw new DomainBadRequestException({
+          code: 'PROMOTION_OVERRIDE_PRICE_REQUIRED',
+          messageKey: 'inventory.promotion_override_price_required',
+          details: {
+            field: 'items.override_price',
+          },
+        });
       }
       return;
     }
@@ -263,9 +305,13 @@ export class PromotionsService {
         item.bonus_quantity === undefined ||
         item.bonus_quantity === null
       ) {
-        throw new BadRequestException(
-          'Buy X get Y promotions require min_quantity and bonus_quantity on each item.',
-        );
+        throw new DomainBadRequestException({
+          code: 'PROMOTION_BUY_X_GET_Y_FIELDS_REQUIRED',
+          messageKey: 'inventory.promotion_buy_x_get_y_fields_required',
+          details: {
+            field: 'items',
+          },
+        });
       }
     }
   }
@@ -277,9 +323,13 @@ export class PromotionsService {
     const from = valid_from instanceof Date ? valid_from : new Date(valid_from);
     const to = valid_to instanceof Date ? valid_to : new Date(valid_to);
     if (to < from) {
-      throw new BadRequestException(
-        'valid_to cannot be earlier than valid_from.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PROMOTION_DATE_RANGE_INVALID',
+        messageKey: 'inventory.promotion_date_range_invalid',
+        details: {
+          field: 'valid_to',
+        },
+      });
     }
   }
 

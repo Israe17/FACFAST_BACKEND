@@ -1,17 +1,17 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { Product } from '../entities/product.entity';
 import { ProductType } from '../enums/product-type.enum';
 import { ProductsRepository } from '../repositories/products.repository';
 import { InventoryValidationService } from './inventory-validation.service';
+import { ProductVariantsService } from './product-variants.service';
 
 @Injectable()
 export class ProductsService {
@@ -19,12 +19,13 @@ export class ProductsService {
     private readonly products_repository: ProductsRepository,
     private readonly inventory_validation_service: InventoryValidationService,
     private readonly entity_code_service: EntityCodeService,
+    private readonly product_variants_service: ProductVariantsService,
   ) {}
 
   async get_products(current_user: AuthenticatedUserContext) {
-    const products = await this.products_repository.find_all_by_business(
-      current_user.business_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const products =
+      await this.products_repository.find_all_by_business(business_id);
     return products.map((product) => this.serialize_product(product));
   }
 
@@ -32,28 +33,39 @@ export class ProductsService {
     current_user: AuthenticatedUserContext,
     dto: CreateProductDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const normalized_sku = this.normalize_optional_string(dto.sku);
     const normalized_barcode = this.normalize_optional_string(dto.barcode);
     if (
       normalized_sku &&
       (await this.products_repository.exists_sku_in_business(
-        current_user.business_id,
+        business_id,
         normalized_sku,
       ))
     ) {
-      throw new ConflictException('A product with this SKU already exists.');
+      throw new DomainConflictException({
+        code: 'PRODUCT_SKU_DUPLICATE',
+        messageKey: 'inventory.product_sku_duplicate',
+        details: {
+          field: 'sku',
+        },
+      });
     }
 
     if (
       normalized_barcode &&
       (await this.products_repository.exists_barcode_in_business(
-        current_user.business_id,
+        business_id,
         normalized_barcode,
       ))
     ) {
-      throw new ConflictException(
-        'A product with this barcode already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'PRODUCT_BARCODE_DUPLICATE',
+        messageKey: 'inventory.product_barcode_duplicate',
+        details: {
+          field: 'barcode',
+        },
+      });
     }
 
     if (dto.code) {
@@ -62,7 +74,7 @@ export class ProductsService {
 
     const tax_profile =
       await this.inventory_validation_service.get_tax_profile_in_business(
-        current_user.business_id,
+        business_id,
         dto.tax_profile_id,
       );
     this.inventory_validation_service.assert_product_tax_profile_compatibility(
@@ -73,41 +85,44 @@ export class ProductsService {
     const category =
       dto.category_id !== undefined && dto.category_id !== null
         ? await this.inventory_validation_service.get_category_in_business(
-            current_user.business_id,
+            business_id,
             dto.category_id,
           )
         : null;
     const brand =
       dto.brand_id !== undefined && dto.brand_id !== null
         ? await this.inventory_validation_service.get_brand_in_business(
-            current_user.business_id,
+            business_id,
             dto.brand_id,
           )
         : null;
     const stock_unit =
       dto.stock_unit_id !== undefined && dto.stock_unit_id !== null
         ? await this.inventory_validation_service.get_measurement_unit_in_business(
-            current_user.business_id,
+            business_id,
             dto.stock_unit_id,
           )
         : null;
     const sale_unit =
       dto.sale_unit_id !== undefined && dto.sale_unit_id !== null
         ? await this.inventory_validation_service.get_measurement_unit_in_business(
-            current_user.business_id,
+            business_id,
             dto.sale_unit_id,
           )
         : null;
     const warranty_profile =
       dto.warranty_profile_id !== undefined && dto.warranty_profile_id !== null
         ? await this.inventory_validation_service.get_warranty_profile_in_business(
-            current_user.business_id,
+            business_id,
             dto.warranty_profile_id,
           )
         : null;
 
+    const stock_unit_id = stock_unit?.id ?? sale_unit?.id ?? null;
+    const sale_unit_id = sale_unit?.id ?? stock_unit?.id ?? null;
+
     const product = this.products_repository.create({
-      business_id: current_user.business_id,
+      business_id,
       code: dto.code?.trim() ?? null,
       type: dto.type,
       name: dto.name.trim(),
@@ -116,8 +131,8 @@ export class ProductsService {
       brand_id: brand?.id ?? null,
       sku: normalized_sku,
       barcode: normalized_barcode,
-      stock_unit_id: stock_unit?.id ?? null,
-      sale_unit_id: sale_unit?.id ?? null,
+      stock_unit_id,
+      sale_unit_id,
       tax_profile_id: tax_profile.id,
       track_inventory: dto.track_inventory ?? true,
       track_lots: dto.track_lots ?? false,
@@ -130,8 +145,11 @@ export class ProductsService {
 
     this.apply_product_rules(product);
     const saved_product = await this.products_repository.save(product);
+    await this.product_variants_service.ensure_default_variant_for_product(
+      saved_product,
+    );
     return this.serialize_product(
-      await this.get_product_entity(current_user.business_id, saved_product.id),
+      await this.get_product_entity(business_id, saved_product.id),
     );
   }
 
@@ -140,7 +158,10 @@ export class ProductsService {
     product_id: number,
   ) {
     return this.serialize_product(
-      await this.get_product_entity(current_user.business_id, product_id),
+      await this.get_product_entity(
+        resolve_effective_business_id(current_user),
+        product_id,
+      ),
     );
   }
 
@@ -149,10 +170,8 @@ export class ProductsService {
     product_id: number,
     dto: UpdateProductDto,
   ) {
-    const product = await this.get_product_entity(
-      current_user.business_id,
-      product_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const product = await this.get_product_entity(business_id, product_id);
 
     const next_sku =
       dto.sku !== undefined
@@ -166,37 +185,53 @@ export class ProductsService {
     if (
       next_sku &&
       (await this.products_repository.exists_sku_in_business(
-        current_user.business_id,
+        business_id,
         next_sku,
         product.id,
       ))
     ) {
-      throw new ConflictException('A product with this SKU already exists.');
+      throw new DomainConflictException({
+        code: 'PRODUCT_SKU_DUPLICATE',
+        messageKey: 'inventory.product_sku_duplicate',
+        details: {
+          field: 'sku',
+        },
+      });
     }
 
     if (
       next_barcode &&
       (await this.products_repository.exists_barcode_in_business(
-        current_user.business_id,
+        business_id,
         next_barcode,
         product.id,
       ))
     ) {
-      throw new ConflictException(
-        'A product with this barcode already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'PRODUCT_BARCODE_DUPLICATE',
+        messageKey: 'inventory.product_barcode_duplicate',
+        details: {
+          field: 'barcode',
+        },
+      });
     }
 
     const next_type = dto.type ?? product.type;
     const tax_profile =
       dto.tax_profile_id !== undefined
         ? await this.inventory_validation_service.get_tax_profile_in_business(
-            current_user.business_id,
+            business_id,
             dto.tax_profile_id,
           )
         : product.tax_profile;
     if (!tax_profile) {
-      throw new NotFoundException('Tax profile not found.');
+      throw new DomainNotFoundException({
+        code: 'TAX_PROFILE_NOT_FOUND',
+        messageKey: 'inventory.tax_profile_not_found',
+        details: {
+          tax_profile_id: dto.tax_profile_id ?? null,
+        },
+      });
     }
 
     this.inventory_validation_service.assert_product_tax_profile_compatibility(
@@ -210,7 +245,7 @@ export class ProductsService {
           ? null
           : (
               await this.inventory_validation_service.get_category_in_business(
-                current_user.business_id,
+                business_id,
                 dto.category_id,
               )
             ).id;
@@ -221,7 +256,7 @@ export class ProductsService {
           ? null
           : (
               await this.inventory_validation_service.get_brand_in_business(
-                current_user.business_id,
+                business_id,
                 dto.brand_id,
               )
             ).id;
@@ -232,7 +267,7 @@ export class ProductsService {
           ? null
           : (
               await this.inventory_validation_service.get_measurement_unit_in_business(
-                current_user.business_id,
+                business_id,
                 dto.stock_unit_id,
               )
             ).id;
@@ -243,7 +278,7 @@ export class ProductsService {
           ? null
           : (
               await this.inventory_validation_service.get_measurement_unit_in_business(
-                current_user.business_id,
+                business_id,
                 dto.sale_unit_id,
               )
             ).id;
@@ -254,7 +289,7 @@ export class ProductsService {
           ? null
           : (
               await this.inventory_validation_service.get_warranty_profile_in_business(
-                current_user.business_id,
+                business_id,
                 dto.warranty_profile_id,
               )
             ).id;
@@ -303,8 +338,11 @@ export class ProductsService {
 
     this.apply_product_rules(product);
     const saved_product = await this.products_repository.save(product);
+    await this.product_variants_service.ensure_default_variant_for_product(
+      saved_product,
+    );
     return this.serialize_product(
-      await this.get_product_entity(current_user.business_id, saved_product.id),
+      await this.get_product_entity(business_id, saved_product.id),
     );
   }
 
@@ -317,7 +355,13 @@ export class ProductsService {
       business_id,
     );
     if (!product) {
-      throw new NotFoundException('Product not found.');
+      throw new DomainNotFoundException({
+        code: 'PRODUCT_NOT_FOUND',
+        messageKey: 'inventory.product_not_found',
+        details: {
+          product_id,
+        },
+      });
     }
 
     return product;
@@ -331,15 +375,17 @@ export class ProductsService {
       product.allow_negative_stock = false;
     } else {
       if (product.track_lots && !product.track_inventory) {
-        throw new BadRequestException(
-          'Products with lot tracking must also track inventory.',
-        );
+        throw new DomainBadRequestException({
+          code: 'PRODUCT_LOT_TRACKING_REQUIRES_INVENTORY',
+          messageKey: 'inventory.product_lot_tracking_requires_inventory',
+        });
       }
 
       if (product.track_expiration && !product.track_lots) {
-        throw new BadRequestException(
-          'Products with expiration tracking must also track lots.',
-        );
+        throw new DomainBadRequestException({
+          code: 'PRODUCT_EXPIRATION_REQUIRES_LOTS',
+          messageKey: 'inventory.product_expiration_requires_lots',
+        });
       }
 
       if (!product.track_inventory) {
@@ -354,10 +400,28 @@ export class ProductsService {
     }
 
     if (product.has_warranty && !product.warranty_profile_id) {
-      throw new BadRequestException(
-        'Products with warranty enabled require a warranty profile.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PRODUCT_WARRANTY_PROFILE_REQUIRED',
+        messageKey: 'inventory.product_warranty_profile_required',
+      });
     }
+
+    const next_stock_unit_id = product.stock_unit_id ?? product.sale_unit_id;
+    const next_sale_unit_id = product.sale_unit_id ?? product.stock_unit_id;
+
+    if (
+      next_stock_unit_id !== null &&
+      next_sale_unit_id !== null &&
+      next_stock_unit_id !== next_sale_unit_id
+    ) {
+      throw new DomainBadRequestException({
+        code: 'PRODUCT_UNIT_CONVERSION_NOT_SUPPORTED',
+        messageKey: 'inventory.product_unit_conversion_not_supported',
+      });
+    }
+
+    product.stock_unit_id = next_stock_unit_id;
+    product.sale_unit_id = next_sale_unit_id;
   }
 
   private normalize_optional_string(value?: string | null): string | null {

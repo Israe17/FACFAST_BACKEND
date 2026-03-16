@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   createCipheriv,
@@ -6,6 +6,7 @@ import {
   createHash,
   randomBytes,
 } from 'crypto';
+import { DomainInternalServerException } from '../errors/exceptions/domain-internal-server.exception';
 
 @Injectable()
 export class EncryptionService {
@@ -14,7 +15,10 @@ export class EncryptionService {
   constructor(private readonly config_service: ConfigService) {
     const secret = this.config_service.get<string>('FIELD_ENCRYPTION_KEY');
     if (!secret) {
-      throw new InternalServerErrorException('Missing field encryption key.');
+      throw new DomainInternalServerException({
+        code: 'FIELD_ENCRYPTION_KEY_MISSING',
+        messageKey: 'common.field_encryption_key_missing',
+      });
     }
 
     this.key = createHash('sha256').update(secret).digest();
@@ -47,9 +51,10 @@ export class EncryptionService {
 
     const [iv_encoded, tag_encoded, payload_encoded] = value.split('.');
     if (!iv_encoded || !tag_encoded || !payload_encoded) {
-      throw new InternalServerErrorException(
-        'Invalid encrypted payload format.',
-      );
+      throw new DomainInternalServerException({
+        code: 'ENCRYPTED_PAYLOAD_INVALID_FORMAT',
+        messageKey: 'common.encrypted_payload_invalid_format',
+      });
     }
 
     const decipher = createDecipheriv(

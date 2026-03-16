@@ -20,10 +20,14 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
+import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { AssignRolePermissionsDto } from '../dto/assign-role-permissions.dto';
 import { CreateRoleDto } from '../dto/create-role.dto';
@@ -35,12 +39,14 @@ import { RbacService } from '../services/rbac.service';
 @ApiUnauthorizedResponse({ description: 'Access token invalido o ausente.' })
 @ApiForbiddenResponse({ description: 'Permisos insuficientes.' })
 @Controller('roles')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AllowPlatformPermissionOverride()
+@AllowPlatformTenantContext()
+@UseGuards(JwtAuthGuard, TenantContextGuard, PermissionsGuard)
 export class RolesController {
   constructor(private readonly rbac_service: RbacService) {}
 
   @Get()
-  @RequirePermissions('roles.view')
+  @RequirePermissions(PermissionKey.ROLES_VIEW)
   @ApiOperation({ summary: 'Listar roles' })
   @ApiOkResponse({ description: 'Lista de roles de la empresa autenticada.' })
   get_roles(@CurrentUser() current_user: AuthenticatedUserContext) {
@@ -48,7 +54,7 @@ export class RolesController {
   }
 
   @Post()
-  @RequirePermissions('roles.create')
+  @RequirePermissions(PermissionKey.ROLES_CREATE)
   @ApiOperation({ summary: 'Crear rol' })
   @ApiBody({ type: CreateRoleDto })
   @ApiOkResponse({ description: 'Rol creado exitosamente.' })
@@ -60,7 +66,7 @@ export class RolesController {
   }
 
   @Patch(':id')
-  @RequirePermissions('roles.update')
+  @RequirePermissions(PermissionKey.ROLES_UPDATE)
   @ApiOperation({ summary: 'Actualizar rol' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateRoleDto })
@@ -74,7 +80,7 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @RequirePermissions('roles.delete')
+  @RequirePermissions(PermissionKey.ROLES_DELETE)
   @ApiOperation({ summary: 'Eliminar rol' })
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ description: 'Rol eliminado exitosamente.' })
@@ -86,7 +92,7 @@ export class RolesController {
   }
 
   @Put(':id/permissions')
-  @RequirePermissions('roles.assign_permissions')
+  @RequirePermissions(PermissionKey.ROLES_ASSIGN_PERMISSIONS)
   @ApiOperation({ summary: 'Asignar permisos a un rol' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: AssignRolePermissionsDto })

@@ -1,11 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreatePriceListDto } from '../dto/create-price-list.dto';
 import { CreateProductPriceDto } from '../dto/create-product-price.dto';
 import { UpdatePriceListDto } from '../dto/update-price-list.dto';
@@ -26,9 +25,9 @@ export class PricingService {
   ) {}
 
   async get_price_lists(current_user: AuthenticatedUserContext) {
-    const price_lists = await this.price_lists_repository.find_all_by_business(
-      current_user.business_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const price_lists =
+      await this.price_lists_repository.find_all_by_business(business_id);
     return price_lists.map((price_list) =>
       this.serialize_price_list(price_list),
     );
@@ -38,15 +37,20 @@ export class PricingService {
     current_user: AuthenticatedUserContext,
     dto: CreatePriceListDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     if (
       await this.price_lists_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         dto.name.trim(),
       )
     ) {
-      throw new ConflictException(
-        'A price list with this name already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'PRICE_LIST_NAME_DUPLICATE',
+        messageKey: 'inventory.price_list_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -54,15 +58,13 @@ export class PricingService {
     }
 
     if (dto.is_default) {
-      await this.price_lists_repository.unset_default_for_business(
-        current_user.business_id,
-      );
+      await this.price_lists_repository.unset_default_for_business(business_id);
     }
 
     return this.serialize_price_list(
       await this.price_lists_repository.save(
         this.price_lists_repository.create({
-          business_id: current_user.business_id,
+          business_id,
           code: dto.code?.trim() ?? null,
           name: dto.name.trim(),
           kind: dto.kind,
@@ -79,7 +81,10 @@ export class PricingService {
     price_list_id: number,
   ) {
     return this.serialize_price_list(
-      await this.get_price_list_entity(current_user.business_id, price_list_id),
+      await this.get_price_list_entity(
+        resolve_effective_business_id(current_user),
+        price_list_id,
+      ),
     );
   }
 
@@ -88,22 +93,27 @@ export class PricingService {
     price_list_id: number,
     dto: UpdatePriceListDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const price_list = await this.get_price_list_entity(
-      current_user.business_id,
+      business_id,
       price_list_id,
     );
 
     const next_name = dto.name?.trim() ?? price_list.name;
     if (
       await this.price_lists_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         next_name,
         price_list.id,
       )
     ) {
-      throw new ConflictException(
-        'A price list with this name already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'PRICE_LIST_NAME_DUPLICATE',
+        messageKey: 'inventory.price_list_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -122,7 +132,7 @@ export class PricingService {
     if (dto.is_default !== undefined) {
       if (dto.is_default) {
         await this.price_lists_repository.unset_default_for_business(
-          current_user.business_id,
+          business_id,
           price_list.id,
         );
       }
@@ -142,14 +152,15 @@ export class PricingService {
     product_id: number,
   ) {
     await this.inventory_validation_service.get_product_in_business(
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
       product_id,
     );
 
+    const business_id = resolve_effective_business_id(current_user);
     const product_prices =
       await this.product_prices_repository.find_all_by_product_in_business(
         product_id,
-        current_user.business_id,
+        business_id,
       );
     return product_prices.map((product_price) =>
       this.serialize_product_price(product_price),
@@ -161,14 +172,15 @@ export class PricingService {
     product_id: number,
     dto: CreateProductPriceDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const product =
       await this.inventory_validation_service.get_product_in_business(
-        current_user.business_id,
+        business_id,
         product_id,
       );
     const price_list =
       await this.inventory_validation_service.get_price_list_in_business(
-        current_user.business_id,
+        business_id,
         dto.price_list_id,
       );
 
@@ -176,7 +188,7 @@ export class PricingService {
 
     const saved_product_price = await this.product_prices_repository.save(
       this.product_prices_repository.create({
-        business_id: current_user.business_id,
+        business_id,
         product_id: product.id,
         price_list_id: price_list.id,
         price: dto.price,
@@ -190,10 +202,16 @@ export class PricingService {
     const hydrated_product_price =
       await this.product_prices_repository.find_by_id_in_business(
         saved_product_price.id,
-        current_user.business_id,
+        business_id,
       );
     if (!hydrated_product_price) {
-      throw new NotFoundException('Product price not found.');
+      throw new DomainNotFoundException({
+        code: 'PRODUCT_PRICE_NOT_FOUND',
+        messageKey: 'inventory.product_price_not_found',
+        details: {
+          product_price_id: saved_product_price.id,
+        },
+      });
     }
 
     return this.serialize_product_price(hydrated_product_price);
@@ -204,19 +222,26 @@ export class PricingService {
     product_price_id: number,
     dto: UpdateProductPriceDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const product_price =
       await this.product_prices_repository.find_by_id_in_business(
         product_price_id,
-        current_user.business_id,
+        business_id,
       );
     if (!product_price) {
-      throw new NotFoundException('Product price not found.');
+      throw new DomainNotFoundException({
+        code: 'PRODUCT_PRICE_NOT_FOUND',
+        messageKey: 'inventory.product_price_not_found',
+        details: {
+          product_price_id,
+        },
+      });
     }
 
     if (dto.price_list_id !== undefined) {
       product_price.price_list_id = (
         await this.inventory_validation_service.get_price_list_in_business(
-          current_user.business_id,
+          business_id,
           dto.price_list_id,
         )
       ).id;
@@ -258,10 +283,16 @@ export class PricingService {
     const hydrated_product_price =
       await this.product_prices_repository.find_by_id_in_business(
         saved_product_price.id,
-        current_user.business_id,
+        business_id,
       );
     if (!hydrated_product_price) {
-      throw new NotFoundException('Product price not found.');
+      throw new DomainNotFoundException({
+        code: 'PRODUCT_PRICE_NOT_FOUND',
+        messageKey: 'inventory.product_price_not_found',
+        details: {
+          product_price_id,
+        },
+      });
     }
 
     return this.serialize_product_price(hydrated_product_price);
@@ -276,7 +307,13 @@ export class PricingService {
       business_id,
     );
     if (!price_list) {
-      throw new NotFoundException('Price list not found.');
+      throw new DomainNotFoundException({
+        code: 'PRICE_LIST_NOT_FOUND',
+        messageKey: 'inventory.price_list_not_found',
+        details: {
+          price_list_id,
+        },
+      });
     }
 
     return price_list;
@@ -298,9 +335,13 @@ export class PricingService {
       : null;
 
     if (from && to && to < from) {
-      throw new BadRequestException(
-        'valid_to cannot be earlier than valid_from.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PRICE_VALID_RANGE_INVALID',
+        messageKey: 'inventory.price_valid_range_invalid',
+        details: {
+          field: 'valid_to',
+        },
+      });
     }
   }
 

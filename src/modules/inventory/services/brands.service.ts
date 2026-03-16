@@ -1,10 +1,9 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateBrandDto } from '../dto/create-brand.dto';
 import { UpdateBrandDto } from '../dto/update-brand.dto';
 import { Brand } from '../entities/brand.entity';
@@ -18,9 +17,9 @@ export class BrandsService {
   ) {}
 
   async get_brands(current_user: AuthenticatedUserContext) {
-    const brands = await this.brands_repository.find_all_by_business(
-      current_user.business_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const brands =
+      await this.brands_repository.find_all_by_business(business_id);
     return brands.map((brand) => this.serialize_brand(brand));
   }
 
@@ -28,13 +27,20 @@ export class BrandsService {
     current_user: AuthenticatedUserContext,
     dto: CreateBrandDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     if (
       await this.brands_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         dto.name.trim(),
       )
     ) {
-      throw new ConflictException('A brand with this name already exists.');
+      throw new DomainConflictException({
+        code: 'BRAND_NAME_DUPLICATE',
+        messageKey: 'inventory.brand_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -44,7 +50,7 @@ export class BrandsService {
     return this.serialize_brand(
       await this.brands_repository.save(
         this.brands_repository.create({
-          business_id: current_user.business_id,
+          business_id,
           code: dto.code?.trim() ?? null,
           name: dto.name.trim(),
           description: this.normalize_optional_string(dto.description),
@@ -56,7 +62,10 @@ export class BrandsService {
 
   async get_brand(current_user: AuthenticatedUserContext, brand_id: number) {
     return this.serialize_brand(
-      await this.get_brand_entity(current_user.business_id, brand_id),
+      await this.get_brand_entity(
+        resolve_effective_business_id(current_user),
+        brand_id,
+      ),
     );
   }
 
@@ -65,20 +74,24 @@ export class BrandsService {
     brand_id: number,
     dto: UpdateBrandDto,
   ) {
-    const brand = await this.get_brand_entity(
-      current_user.business_id,
-      brand_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const brand = await this.get_brand_entity(business_id, brand_id);
     const next_name = dto.name?.trim() ?? brand.name;
 
     if (
       await this.brands_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         next_name,
         brand.id,
       )
     ) {
-      throw new ConflictException('A brand with this name already exists.');
+      throw new DomainConflictException({
+        code: 'BRAND_NAME_DUPLICATE',
+        messageKey: 'inventory.brand_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -107,7 +120,13 @@ export class BrandsService {
       business_id,
     );
     if (!brand) {
-      throw new NotFoundException('Brand not found.');
+      throw new DomainNotFoundException({
+        code: 'BRAND_NOT_FOUND',
+        messageKey: 'inventory.brand_not_found',
+        details: {
+          brand_id,
+        },
+      });
     }
 
     return brand;

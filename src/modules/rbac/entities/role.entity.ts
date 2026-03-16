@@ -13,6 +13,7 @@ import { RolePermission } from './role-permission.entity';
 
 @Entity('roles')
 @Index(['business_id', 'role_key'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class Role extends AuditedCodeEntity {
   @Column({
     type: 'int',

@@ -11,10 +11,15 @@ import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
 import { InventoryLot } from './inventory-lot.entity';
 import { InventoryMovement } from './inventory-movement.entity';
+import { InventoryBalance } from './inventory-balance.entity';
+import { InventoryMovementLine } from './inventory-movement-line.entity';
+import { WarehousePurpose } from '../enums/warehouse-purpose.enum';
 import { WarehouseLocation } from './warehouse-location.entity';
+import { WarehouseBranchLink } from './warehouse-branch-link.entity';
 import { WarehouseStock } from './warehouse-stock.entity';
 
 @Entity('warehouses')
+@Index(['business_id', 'code'], { unique: true })
 @Index(['branch_id', 'name'], { unique: true })
 export class Warehouse extends AuditedCodeEntity {
   @Column({
@@ -57,6 +62,13 @@ export class Warehouse extends AuditedCodeEntity {
   description!: string | null;
 
   @Column({
+    type: 'enum',
+    enum: WarehousePurpose,
+    default: WarehousePurpose.GENERAL_STORAGE,
+  })
+  purpose!: WarehousePurpose;
+
+  @Column({
     type: 'boolean',
     default: false,
   })
@@ -77,11 +89,20 @@ export class Warehouse extends AuditedCodeEntity {
   @OneToMany(() => WarehouseLocation, (location) => location.warehouse)
   locations?: WarehouseLocation[];
 
+  @OneToMany(() => WarehouseBranchLink, (branch_link) => branch_link.warehouse)
+  branch_links?: WarehouseBranchLink[];
+
   @OneToMany(
     () => WarehouseStock,
     (warehouse_stock) => warehouse_stock.warehouse,
   )
   warehouse_stock?: WarehouseStock[];
+
+  @OneToMany(
+    () => InventoryBalance,
+    (inventory_balance) => inventory_balance.warehouse,
+  )
+  inventory_balances?: InventoryBalance[];
 
   @OneToMany(() => InventoryLot, (inventory_lot) => inventory_lot.warehouse)
   inventory_lots?: InventoryLot[];
@@ -91,4 +112,10 @@ export class Warehouse extends AuditedCodeEntity {
     (inventory_movement) => inventory_movement.warehouse,
   )
   inventory_movements?: InventoryMovement[];
+
+  @OneToMany(
+    () => InventoryMovementLine,
+    (inventory_movement_line) => inventory_movement_line.warehouse,
+  )
+  inventory_movement_lines?: InventoryMovementLine[];
 }

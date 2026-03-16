@@ -7,7 +7,6 @@ export abstract class BaseCodeEntity {
   @Column({
     type: 'varchar',
     length: 32,
-    unique: true,
     nullable: true,
   })
   code!: string | null;

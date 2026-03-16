@@ -14,6 +14,7 @@ import { InventoryMovement } from './inventory-movement.entity';
 import { Warehouse } from './warehouse.entity';
 
 @Entity('warehouse_locations')
+@Index(['business_id', 'code'], { unique: true })
 @Index(['warehouse_id', 'name'], { unique: true })
 export class WarehouseLocation extends AuditedCodeEntity {
   @Column({

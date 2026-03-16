@@ -13,6 +13,7 @@ import { ProductPrice } from './product-price.entity';
 
 @Entity('price_lists')
 @Index(['business_id', 'name'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class PriceList extends AuditedCodeEntity {
   @Column({
     type: 'int',

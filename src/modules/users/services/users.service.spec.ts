@@ -1,6 +1,7 @@
-import { ConflictException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import type { BranchesRepository } from '../../branches/repositories/branches.repository';
+import { AuthenticatedUserMode } from '../../common/enums/authenticated-user-mode.enum';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserType } from '../../common/enums/user-type.enum';
 import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy';
@@ -16,7 +17,7 @@ import { UsersService } from './users.service';
 
 describe('UsersService', () => {
   const users_repository = {
-    exists_email_in_business: jest.fn(),
+    exists_email: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
     find_by_id_in_business: jest.fn(),
@@ -32,6 +33,10 @@ describe('UsersService', () => {
   const branches_repository = {
     find_many_by_ids_in_business: jest.fn(),
   } as unknown as BranchesRepository;
+
+  const businesses_repository = {
+    find_by_id: jest.fn(),
+  } as never;
 
   const user_role_repository = {
     delete: jest.fn(),
@@ -53,6 +58,7 @@ describe('UsersService', () => {
       users_repository,
       roles_repository,
       branches_repository,
+      businesses_repository,
       new UserManagementPolicy(),
       new BranchAccessPolicy(),
       {
@@ -66,8 +72,8 @@ describe('UsersService', () => {
     );
   });
 
-  it('rejects duplicate emails inside the same business', async () => {
-    users_repository.exists_email_in_business.mockResolvedValue(true);
+  it('rejects duplicate emails globally', async () => {
+    users_repository.exists_email.mockResolvedValue(true);
 
     await expect(
       service.create_user(
@@ -81,6 +87,11 @@ describe('UsersService', () => {
           branch_ids: [1],
           max_sale_discount: 0,
           user_type: UserType.OWNER,
+          is_platform_admin: false,
+          acting_business_id: null,
+          acting_branch_id: null,
+          mode: AuthenticatedUserMode.TENANT,
+          session_id: null,
         },
         {
           name: 'Cashier',
@@ -88,7 +99,7 @@ describe('UsersService', () => {
           password: 'Password123',
         },
       ),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).rejects.toBeInstanceOf(DomainConflictException);
   });
 
   it('resolves effective roles, permissions and branches for authenticated context', async () => {
@@ -130,6 +141,7 @@ describe('UsersService', () => {
     ).resolves.toEqual({
       id: 10,
       business_id: 2,
+      active_business_language: null,
       email: 'manager@test.com',
       name: 'Manager',
       roles: ['admin', 'branch_manager'],
@@ -137,6 +149,47 @@ describe('UsersService', () => {
       branch_ids: [2, 5],
       max_sale_discount: 12.5,
       user_type: UserType.STAFF,
+      is_platform_admin: false,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.TENANT,
+      session_id: null,
+    });
+  });
+
+  it('marks platform admins and grants auth session permissions automatically', async () => {
+    users_repository.find_by_id_in_business.mockResolvedValue({
+      id: 77,
+      business_id: 9,
+      email: 'platform@test.com',
+      name: 'Platform Admin',
+      status: UserStatus.ACTIVE,
+      allow_login: true,
+      user_type: UserType.SYSTEM,
+      is_platform_admin: true,
+      max_sale_discount: 0,
+      user_roles: [],
+      user_branch_access: [],
+    } as unknown as User);
+
+    await expect(
+      service.get_authenticated_context(77, 9, true),
+    ).resolves.toEqual({
+      id: 77,
+      business_id: 9,
+      active_business_language: null,
+      email: 'platform@test.com',
+      name: 'Platform Admin',
+      roles: [],
+      permissions: ['auth.login', 'auth.refresh'],
+      branch_ids: [],
+      max_sale_discount: 0,
+      user_type: UserType.SYSTEM,
+      is_platform_admin: true,
+      acting_business_id: null,
+      acting_branch_id: null,
+      mode: AuthenticatedUserMode.PLATFORM,
+      session_id: null,
     });
   });
 });

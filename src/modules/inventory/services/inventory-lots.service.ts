@@ -1,11 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateInventoryAdjustmentDto } from '../dto/create-inventory-adjustment.dto';
 import { CreateInventoryLotDto } from '../dto/create-inventory-lot.dto';
 import { UpdateInventoryLotDto } from '../dto/update-inventory-lot.dto';
@@ -25,8 +24,9 @@ export class InventoryLotsService {
   ) {}
 
   async get_lots(current_user: AuthenticatedUserContext) {
+    const business_id = resolve_effective_business_id(current_user);
     const lots = await this.inventory_lots_repository.find_all_by_business(
-      current_user.business_id,
+      business_id,
       this.inventory_validation_service.resolve_accessible_branch_ids(
         current_user,
       ),
@@ -38,6 +38,7 @@ export class InventoryLotsService {
     current_user: AuthenticatedUserContext,
     dto: CreateInventoryLotDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const warehouse =
       await this.inventory_validation_service.get_warehouse_for_operation(
         current_user,
@@ -59,22 +60,30 @@ export class InventoryLotsService {
 
     const product =
       await this.inventory_validation_service.get_product_in_business(
-        current_user.business_id,
+        business_id,
         dto.product_id,
       );
     this.inventory_validation_service.assert_product_is_inventory_enabled(
       product,
     );
     if (!product.track_lots) {
-      throw new BadRequestException(
-        'This product does not support lot-based inventory.',
-      );
+      throw new DomainBadRequestException({
+        code: 'PRODUCT_LOT_TRACKING_REQUIRED',
+        messageKey: 'inventory.product_lot_tracking_required',
+        details: {
+          product_id: product.id,
+        },
+      });
     }
 
     if (product.track_expiration && !dto.expiration_date) {
-      throw new BadRequestException(
-        'Products with expiration tracking require expiration_date on lot creation.',
-      );
+      throw new DomainBadRequestException({
+        code: 'INVENTORY_LOT_EXPIRATION_REQUIRED',
+        messageKey: 'inventory.inventory_lot_expiration_required',
+        details: {
+          field: 'expiration_date',
+        },
+      });
     }
 
     if (
@@ -84,9 +93,15 @@ export class InventoryLotsService {
         dto.lot_number.trim(),
       )
     ) {
-      throw new ConflictException(
-        'A lot with this number already exists for the product in the warehouse.',
-      );
+      throw new DomainConflictException({
+        code: 'INVENTORY_LOT_NUMBER_DUPLICATE',
+        messageKey: 'inventory.inventory_lot_number_duplicate',
+        details: {
+          field: 'lot_number',
+          warehouse_id: warehouse.id,
+          product_id: product.id,
+        },
+      });
     }
 
     if (dto.code) {
@@ -98,14 +113,14 @@ export class InventoryLotsService {
       dto.supplier_contact_id !== null
     ) {
       await this.inventory_validation_service.assert_supplier_contact_in_business(
-        current_user.business_id,
+        business_id,
         dto.supplier_contact_id,
       );
     }
 
     const lot = await this.inventory_lots_repository.save(
       this.inventory_lots_repository.create({
-        business_id: current_user.business_id,
+        business_id,
         branch_id: warehouse.branch_id,
         warehouse_id: warehouse.id,
         location_id: location?.id ?? null,
@@ -154,6 +169,7 @@ export class InventoryLotsService {
     dto: UpdateInventoryLotDto,
   ) {
     const lot = await this.get_lot_entity(current_user, lot_id);
+    const business_id = resolve_effective_business_id(current_user);
 
     const location =
       dto.location_id !== undefined
@@ -180,15 +196,25 @@ export class InventoryLotsService {
         lot.id,
       )
     ) {
-      throw new ConflictException(
-        'A lot with this number already exists for the product in the warehouse.',
-      );
+      throw new DomainConflictException({
+        code: 'INVENTORY_LOT_NUMBER_DUPLICATE',
+        messageKey: 'inventory.inventory_lot_number_duplicate',
+        details: {
+          field: 'lot_number',
+          warehouse_id: lot.warehouse_id,
+          product_id: lot.product_id,
+        },
+      });
     }
 
     if (dto.expiration_date === null && lot.product?.track_expiration) {
-      throw new BadRequestException(
-        'Products with expiration tracking require expiration_date on the lot.',
-      );
+      throw new DomainBadRequestException({
+        code: 'INVENTORY_LOT_EXPIRATION_REQUIRED',
+        messageKey: 'inventory.inventory_lot_expiration_required',
+        details: {
+          field: 'expiration_date',
+        },
+      });
     }
 
     if (dto.code) {
@@ -218,7 +244,7 @@ export class InventoryLotsService {
         lot.supplier_contact_id = null;
       } else {
         await this.inventory_validation_service.assert_supplier_contact_in_business(
-          current_user.business_id,
+          business_id,
           dto.supplier_contact_id,
         );
         lot.supplier_contact_id = dto.supplier_contact_id;
@@ -241,7 +267,13 @@ export class InventoryLotsService {
         lot_id,
       );
     if (!lot) {
-      throw new NotFoundException('Inventory lot not found.');
+      throw new DomainNotFoundException({
+        code: 'INVENTORY_LOT_NOT_FOUND',
+        messageKey: 'inventory.inventory_lot_not_found',
+        details: {
+          lot_id,
+        },
+      });
     }
 
     return lot;

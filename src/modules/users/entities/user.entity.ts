@@ -16,7 +16,8 @@ import { UserBranchAccess } from './user-branch-access.entity';
 import { UserRole } from './user-role.entity';
 
 @Entity('users')
-@Index(['business_id', 'email'], { unique: true })
+@Index(['email'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class User extends AuditedCodeEntity {
   @Column({
     type: 'int',
@@ -69,6 +70,12 @@ export class User extends AuditedCodeEntity {
     default: UserType.STAFF,
   })
   user_type!: UserType;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
+  is_platform_admin!: boolean;
 
   @Column({
     type: 'numeric',

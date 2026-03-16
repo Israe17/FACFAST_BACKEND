@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
+import { BusinessesModule } from '../businesses/businesses.module';
 import { RbacModule } from '../rbac/rbac.module';
 import { UsersController } from './controllers/users.controller';
 import { UserBranchAccess } from './entities/user-branch-access.entity';
@@ -15,6 +16,7 @@ import { UsersService } from './services/users.service';
     TypeOrmModule.forFeature([User, UserRole, UserBranchAccess]),
     RbacModule,
     BranchesModule,
+    BusinessesModule,
   ],
   controllers: [UsersController],
   providers: [UsersRepository, UserManagementPolicy, UsersService],

@@ -32,6 +32,18 @@ export class RefreshToken extends CreatedCodeEntity {
   business?: Business;
 
   @Column({
+    type: 'int',
+    nullable: true,
+  })
+  acting_business_id!: number | null;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  acting_branch_id!: number | null;
+
+  @Column({
     type: 'varchar',
     length: 255,
     select: false,

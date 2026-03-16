@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { Warehouse } from '../entities/warehouse.entity';
 
@@ -47,26 +47,48 @@ export class WarehousesRepository {
       return [];
     }
 
-    return this.warehouse_repository.find({
-      where: {
-        business_id,
-        ...(branch_ids?.length ? { branch_id: In(branch_ids) } : {}),
-      },
-      order: {
-        branch_id: 'ASC',
-        is_default: 'DESC',
-        name: 'ASC',
-      },
-    });
+    const query = this.warehouse_repository
+      .createQueryBuilder('warehouse')
+      .leftJoinAndSelect(
+        'warehouse.branch_links',
+        'branch_link',
+        'branch_link.is_active = true',
+      )
+      .where('warehouse.business_id = :business_id', { business_id });
+
+    if (branch_ids?.length) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('warehouse.branch_id IN (:...branch_ids)', { branch_ids })
+            .orWhere('branch_link.branch_id IN (:...branch_ids)', {
+              branch_ids,
+            });
+        }),
+      );
+    }
+
+    return query
+      .orderBy('warehouse.branch_id', 'ASC')
+      .addOrderBy('warehouse.is_default', 'DESC')
+      .addOrderBy('warehouse.name', 'ASC')
+      .distinct(true)
+      .getMany();
   }
 
   async find_by_id_in_business(
     id: number,
     business_id: number,
   ): Promise<Warehouse | null> {
-    return this.warehouse_repository.findOne({
-      where: { id, business_id },
-    });
+    return this.warehouse_repository
+      .createQueryBuilder('warehouse')
+      .leftJoinAndSelect(
+        'warehouse.branch_links',
+        'branch_link',
+        'branch_link.is_active = true',
+      )
+      .where('warehouse.id = :id', { id })
+      .andWhere('warehouse.business_id = :business_id', { business_id })
+      .getOne();
   }
 
   async exists_name_in_branch(

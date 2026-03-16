@@ -17,10 +17,12 @@ import { ProductCategory } from './product-category.entity';
 import { ProductType } from '../enums/product-type.enum';
 import { PromotionItem } from './promotion-item.entity';
 import { TaxProfile } from './tax-profile.entity';
+import { ProductVariant } from './product-variant.entity';
 import { WarehouseStock } from './warehouse-stock.entity';
 import { WarrantyProfile } from './warranty-profile.entity';
 
 @Entity('products')
+@Index(['business_id', 'code'], { unique: true })
 @Index(['business_id', 'sku'], { unique: true })
 @Index(['business_id', 'barcode'], { unique: true })
 export class Product extends AuditedCodeEntity {
@@ -203,6 +205,9 @@ export class Product extends AuditedCodeEntity {
 
   @OneToMany(() => ProductPrice, (product_price) => product_price.product)
   product_prices?: ProductPrice[];
+
+  @OneToMany(() => ProductVariant, (product_variant) => product_variant.product)
+  variants?: ProductVariant[];
 
   @OneToMany(() => PromotionItem, (promotion_item) => promotion_item.product)
   promotion_items?: PromotionItem[];

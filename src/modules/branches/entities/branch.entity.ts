@@ -8,11 +8,13 @@ import {
 } from 'typeorm';
 import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
+import { IdentificationType } from '../../common/enums/identification-type.enum';
 import { UserBranchAccess } from '../../users/entities/user-branch-access.entity';
 import { Terminal } from './terminal.entity';
 
 @Entity('branches')
 @Index(['business_id', 'branch_number'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class Branch extends AuditedCodeEntity {
   @Column({
     type: 'int',
@@ -36,8 +38,29 @@ export class Branch extends AuditedCodeEntity {
   @Column({
     type: 'varchar',
     length: 160,
+    nullable: true,
+  })
+  name!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 160,
   })
   legal_name!: string;
+
+  @Column({
+    type: 'enum',
+    enum: IdentificationType,
+    nullable: true,
+  })
+  identification_type!: IdentificationType | null;
+
+  @Column({
+    type: 'varchar',
+    length: 40,
+    nullable: true,
+  })
+  identification_number!: string | null;
 
   @Column({
     type: 'varchar',
@@ -74,6 +97,13 @@ export class Branch extends AuditedCodeEntity {
     length: 120,
   })
   district!: string;
+
+  @Column({
+    type: 'varchar',
+    length: 120,
+    nullable: true,
+  })
+  city!: string | null;
 
   @Column({
     type: 'varchar',

@@ -1,10 +1,9 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateWarrantyProfileDto } from '../dto/create-warranty-profile.dto';
 import { UpdateWarrantyProfileDto } from '../dto/update-warranty-profile.dto';
 import { WarrantyProfile } from '../entities/warranty-profile.entity';
@@ -18,10 +17,9 @@ export class WarrantyProfilesService {
   ) {}
 
   async get_warranty_profiles(current_user: AuthenticatedUserContext) {
+    const business_id = resolve_effective_business_id(current_user);
     const warranty_profiles =
-      await this.warranty_profiles_repository.find_all_by_business(
-        current_user.business_id,
-      );
+      await this.warranty_profiles_repository.find_all_by_business(business_id);
     return warranty_profiles.map((warranty_profile) =>
       this.serialize_warranty_profile(warranty_profile),
     );
@@ -31,15 +29,20 @@ export class WarrantyProfilesService {
     current_user: AuthenticatedUserContext,
     dto: CreateWarrantyProfileDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     if (
       await this.warranty_profiles_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         dto.name.trim(),
       )
     ) {
-      throw new ConflictException(
-        'A warranty profile with this name already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'WARRANTY_PROFILE_NAME_DUPLICATE',
+        messageKey: 'inventory.warranty_profile_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -49,7 +52,7 @@ export class WarrantyProfilesService {
     return this.serialize_warranty_profile(
       await this.warranty_profiles_repository.save(
         this.warranty_profiles_repository.create({
-          business_id: current_user.business_id,
+          business_id,
           code: dto.code?.trim() ?? null,
           name: dto.name.trim(),
           duration_value: dto.duration_value,
@@ -67,7 +70,7 @@ export class WarrantyProfilesService {
   ) {
     return this.serialize_warranty_profile(
       await this.get_warranty_profile_entity(
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
         warranty_profile_id,
       ),
     );
@@ -78,22 +81,27 @@ export class WarrantyProfilesService {
     warranty_profile_id: number,
     dto: UpdateWarrantyProfileDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const warranty_profile = await this.get_warranty_profile_entity(
-      current_user.business_id,
+      business_id,
       warranty_profile_id,
     );
 
     const next_name = dto.name?.trim() ?? warranty_profile.name;
     if (
       await this.warranty_profiles_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         next_name,
         warranty_profile.id,
       )
     ) {
-      throw new ConflictException(
-        'A warranty profile with this name already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'WARRANTY_PROFILE_NAME_DUPLICATE',
+        messageKey: 'inventory.warranty_profile_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -133,7 +141,13 @@ export class WarrantyProfilesService {
         business_id,
       );
     if (!warranty_profile) {
-      throw new NotFoundException('Warranty profile not found.');
+      throw new DomainNotFoundException({
+        code: 'WARRANTY_PROFILE_NOT_FOUND',
+        messageKey: 'inventory.warranty_profile_not_found',
+        details: {
+          warranty_profile_id,
+        },
+      });
     }
 
     return warranty_profile;

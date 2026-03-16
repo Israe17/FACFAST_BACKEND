@@ -2,18 +2,24 @@ import { RefreshToken } from '../modules/auth/entities/refresh-token.entity';
 import { Branch } from '../modules/branches/entities/branch.entity';
 import { Terminal } from '../modules/branches/entities/terminal.entity';
 import { Business } from '../modules/common/entities/business.entity';
+import { BusinessSequence } from '../modules/common/entities/business-sequence.entity';
 import { Contact } from '../modules/contacts/entities/contact.entity';
 import { Brand } from '../modules/inventory/entities/brand.entity';
+import { InventoryBalance } from '../modules/inventory/entities/inventory-balance.entity';
 import { InventoryLot } from '../modules/inventory/entities/inventory-lot.entity';
 import { InventoryMovement } from '../modules/inventory/entities/inventory-movement.entity';
+import { InventoryMovementHeader } from '../modules/inventory/entities/inventory-movement-header.entity';
+import { InventoryMovementLine } from '../modules/inventory/entities/inventory-movement-line.entity';
 import { MeasurementUnit } from '../modules/inventory/entities/measurement-unit.entity';
 import { PriceList } from '../modules/inventory/entities/price-list.entity';
 import { ProductCategory } from '../modules/inventory/entities/product-category.entity';
 import { ProductPrice } from '../modules/inventory/entities/product-price.entity';
 import { Product } from '../modules/inventory/entities/product.entity';
+import { ProductVariant } from '../modules/inventory/entities/product-variant.entity';
 import { PromotionItem } from '../modules/inventory/entities/promotion-item.entity';
 import { Promotion } from '../modules/inventory/entities/promotion.entity';
 import { TaxProfile } from '../modules/inventory/entities/tax-profile.entity';
+import { WarehouseBranchLink } from '../modules/inventory/entities/warehouse-branch-link.entity';
 import { WarehouseLocation } from '../modules/inventory/entities/warehouse-location.entity';
 import { WarehouseStock } from '../modules/inventory/entities/warehouse-stock.entity';
 import { Warehouse } from '../modules/inventory/entities/warehouse.entity';
@@ -36,20 +42,26 @@ export const database_entities = [
   RefreshToken,
   Branch,
   Terminal,
+  BusinessSequence,
   Contact,
   ProductCategory,
   Brand,
   MeasurementUnit,
   TaxProfile,
   Product,
+  ProductVariant,
   PriceList,
   ProductPrice,
   WarrantyProfile,
   Promotion,
   PromotionItem,
   Warehouse,
+  WarehouseBranchLink,
   WarehouseLocation,
   WarehouseStock,
+  InventoryBalance,
   InventoryLot,
   InventoryMovement,
+  InventoryMovementHeader,
+  InventoryMovementLine,
 ];

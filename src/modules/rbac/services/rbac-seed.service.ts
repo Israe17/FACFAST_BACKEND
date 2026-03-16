@@ -1,10 +1,12 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Business } from '../../common/entities/business.entity';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
+import { EntityCodeService } from '../../common/services/entity-code.service';
 import { Permission } from '../entities/permission.entity';
 import { RolePermission } from '../entities/role-permission.entity';
+import { Role } from '../entities/role.entity';
 import { PermissionsRepository } from '../repositories/permissions.repository';
 import { RolesRepository } from '../repositories/roles.repository';
 
@@ -264,6 +266,18 @@ const base_permissions: PermissionSeed[] = [
     description: 'Can refresh sessions.',
   },
   {
+    key: PermissionKey.BUSINESSES_VIEW,
+    module: 'businesses',
+    action: 'view',
+    description: 'Can view the current business profile.',
+  },
+  {
+    key: PermissionKey.BUSINESSES_UPDATE,
+    module: 'businesses',
+    action: 'update',
+    description: 'Can update the current business profile.',
+  },
+  {
     key: 'users.view',
     module: 'users',
     action: 'view',
@@ -459,12 +473,22 @@ const suggested_role_permissions: Record<string, string[]> = {
 @Injectable()
 export class RbacSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RbacSeedService.name);
+  private readonly role_relations = {
+    role_permissions: {
+      permission: true,
+    },
+  } as const;
 
   constructor(
     private readonly permissions_repository: PermissionsRepository,
     private readonly roles_repository: RolesRepository,
+    private readonly entity_code_service: EntityCodeService,
     @InjectRepository(RolePermission)
     private readonly role_permission_repository: Repository<RolePermission>,
+    @InjectRepository(Role)
+    private readonly role_repository: Repository<Role>,
+    @InjectRepository(Permission)
+    private readonly permission_repository: Repository<Permission>,
     @InjectRepository(Business)
     private readonly business_repository: Repository<Business>,
   ) {}
@@ -478,22 +502,37 @@ export class RbacSeedService implements OnApplicationBootstrap {
   }
 
   async seed_base_permissions(): Promise<Permission[]> {
+    return this.seed_base_permissions_in_manager();
+  }
+
+  async seed_base_permissions_in_manager(
+    manager?: EntityManager,
+  ): Promise<Permission[]> {
+    const permission_repository =
+      manager?.getRepository(Permission) ?? this.permission_repository;
     const persisted_permissions: Permission[] = [];
 
     for (const permission_seed of base_permissions) {
-      let permission = await this.permissions_repository.find_by_key(
-        permission_seed.key,
-      );
+      let permission = await permission_repository.findOne({
+        where: {
+          key: permission_seed.key,
+        },
+      });
       if (!permission) {
-        permission = this.permissions_repository.create(permission_seed);
+        permission = permission_repository.create(permission_seed);
       } else {
         permission.module = permission_seed.module;
         permission.action = permission_seed.action;
         permission.description = permission_seed.description;
       }
 
+      const saved_permission = await permission_repository.save(permission);
       persisted_permissions.push(
-        await this.permissions_repository.save(permission),
+        await this.entity_code_service.ensure_code(
+          permission_repository,
+          saved_permission,
+          'PM',
+        ),
       );
     }
 
@@ -504,7 +543,29 @@ export class RbacSeedService implements OnApplicationBootstrap {
   async ensure_suggested_roles_for_business(
     business_id: number,
   ): Promise<void> {
-    const permissions = await this.permissions_repository.find_all();
+    return this.ensure_suggested_roles_for_business_in_manager(
+      business_id,
+      undefined,
+    );
+  }
+
+  async ensure_suggested_roles_for_business_in_manager(
+    business_id: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const permission_repository =
+      manager?.getRepository(Permission) ?? this.permission_repository;
+    const role_repository =
+      manager?.getRepository(Role) ?? this.role_repository;
+    const role_permission_repository =
+      manager?.getRepository(RolePermission) ?? this.role_permission_repository;
+
+    const permissions = await permission_repository.find({
+      order: {
+        module: 'ASC',
+        action: 'ASC',
+      },
+    });
     const permissions_by_key = new Map(
       permissions.map((permission) => [permission.key, permission]),
     );
@@ -512,12 +573,15 @@ export class RbacSeedService implements OnApplicationBootstrap {
     for (const [role_key, permission_keys] of Object.entries(
       suggested_role_permissions,
     )) {
-      let role = await this.roles_repository.find_by_role_key(
-        business_id,
-        role_key,
-      );
+      let role = await role_repository.findOne({
+        where: {
+          business_id,
+          role_key,
+        },
+        relations: this.role_relations,
+      });
       if (!role) {
-        role = this.roles_repository.create({
+        role = role_repository.create({
           business_id,
           name: role_key
             .split('_')
@@ -526,7 +590,21 @@ export class RbacSeedService implements OnApplicationBootstrap {
           role_key,
           is_system: true,
         });
-        role = await this.roles_repository.save(role);
+        const saved_role = await role_repository.save(role);
+        role = await this.entity_code_service.ensure_code(
+          role_repository,
+          saved_role,
+          'RL',
+        );
+        role = await role_repository.findOne({
+          where: {
+            id: role.id,
+          },
+          relations: this.role_relations,
+        });
+        if (!role) {
+          throw new Error('Could not reload seeded role.');
+        }
       }
 
       const existing_permission_ids = new Set(
@@ -541,8 +619,8 @@ export class RbacSeedService implements OnApplicationBootstrap {
           continue;
         }
 
-        await this.role_permission_repository.save(
-          this.role_permission_repository.create({
+        await role_permission_repository.save(
+          role_permission_repository.create({
             role_id: role.id,
             permission_id: permission.id,
           }),

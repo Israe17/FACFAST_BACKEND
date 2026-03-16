@@ -34,6 +34,30 @@ export class RefreshTokensRepository {
       .getOne();
   }
 
+  async find_by_id(id: number): Promise<RefreshToken | null> {
+    return this.refresh_token_repository.findOne({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async update_acting_context(
+    session_id: number,
+    acting_business_id: number | null,
+    acting_branch_id: number | null,
+  ): Promise<void> {
+    await this.refresh_token_repository.update(
+      {
+        id: session_id,
+      },
+      {
+        acting_business_id,
+        acting_branch_id,
+      },
+    );
+  }
+
   async revoke(session_id: number): Promise<void> {
     await this.refresh_token_repository
       .createQueryBuilder()

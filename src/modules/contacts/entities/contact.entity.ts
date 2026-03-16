@@ -9,6 +9,7 @@ import { ContactType } from '../enums/contact-type.enum';
 @Index(['business_id', 'identification_type', 'identification_number'], {
   unique: true,
 })
+@Index(['business_id', 'code'], { unique: true })
 export class Contact extends AuditedCodeEntity {
   @Column({
     type: 'int',

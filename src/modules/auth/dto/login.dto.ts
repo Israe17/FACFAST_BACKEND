@@ -1,26 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsInt,
-  IsPositive,
-  IsString,
-  MinLength,
-} from 'class-validator';
+import { IsEmail, IsString, MinLength } from 'class-validator';
+import { validation_messages } from '../../common/validation/validation-message.util';
 
 export class LoginDto {
   @ApiProperty({
-    example: 1,
-    description: 'ID de la empresa a la que pertenece el usuario.',
-  })
-  @IsInt()
-  @IsPositive()
-  business_id!: number;
-
-  @ApiProperty({
     example: 'owner@empresa.com',
-    description: 'Correo del usuario dentro del tenant.',
+    description: 'Correo unico del usuario.',
   })
-  @IsEmail()
+  @IsEmail({}, { message: validation_messages.invalid_email() })
   email!: string;
 
   @ApiProperty({
@@ -28,7 +15,7 @@ export class LoginDto {
     minLength: 10,
     description: 'Password del usuario.',
   })
-  @IsString()
-  @MinLength(10)
+  @IsString({ message: validation_messages.invalid_string() })
+  @MinLength(10, { message: validation_messages.min_length() })
   password!: string;
 }

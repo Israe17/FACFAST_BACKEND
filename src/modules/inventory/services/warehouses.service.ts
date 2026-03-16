@@ -1,17 +1,17 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateWarehouseLocationDto } from '../dto/create-warehouse-location.dto';
 import { CreateWarehouseDto } from '../dto/create-warehouse.dto';
 import { UpdateWarehouseLocationDto } from '../dto/update-warehouse-location.dto';
 import { UpdateWarehouseDto } from '../dto/update-warehouse.dto';
 import { WarehouseLocation } from '../entities/warehouse-location.entity';
 import { Warehouse } from '../entities/warehouse.entity';
+import { WarehouseBranchLinksRepository } from '../repositories/warehouse-branch-links.repository';
 import { WarehouseLocationsRepository } from '../repositories/warehouse-locations.repository';
 import { WarehousesRepository } from '../repositories/warehouses.repository';
 import { InventoryValidationService } from './inventory-validation.service';
@@ -20,14 +20,16 @@ import { InventoryValidationService } from './inventory-validation.service';
 export class WarehousesService {
   constructor(
     private readonly warehouses_repository: WarehousesRepository,
+    private readonly warehouse_branch_links_repository: WarehouseBranchLinksRepository,
     private readonly warehouse_locations_repository: WarehouseLocationsRepository,
     private readonly inventory_validation_service: InventoryValidationService,
     private readonly entity_code_service: EntityCodeService,
   ) {}
 
   async get_warehouses(current_user: AuthenticatedUserContext) {
+    const business_id = resolve_effective_business_id(current_user);
     const warehouses = await this.warehouses_repository.find_all_by_business(
-      current_user.business_id,
+      business_id,
       this.inventory_validation_service.resolve_accessible_branch_ids(
         current_user,
       ),
@@ -39,6 +41,7 @@ export class WarehousesService {
     current_user: AuthenticatedUserContext,
     dto: CreateWarehouseDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const branch =
       await this.inventory_validation_service.get_branch_for_operation(
         current_user,
@@ -51,9 +54,14 @@ export class WarehousesService {
         dto.name.trim(),
       )
     ) {
-      throw new ConflictException(
-        'A warehouse with this name already exists in the selected branch.',
-      );
+      throw new DomainConflictException({
+        code: 'WAREHOUSE_NAME_DUPLICATE',
+        messageKey: 'inventory.warehouse_name_duplicate',
+        details: {
+          field: 'name',
+          branch_id: branch.id,
+        },
+      });
     }
 
     if (dto.code) {
@@ -64,20 +72,20 @@ export class WarehousesService {
       await this.warehouses_repository.unset_default_for_branch(branch.id);
     }
 
-    return this.serialize_warehouse(
-      await this.warehouses_repository.save(
-        this.warehouses_repository.create({
-          business_id: current_user.business_id,
-          branch_id: branch.id,
-          code: dto.code?.trim() ?? null,
-          name: dto.name.trim(),
-          description: this.normalize_optional_string(dto.description),
-          uses_locations: dto.uses_locations ?? false,
-          is_default: dto.is_default ?? false,
-          is_active: dto.is_active ?? true,
-        }),
-      ),
+    const saved_warehouse = await this.warehouses_repository.save(
+      this.warehouses_repository.create({
+        business_id,
+        branch_id: branch.id,
+        code: dto.code?.trim() ?? null,
+        name: dto.name.trim(),
+        description: this.normalize_optional_string(dto.description),
+        uses_locations: dto.uses_locations ?? false,
+        is_default: dto.is_default ?? false,
+        is_active: dto.is_active ?? true,
+      }),
     );
+    await this.sync_primary_branch_link(saved_warehouse, branch.id);
+    return this.serialize_warehouse(saved_warehouse);
   }
 
   async get_warehouse(
@@ -115,9 +123,14 @@ export class WarehousesService {
         warehouse.id,
       )
     ) {
-      throw new ConflictException(
-        'A warehouse with this name already exists in the selected branch.',
-      );
+      throw new DomainConflictException({
+        code: 'WAREHOUSE_NAME_DUPLICATE',
+        messageKey: 'inventory.warehouse_name_duplicate',
+        details: {
+          field: 'name',
+          branch_id: next_branch_id,
+        },
+      });
     }
 
     if (dto.code) {
@@ -149,9 +162,9 @@ export class WarehousesService {
       warehouse.is_active = dto.is_active;
     }
 
-    return this.serialize_warehouse(
-      await this.warehouses_repository.save(warehouse),
-    );
+    const saved_warehouse = await this.warehouses_repository.save(warehouse);
+    await this.sync_primary_branch_link(saved_warehouse, saved_warehouse.branch_id);
+    return this.serialize_warehouse(saved_warehouse);
   }
 
   async get_locations(
@@ -165,7 +178,7 @@ export class WarehousesService {
     const locations =
       await this.warehouse_locations_repository.find_all_by_warehouse_in_business(
         warehouse.id,
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
       );
     return locations.map((location) => this.serialize_location(location));
   }
@@ -180,9 +193,13 @@ export class WarehousesService {
       warehouse_id,
     );
     if (!warehouse.uses_locations) {
-      throw new BadRequestException(
-        'This warehouse is not configured to use internal locations.',
-      );
+      throw new DomainBadRequestException({
+        code: 'WAREHOUSE_LOCATIONS_DISABLED',
+        messageKey: 'inventory.warehouse_locations_disabled',
+        details: {
+          warehouse_id: warehouse.id,
+        },
+      });
     }
 
     if (
@@ -191,9 +208,14 @@ export class WarehousesService {
         dto.name.trim(),
       )
     ) {
-      throw new ConflictException(
-        'A location with this name already exists in the selected warehouse.',
-      );
+      throw new DomainConflictException({
+        code: 'WAREHOUSE_LOCATION_NAME_DUPLICATE',
+        messageKey: 'inventory.warehouse_location_name_duplicate',
+        details: {
+          field: 'name',
+          warehouse_id: warehouse.id,
+        },
+      });
     }
 
     if (dto.code) {
@@ -203,7 +225,7 @@ export class WarehousesService {
     return this.serialize_location(
       await this.warehouse_locations_repository.save(
         this.warehouse_locations_repository.create({
-          business_id: current_user.business_id,
+          business_id: resolve_effective_business_id(current_user),
           branch_id: warehouse.branch_id,
           warehouse_id: warehouse.id,
           code: dto.code?.trim() ?? null,
@@ -248,9 +270,14 @@ export class WarehousesService {
         location.id,
       ))
     ) {
-      throw new ConflictException(
-        'A location with this name already exists in the selected warehouse.',
-      );
+      throw new DomainConflictException({
+        code: 'WAREHOUSE_LOCATION_NAME_DUPLICATE',
+        messageKey: 'inventory.warehouse_location_name_duplicate',
+        details: {
+          field: 'name',
+          warehouse_id: location.warehouse_id,
+        },
+      });
     }
 
     if (dto.code) {
@@ -309,7 +336,13 @@ export class WarehousesService {
         warehouse_id,
       );
     if (!warehouse) {
-      throw new NotFoundException('Warehouse not found.');
+      throw new DomainNotFoundException({
+        code: 'WAREHOUSE_NOT_FOUND',
+        messageKey: 'inventory.warehouse_not_found',
+        details: {
+          warehouse_id,
+        },
+      });
     }
 
     return warehouse;
@@ -330,6 +363,44 @@ export class WarehousesService {
     return normalized ? normalized : null;
   }
 
+  private async sync_primary_branch_link(
+    warehouse: Warehouse,
+    branch_id: number,
+  ): Promise<void> {
+    const existing_link =
+      await this.warehouse_branch_links_repository.find_by_warehouse_and_branch(
+        warehouse.business_id,
+        warehouse.id,
+        branch_id,
+      );
+
+    if (existing_link) {
+      existing_link.is_active = true;
+      existing_link.is_primary_for_sales = warehouse.is_default;
+      existing_link.is_primary_for_purchases = warehouse.is_default;
+      existing_link.priority = warehouse.is_default ? 1 : 100;
+      await this.warehouse_branch_links_repository.save(existing_link);
+    } else {
+      await this.warehouse_branch_links_repository.save(
+        this.warehouse_branch_links_repository.create({
+          business_id: warehouse.business_id,
+          warehouse_id: warehouse.id,
+          branch_id,
+          is_primary_for_sales: warehouse.is_default,
+          is_primary_for_purchases: warehouse.is_default,
+          priority: warehouse.is_default ? 1 : 100,
+          is_active: true,
+        }),
+      );
+    }
+
+    await this.warehouse_branch_links_repository.deactivate_other_links(
+      warehouse.business_id,
+      warehouse.id,
+      branch_id,
+    );
+  }
+
   private serialize_warehouse(warehouse: Warehouse) {
     return {
       id: warehouse.id,
@@ -338,6 +409,7 @@ export class WarehousesService {
       branch_id: warehouse.branch_id,
       name: warehouse.name,
       description: warehouse.description,
+      purpose: warehouse.purpose,
       uses_locations: warehouse.uses_locations,
       is_default: warehouse.is_default,
       is_active: warehouse.is_active,

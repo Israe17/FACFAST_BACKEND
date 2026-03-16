@@ -1,11 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateTaxProfileDto } from '../dto/create-tax-profile.dto';
 import { UpdateTaxProfileDto } from '../dto/update-tax-profile.dto';
 import { TaxProfile } from '../entities/tax-profile.entity';
@@ -20,10 +19,9 @@ export class TaxProfilesService {
   ) {}
 
   async get_tax_profiles(current_user: AuthenticatedUserContext) {
+    const business_id = resolve_effective_business_id(current_user);
     const tax_profiles =
-      await this.tax_profiles_repository.find_all_by_business(
-        current_user.business_id,
-      );
+      await this.tax_profiles_repository.find_all_by_business(business_id);
     return tax_profiles.map((tax_profile) =>
       this.serialize_tax_profile(tax_profile),
     );
@@ -33,15 +31,20 @@ export class TaxProfilesService {
     current_user: AuthenticatedUserContext,
     dto: CreateTaxProfileDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     if (
       await this.tax_profiles_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         dto.name.trim(),
       )
     ) {
-      throw new ConflictException(
-        'A tax profile with this name already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'TAX_PROFILE_NAME_DUPLICATE',
+        messageKey: 'inventory.tax_profile_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -49,7 +52,7 @@ export class TaxProfilesService {
     }
 
     const tax_profile = this.tax_profiles_repository.create({
-      business_id: current_user.business_id,
+      business_id,
       code: dto.code?.trim() ?? null,
       name: dto.name.trim(),
       description: this.normalize_optional_string(dto.description),
@@ -78,7 +81,7 @@ export class TaxProfilesService {
   ) {
     return this.serialize_tax_profile(
       await this.get_tax_profile_entity(
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
         tax_profile_id,
       ),
     );
@@ -89,22 +92,27 @@ export class TaxProfilesService {
     tax_profile_id: number,
     dto: UpdateTaxProfileDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const tax_profile = await this.get_tax_profile_entity(
-      current_user.business_id,
+      business_id,
       tax_profile_id,
     );
 
     const next_name = dto.name?.trim() ?? tax_profile.name;
     if (
       await this.tax_profiles_repository.exists_name_in_business(
-        current_user.business_id,
+        business_id,
         next_name,
         tax_profile.id,
       )
     ) {
-      throw new ConflictException(
-        'A tax profile with this name already exists.',
-      );
+      throw new DomainConflictException({
+        code: 'TAX_PROFILE_NAME_DUPLICATE',
+        messageKey: 'inventory.tax_profile_name_duplicate',
+        details: {
+          field: 'name',
+        },
+      });
     }
 
     if (dto.code) {
@@ -171,7 +179,13 @@ export class TaxProfilesService {
         business_id,
       );
     if (!tax_profile) {
-      throw new NotFoundException('Tax profile not found.');
+      throw new DomainNotFoundException({
+        code: 'TAX_PROFILE_NOT_FOUND',
+        messageKey: 'inventory.tax_profile_not_found',
+        details: {
+          tax_profile_id,
+        },
+      });
     }
 
     return tax_profile;
@@ -179,9 +193,13 @@ export class TaxProfilesService {
 
   private apply_tax_rules(tax_profile: TaxProfile): void {
     if (tax_profile.tax_type === TaxType.IVA && tax_profile.iva_rate === null) {
-      throw new BadRequestException(
-        'IVA tax profiles require an iva_rate value.',
-      );
+      throw new DomainBadRequestException({
+        code: 'TAX_PROFILE_IVA_RATE_REQUIRED',
+        messageKey: 'inventory.tax_profile_iva_rate_required',
+        details: {
+          field: 'iva_rate',
+        },
+      });
     }
 
     if (tax_profile.tax_type !== TaxType.IVA) {
@@ -195,9 +213,13 @@ export class TaxProfilesService {
         !tax_profile.specific_tax_name ||
         tax_profile.specific_tax_rate === null
       ) {
-        throw new BadRequestException(
-          'Specific tax profiles require specific_tax_name and specific_tax_rate.',
-        );
+        throw new DomainBadRequestException({
+          code: 'TAX_PROFILE_SPECIFIC_FIELDS_REQUIRED',
+          messageKey: 'inventory.tax_profile_specific_fields_required',
+          details: {
+            field: 'specific_tax_name',
+          },
+        });
       }
       return;
     }

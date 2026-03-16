@@ -1,13 +1,12 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { UserRole } from '../../users/entities/user-role.entity';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
@@ -30,7 +29,7 @@ export class RbacService {
 
   async get_roles(current_user: AuthenticatedUserContext) {
     const roles = await this.roles_repository.find_all_by_business(
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     return roles.map((role) => this.serialize_role(role));
   }
@@ -40,13 +39,17 @@ export class RbacService {
     dto: CreateRoleDto,
   ) {
     const existing_role = await this.roles_repository.find_by_role_key(
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
       dto.role_key,
     );
     if (existing_role) {
-      throw new ConflictException(
-        'A role with this role_key already exists in the business.',
-      );
+      throw new DomainConflictException({
+        code: 'ROLE_KEY_DUPLICATE',
+        messageKey: 'rbac.role_key_duplicate',
+        details: {
+          field: 'role_key',
+        },
+      });
     }
 
     if (dto.code) {
@@ -54,7 +57,7 @@ export class RbacService {
     }
 
     const role = this.roles_repository.create({
-      business_id: current_user.business_id,
+      business_id: resolve_effective_business_id(current_user),
       code: dto.code ?? null,
       name: dto.name.trim(),
       role_key: dto.role_key.trim(),
@@ -71,21 +74,31 @@ export class RbacService {
   ) {
     const role = await this.roles_repository.find_by_id_in_business(
       role_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!role) {
-      throw new NotFoundException('Role not found.');
+      throw new DomainNotFoundException({
+        code: 'ROLE_NOT_FOUND',
+        messageKey: 'rbac.role_not_found',
+        details: {
+          role_id,
+        },
+      });
     }
 
     if (dto.role_key && dto.role_key !== role.role_key) {
       const duplicated = await this.roles_repository.find_by_role_key(
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
         dto.role_key,
       );
       if (duplicated && duplicated.id !== role.id) {
-        throw new ConflictException(
-          'A role with this role_key already exists in the business.',
-        );
+        throw new DomainConflictException({
+          code: 'ROLE_KEY_DUPLICATE',
+          messageKey: 'rbac.role_key_duplicate',
+          details: {
+            field: 'role_key',
+          },
+        });
       }
       role.role_key = dto.role_key.trim();
     }
@@ -105,14 +118,23 @@ export class RbacService {
   async delete_role(current_user: AuthenticatedUserContext, role_id: number) {
     const role = await this.roles_repository.find_by_id_in_business(
       role_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!role) {
-      throw new NotFoundException('Role not found.');
+      throw new DomainNotFoundException({
+        code: 'ROLE_NOT_FOUND',
+        messageKey: 'rbac.role_not_found',
+        details: {
+          role_id,
+        },
+      });
     }
 
     if (role.is_system) {
-      throw new BadRequestException('System roles cannot be deleted.');
+      throw new DomainBadRequestException({
+        code: 'ROLE_SYSTEM_DELETE_FORBIDDEN',
+        messageKey: 'rbac.system_role_delete_forbidden',
+      });
     }
 
     const assignments_count = await this.user_role_repository.count({
@@ -121,7 +143,10 @@ export class RbacService {
       },
     });
     if (assignments_count > 0) {
-      throw new BadRequestException('Cannot delete a role assigned to users.');
+      throw new DomainBadRequestException({
+        code: 'ROLE_IN_USE_DELETE_FORBIDDEN',
+        messageKey: 'rbac.role_in_use_delete_forbidden',
+      });
     }
 
     await this.roles_repository.delete(role);
@@ -137,17 +162,29 @@ export class RbacService {
   ) {
     const role = await this.roles_repository.find_by_id_in_business(
       role_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!role) {
-      throw new NotFoundException('Role not found.');
+      throw new DomainNotFoundException({
+        code: 'ROLE_NOT_FOUND',
+        messageKey: 'rbac.role_not_found',
+        details: {
+          role_id,
+        },
+      });
     }
 
     const permissions = await this.permissions_repository.find_by_ids(
       dto.permission_ids,
     );
     if (permissions.length !== dto.permission_ids.length) {
-      throw new BadRequestException('One or more permissions do not exist.');
+      throw new DomainBadRequestException({
+        code: 'ROLE_PERMISSIONS_NOT_FOUND',
+        messageKey: 'rbac.permissions_not_found',
+        details: {
+          field: 'permission_ids',
+        },
+      });
     }
 
     await this.role_permission_repository.delete({
@@ -166,10 +203,16 @@ export class RbacService {
 
     const refreshed_role = await this.roles_repository.find_by_id_in_business(
       role.id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!refreshed_role) {
-      throw new NotFoundException('Role not found after update.');
+      throw new DomainNotFoundException({
+        code: 'ROLE_NOT_FOUND',
+        messageKey: 'rbac.role_not_found',
+        details: {
+          role_id: role.id,
+        },
+      });
     }
 
     return this.serialize_role(refreshed_role);

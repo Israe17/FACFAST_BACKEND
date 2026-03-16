@@ -13,6 +13,7 @@ import { Product } from './product.entity';
 @Entity('measurement_units')
 @Index(['business_id', 'name'], { unique: true })
 @Index(['business_id', 'symbol'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class MeasurementUnit extends AuditedCodeEntity {
   @Column({
     type: 'int',

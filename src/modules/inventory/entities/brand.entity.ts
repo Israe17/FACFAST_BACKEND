@@ -12,6 +12,7 @@ import { Product } from './product.entity';
 
 @Entity('brands')
 @Index(['business_id', 'name'], { unique: true })
+@Index(['business_id', 'code'], { unique: true })
 export class Brand extends AuditedCodeEntity {
   @Column({
     type: 'int',

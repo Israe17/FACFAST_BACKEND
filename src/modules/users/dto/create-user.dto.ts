@@ -16,6 +16,7 @@ import {
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserType } from '../../common/enums/user-type.enum';
 import { GENERIC_ENTITY_CODE_PATTERN } from '../../common/utils/validation-patterns.util';
+import { validation_messages } from '../../common/validation/validation-message.util';
 
 export class CreateUserDto {
   @ApiPropertyOptional({
@@ -23,36 +24,38 @@ export class CreateUserDto {
     description: 'Codigo funcional manual opcional.',
   })
   @IsOptional()
-  @Matches(GENERIC_ENTITY_CODE_PATTERN)
+  @Matches(GENERIC_ENTITY_CODE_PATTERN, {
+    message: validation_messages.pattern_mismatch(),
+  })
   code?: string;
 
   @ApiProperty({ example: 'Cajero Principal' })
-  @IsString()
-  @MinLength(2)
+  @IsString({ message: validation_messages.invalid_string() })
+  @MinLength(2, { message: validation_messages.min_length() })
   name!: string;
 
   @ApiProperty({ example: 'cajero@empresa.com' })
-  @IsEmail()
+  @IsEmail({}, { message: validation_messages.invalid_email() })
   email!: string;
 
   @ApiProperty({ example: 'Password123', minLength: 10 })
-  @IsString()
-  @MinLength(10)
+  @IsString({ message: validation_messages.invalid_string() })
+  @MinLength(10, { message: validation_messages.min_length() })
   password!: string;
 
   @ApiPropertyOptional({ enum: UserStatus, example: UserStatus.ACTIVE })
   @IsOptional()
-  @IsEnum(UserStatus)
+  @IsEnum(UserStatus, { message: validation_messages.invalid_enum() })
   status?: UserStatus;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
-  @IsBoolean()
+  @IsBoolean({ message: validation_messages.invalid_boolean() })
   allow_login?: boolean;
 
   @ApiPropertyOptional({ enum: UserType, example: UserType.STAFF })
   @IsOptional()
-  @IsEnum(UserType)
+  @IsEnum(UserType, { message: validation_messages.invalid_enum() })
   user_type?: UserType;
 
   @ApiPropertyOptional({
@@ -61,8 +64,8 @@ export class CreateUserDto {
     maximum: 100,
   })
   @IsOptional()
-  @Min(0)
-  @Max(100)
+  @Min(0, { message: validation_messages.min_value() })
+  @Max(100, { message: validation_messages.max_value() })
   max_sale_discount?: number;
 
   @ApiPropertyOptional({
@@ -71,9 +74,9 @@ export class CreateUserDto {
     description: 'IDs de roles a asignar.',
   })
   @IsOptional()
-  @IsArray()
-  @ArrayUnique()
-  @IsInt({ each: true })
+  @IsArray({ message: validation_messages.array_required() })
+  @ArrayUnique({ message: validation_messages.array_unique() })
+  @IsInt({ each: true, message: validation_messages.invalid_number() })
   role_ids?: number[];
 
   @ApiPropertyOptional({
@@ -82,8 +85,8 @@ export class CreateUserDto {
     description: 'IDs de sucursales a asignar.',
   })
   @IsOptional()
-  @IsArray()
-  @ArrayUnique()
-  @IsInt({ each: true })
+  @IsArray({ message: validation_messages.array_required() })
+  @ArrayUnique({ message: validation_messages.array_unique() })
+  @IsInt({ each: true, message: validation_messages.invalid_number() })
   branch_ids?: number[];
 }

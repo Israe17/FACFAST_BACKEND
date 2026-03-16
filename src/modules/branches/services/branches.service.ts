@@ -1,11 +1,14 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { IdentificationType } from '../../common/enums/identification-type.enum';
+import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { EncryptionService } from '../../common/services/encryption.service';
+import {
+  resolve_effective_branch_scope_ids,
+  resolve_effective_business_id,
+} from '../../common/utils/tenant-context.util';
 import { CreateBranchDto } from '../dto/create-branch.dto';
 import { CreateTerminalDto } from '../dto/create-terminal.dto';
 import { UpdateBranchDto } from '../dto/update-branch.dto';
@@ -15,6 +18,10 @@ import { Terminal } from '../entities/terminal.entity';
 import { BranchAccessPolicy } from '../policies/branch-access.policy';
 import { BranchesRepository } from '../repositories/branches.repository';
 import { TerminalsRepository } from '../repositories/terminals.repository';
+import {
+  serialize_branch,
+  serialize_terminal,
+} from '../utils/serialize-branch.util';
 
 @Injectable()
 export class BranchesService {
@@ -27,12 +34,10 @@ export class BranchesService {
   ) {}
 
   async get_branches(current_user: AuthenticatedUserContext) {
-    const branch_ids = this.branch_access_policy.is_owner(current_user)
-      ? undefined
-      : current_user.branch_ids;
+    const branch_ids = resolve_effective_branch_scope_ids(current_user);
 
     const branches = await this.branches_repository.find_all_by_business(
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
       branch_ids,
     );
 
@@ -50,16 +55,21 @@ export class BranchesService {
     }
 
     const branch = this.branches_repository.create({
-      business_id: current_user.business_id,
+      business_id: resolve_effective_business_id(current_user),
       code: dto.code ?? null,
       business_name: dto.business_name.trim(),
+      name: dto.name?.trim() || dto.business_name.trim(),
       legal_name: dto.legal_name.trim(),
+      identification_type: dto.identification_type ?? IdentificationType.LEGAL,
+      identification_number:
+        dto.identification_number?.trim() ?? dto.cedula_juridica.trim(),
       cedula_juridica: dto.cedula_juridica.trim(),
       branch_number: dto.branch_number.trim(),
       address: dto.address.trim(),
       province: dto.province.trim(),
       canton: dto.canton.trim(),
       district: dto.district.trim(),
+      city: dto.city?.trim() ?? null,
       phone: dto.phone?.trim() ?? null,
       email: dto.email?.trim() ?? null,
       activity_code: dto.activity_code?.trim() ?? null,
@@ -81,10 +91,16 @@ export class BranchesService {
   async get_branch(current_user: AuthenticatedUserContext, branch_id: number) {
     const branch = await this.branches_repository.find_by_id_in_business(
       branch_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!branch) {
-      throw new NotFoundException('Branch not found.');
+      throw new DomainNotFoundException({
+        code: 'BRANCH_NOT_FOUND',
+        messageKey: 'branches.not_found',
+        details: {
+          branch_id,
+        },
+      });
     }
 
     this.branch_access_policy.assert_can_access_branch(current_user, branch.id);
@@ -98,10 +114,16 @@ export class BranchesService {
   ) {
     const branch = await this.branches_repository.find_by_id_in_business(
       branch_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!branch) {
-      throw new NotFoundException('Branch not found.');
+      throw new DomainNotFoundException({
+        code: 'BRANCH_NOT_FOUND',
+        messageKey: 'branches.not_found',
+        details: {
+          branch_id,
+        },
+      });
     }
 
     this.branch_access_policy.assert_can_access_branch(current_user, branch.id);
@@ -115,8 +137,17 @@ export class BranchesService {
     if (dto.business_name) {
       branch.business_name = dto.business_name.trim();
     }
+    if (dto.name) {
+      branch.name = dto.name.trim();
+    }
     if (dto.legal_name) {
       branch.legal_name = dto.legal_name.trim();
+    }
+    if (dto.identification_type !== undefined) {
+      branch.identification_type = dto.identification_type;
+    }
+    if (dto.identification_number !== undefined) {
+      branch.identification_number = dto.identification_number.trim();
     }
     if (dto.cedula_juridica) {
       branch.cedula_juridica = dto.cedula_juridica.trim();
@@ -135,6 +166,9 @@ export class BranchesService {
     }
     if (dto.district) {
       branch.district = dto.district.trim();
+    }
+    if (dto.city !== undefined) {
+      branch.city = dto.city?.trim() || null;
     }
     if (dto.phone !== undefined) {
       branch.phone = dto.phone?.trim() || null;
@@ -184,10 +218,16 @@ export class BranchesService {
   ) {
     const branch = await this.branches_repository.find_by_id_in_business(
       branch_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!branch) {
-      throw new NotFoundException('Branch not found.');
+      throw new DomainNotFoundException({
+        code: 'BRANCH_NOT_FOUND',
+        messageKey: 'branches.not_found',
+        details: {
+          branch_id,
+        },
+      });
     }
 
     this.branch_access_policy.assert_can_access_branch(current_user, branch.id);
@@ -216,11 +256,26 @@ export class BranchesService {
     const terminal =
       await this.terminals_repository.find_by_id_with_branch(terminal_id);
     if (!terminal || !terminal.branch) {
-      throw new NotFoundException('Terminal not found.');
+      throw new DomainNotFoundException({
+        code: 'TERMINAL_NOT_FOUND',
+        messageKey: 'terminals.not_found',
+        details: {
+          terminal_id,
+        },
+      });
     }
 
-    if (terminal.branch.business_id !== current_user.business_id) {
-      throw new NotFoundException('Terminal not found.');
+    if (
+      terminal.branch.business_id !==
+      resolve_effective_business_id(current_user)
+    ) {
+      throw new DomainNotFoundException({
+        code: 'TERMINAL_NOT_FOUND',
+        messageKey: 'terminals.not_found',
+        details: {
+          terminal_id,
+        },
+      });
     }
 
     this.branch_access_policy.assert_can_access_branch(
@@ -266,55 +321,18 @@ export class BranchesService {
       touches_sensitive_configuration &&
       !current_user.permissions.includes('branches.configure')
     ) {
-      throw new ForbiddenException(
-        'branches.configure permission is required for sensitive branch configuration.',
-      );
+      throw new DomainForbiddenException({
+        code: 'BRANCH_CONFIGURATION_PERMISSION_REQUIRED',
+        messageKey: 'branches.configuration_permission_required',
+      });
     }
   }
 
   private serialize_branch(branch: Branch) {
-    return {
-      id: branch.id,
-      code: branch.code,
-      business_id: branch.business_id,
-      business_name: branch.business_name,
-      legal_name: branch.legal_name,
-      cedula_juridica: branch.cedula_juridica,
-      branch_number: branch.branch_number,
-      address: branch.address,
-      province: branch.province,
-      canton: branch.canton,
-      district: branch.district,
-      phone: branch.phone,
-      email: branch.email,
-      activity_code: branch.activity_code,
-      provider_code: branch.provider_code,
-      cert_path: branch.cert_path,
-      hacienda_username: branch.hacienda_username,
-      signature_type: branch.signature_type,
-      is_active: branch.is_active,
-      has_crypto_key: Boolean(branch.crypto_key_encrypted),
-      has_hacienda_password: Boolean(branch.hacienda_password_encrypted),
-      has_mail_key: Boolean(branch.mail_key_encrypted),
-      created_at: branch.created_at,
-      updated_at: branch.updated_at,
-      terminals:
-        branch.terminals?.map((terminal) =>
-          this.serialize_terminal(terminal),
-        ) ?? [],
-    };
+    return serialize_branch(branch);
   }
 
   private serialize_terminal(terminal: Terminal) {
-    return {
-      id: terminal.id,
-      code: terminal.code,
-      branch_id: terminal.branch_id,
-      terminal_number: terminal.terminal_number,
-      name: terminal.name,
-      is_active: terminal.is_active,
-      created_at: terminal.created_at,
-      updated_at: terminal.updated_at,
-    };
+    return serialize_terminal(terminal);
   }
 }

@@ -16,10 +16,14 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
+import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
+import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { UpdateTerminalDto } from '../dto/update-terminal.dto';
 import { BranchesService } from '../services/branches.service';
@@ -31,12 +35,14 @@ import { BranchesService } from '../services/branches.service';
   description: 'Permisos insuficientes o la sucursal no es accesible.',
 })
 @Controller('terminals')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AllowPlatformPermissionOverride()
+@AllowPlatformTenantContext()
+@UseGuards(JwtAuthGuard, TenantContextGuard, PermissionsGuard)
 export class TerminalsController {
   constructor(private readonly branches_service: BranchesService) {}
 
   @Patch(':id')
-  @RequirePermissions('branches.update_terminal')
+  @RequirePermissions(PermissionKey.BRANCHES_UPDATE_TERMINAL)
   @ApiOperation({ summary: 'Actualizar terminal' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateTerminalDto })

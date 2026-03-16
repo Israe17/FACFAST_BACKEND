@@ -1,11 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateProductCategoryDto } from '../dto/create-product-category.dto';
 import { UpdateProductCategoryDto } from '../dto/update-product-category.dto';
 import { ProductCategory } from '../entities/product-category.entity';
@@ -19,17 +18,19 @@ export class ProductCategoriesService {
   ) {}
 
   async get_categories(current_user: AuthenticatedUserContext) {
+    const business_id = resolve_effective_business_id(current_user);
     const categories =
       await this.product_categories_repository.find_all_by_business(
-        current_user.business_id,
+        business_id,
       );
     return categories.map((category) => this.serialize_category(category));
   }
 
   async get_tree(current_user: AuthenticatedUserContext) {
+    const business_id = resolve_effective_business_id(current_user);
     const categories =
       await this.product_categories_repository.find_all_by_business(
-        current_user.business_id,
+        business_id,
       );
     const nodes = new Map(
       categories.map((category) => [
@@ -65,20 +66,26 @@ export class ProductCategoriesService {
     current_user: AuthenticatedUserContext,
     dto: CreateProductCategoryDto,
   ) {
+    const business_id = resolve_effective_business_id(current_user);
     const parent = dto.parent_id
-      ? await this.get_category_entity(current_user.business_id, dto.parent_id)
+      ? await this.get_category_entity(business_id, dto.parent_id)
       : null;
 
     if (
       await this.product_categories_repository.exists_name_in_scope(
-        current_user.business_id,
+        business_id,
         dto.name.trim(),
         parent?.id ?? null,
       )
     ) {
-      throw new ConflictException(
-        'A category with this name already exists in the same hierarchy level.',
-      );
+      throw new DomainConflictException({
+        code: 'CATEGORY_NAME_DUPLICATE',
+        messageKey: 'inventory.category_name_duplicate',
+        details: {
+          field: 'name',
+          parent_id: parent?.id ?? null,
+        },
+      });
     }
 
     if (dto.code) {
@@ -86,7 +93,7 @@ export class ProductCategoriesService {
     }
 
     let category = this.product_categories_repository.create({
-      business_id: current_user.business_id,
+      business_id,
       code: dto.code?.trim() ?? null,
       name: dto.name.trim(),
       description: this.normalize_optional_string(dto.description),
@@ -112,7 +119,10 @@ export class ProductCategoriesService {
     category_id: number,
   ) {
     return this.serialize_category(
-      await this.get_category_entity(current_user.business_id, category_id),
+      await this.get_category_entity(
+        resolve_effective_business_id(current_user),
+        category_id,
+      ),
     );
   }
 
@@ -121,36 +131,40 @@ export class ProductCategoriesService {
     category_id: number,
     dto: UpdateProductCategoryDto,
   ) {
-    const category = await this.get_category_entity(
-      current_user.business_id,
-      category_id,
-    );
+    const business_id = resolve_effective_business_id(current_user);
+    const category = await this.get_category_entity(business_id, category_id);
 
     let parent = category.parent_id
       ? await this.product_categories_repository.find_by_id_in_business(
           category.parent_id,
-          current_user.business_id,
+          business_id,
         )
       : null;
 
     if (dto.parent_id !== undefined) {
       if (dto.parent_id === category.id) {
-        throw new BadRequestException(
-          'A category cannot be assigned as its own parent.',
-        );
+        throw new DomainBadRequestException({
+          code: 'CATEGORY_PARENT_SELF_INVALID',
+          messageKey: 'inventory.category_parent_self_invalid',
+          details: {
+            category_id,
+          },
+        });
       }
 
       parent = dto.parent_id
-        ? await this.get_category_entity(
-            current_user.business_id,
-            dto.parent_id,
-          )
+        ? await this.get_category_entity(business_id, dto.parent_id)
         : null;
 
       if (parent?.path?.includes(`/${category.id}/`)) {
-        throw new BadRequestException(
-          'A category cannot be moved under one of its descendants.',
-        );
+        throw new DomainBadRequestException({
+          code: 'CATEGORY_PARENT_DESCENDANT_INVALID',
+          messageKey: 'inventory.category_parent_descendant_invalid',
+          details: {
+            category_id,
+            parent_id: parent.id,
+          },
+        });
       }
     }
 
@@ -160,15 +174,20 @@ export class ProductCategoriesService {
 
     if (
       await this.product_categories_repository.exists_name_in_scope(
-        current_user.business_id,
+        business_id,
         next_name,
         next_parent_id,
         category.id,
       )
     ) {
-      throw new ConflictException(
-        'A category with this name already exists in the same hierarchy level.',
-      );
+      throw new DomainConflictException({
+        code: 'CATEGORY_NAME_DUPLICATE',
+        messageKey: 'inventory.category_name_duplicate',
+        details: {
+          field: 'name',
+          parent_id: next_parent_id,
+        },
+      });
     }
 
     if (dto.code) {
@@ -209,7 +228,13 @@ export class ProductCategoriesService {
         business_id,
       );
     if (!category) {
-      throw new NotFoundException('Product category not found.');
+      throw new DomainNotFoundException({
+        code: 'CATEGORY_NOT_FOUND',
+        messageKey: 'inventory.category_not_found',
+        details: {
+          category_id,
+        },
+      });
     }
 
     return category;

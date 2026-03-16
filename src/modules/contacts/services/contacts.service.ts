@@ -1,11 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
@@ -21,7 +20,7 @@ export class ContactsService {
 
   async get_contacts(current_user: AuthenticatedUserContext) {
     const contacts = await this.contacts_repository.find_all_by_business(
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     return contacts.map((contact) => this.serialize_contact(contact));
   }
@@ -31,20 +30,21 @@ export class ContactsService {
     dto: CreateContactDto,
   ) {
     const code = this.normalize_code(dto.code);
+    const business_id = resolve_effective_business_id(current_user);
     if (code) {
       this.entity_code_service.validate_code('CT', code);
-      await this.assert_code_available(code);
+      await this.assert_code_available(business_id, code);
     }
 
     const identification_number = dto.identification_number.trim();
     await this.assert_identification_available(
-      current_user.business_id,
+      business_id,
       dto.identification_type,
       identification_number,
     );
 
     const contact = this.contacts_repository.create({
-      business_id: current_user.business_id,
+      business_id,
       code,
       type: dto.type,
       name: dto.name.trim(),
@@ -97,7 +97,11 @@ export class ContactsService {
       const code = this.normalize_code(dto.code);
       if (code) {
         this.entity_code_service.validate_code('CT', code);
-        await this.assert_code_available(code, contact.id);
+        await this.assert_code_available(
+          resolve_effective_business_id(current_user),
+          code,
+          contact.id,
+        );
       }
       contact.code = code;
     }
@@ -112,7 +116,7 @@ export class ContactsService {
       dto.identification_number !== undefined
     ) {
       await this.assert_identification_available(
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
         next_identification_type,
         next_identification_number,
         contact.id,
@@ -199,18 +203,28 @@ export class ContactsService {
     const normalized_identification = identification.trim();
     const contacts =
       await this.contacts_repository.find_many_by_identification_number_in_business(
-        current_user.business_id,
+        resolve_effective_business_id(current_user),
         normalized_identification,
       );
 
     if (!contacts.length) {
-      throw new NotFoundException('Contact not found.');
+      throw new DomainNotFoundException({
+        code: 'CONTACT_NOT_FOUND',
+        messageKey: 'contacts.not_found',
+        details: {
+          identification_number: normalized_identification,
+        },
+      });
     }
 
     if (contacts.length > 1) {
-      throw new BadRequestException(
-        'More than one contact matches the provided identification number in this business.',
-      );
+      throw new DomainBadRequestException({
+        code: 'CONTACT_LOOKUP_MULTIPLE',
+        messageKey: 'contacts.lookup_multiple',
+        details: {
+          identification_number: normalized_identification,
+        },
+      });
     }
 
     return this.serialize_contact(contacts[0]);
@@ -222,21 +236,40 @@ export class ContactsService {
   ): Promise<Contact> {
     const contact = await this.contacts_repository.find_by_id_in_business(
       contact_id,
-      current_user.business_id,
+      resolve_effective_business_id(current_user),
     );
     if (!contact) {
-      throw new NotFoundException('Contact not found.');
+      throw new DomainNotFoundException({
+        code: 'CONTACT_NOT_FOUND',
+        messageKey: 'contacts.not_found',
+        details: {
+          contact_id,
+        },
+      });
     }
 
     return contact;
   }
 
   private async assert_code_available(
+    business_id: number,
     code: string,
     exclude_id?: number,
   ): Promise<void> {
-    if (await this.contacts_repository.exists_code(code, exclude_id)) {
-      throw new ConflictException('A contact with this code already exists.');
+    if (
+      await this.contacts_repository.exists_code(
+        business_id,
+        code,
+        exclude_id,
+      )
+    ) {
+      throw new DomainConflictException({
+        code: 'CONTACT_CODE_DUPLICATE',
+        messageKey: 'contacts.code_duplicate',
+        details: {
+          field: 'code',
+        },
+      });
     }
   }
 
@@ -254,9 +287,14 @@ export class ContactsService {
         exclude_id,
       )
     ) {
-      throw new ConflictException(
-        'A contact with this identification already exists in the business.',
-      );
+      throw new DomainConflictException({
+        code: 'CONTACT_IDENTIFICATION_DUPLICATE',
+        messageKey: 'contacts.identification_duplicate',
+        details: {
+          field: 'identification_number',
+          identification_type,
+        },
+      });
     }
   }
 
