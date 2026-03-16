@@ -1,4 +1,5 @@
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { build_validation_exception } from './modules/common/errors/validation-exception.factory';
@@ -10,6 +11,7 @@ export function configure_app(app: INestApplication): void {
   const cors_origin = config_service.get<string>('app.cors_origin');
   const node_env = config_service.get<string>('NODE_ENV');
 
+  app.use(helmet());
   app.use(cookieParser());
   app.use(request_context_middleware);
   app.enableCors({

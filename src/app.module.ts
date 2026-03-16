@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import app_config from './config/app.config';
 import auth_config from './config/auth.config';
@@ -24,6 +26,7 @@ import { UsersModule } from './modules/users/users.module';
       load: [app_config, auth_config, database_config],
       validate: validate_env,
     }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 20 }]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config_service: ConfigService) => {
@@ -65,5 +68,6 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     AuthModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
