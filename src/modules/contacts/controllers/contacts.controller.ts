@@ -16,6 +16,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { ContactsService } from '../services/contacts.service';
@@ -43,10 +45,13 @@ export class ContactsController {
 
   @Get()
   @RequirePermissions('contacts.view')
-  @ApiOperation({ summary: 'Listar contactos del negocio autenticado' })
-  @ApiOkResponse({ description: 'Lista de clientes y proveedores.' })
-  get_contacts(@CurrentUser() current_user: AuthenticatedUserContext) {
-    return this.contacts_service.get_contacts(current_user);
+  @ApiOperation({ summary: 'Listar contactos del negocio autenticado (paginado)' })
+  @ApiOkResponse({ description: 'Lista paginada de clientes y proveedores.' })
+  get_contacts(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: PaginatedQueryDto,
+  ) {
+    return this.contacts_service.get_contacts_paginated(current_user, query);
   }
 
   @Post()

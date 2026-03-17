@@ -1,9 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import {
+  apply_pagination,
+  apply_search,
+  apply_sorting,
+} from '../../common/utils/query-builder.util';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
 import { Contact } from '../entities/contact.entity';
+
+const CONTACT_SORT_COLUMNS: Record<string, string> = {
+  name: 'contact.name',
+  code: 'contact.code',
+  identification_number: 'contact.identification_number',
+  type: 'contact.type',
+  created_at: 'contact.created_at',
+  updated_at: 'contact.updated_at',
+};
+
+const CONTACT_SEARCH_COLUMNS = [
+  'contact.name',
+  'contact.code',
+  'contact.identification_number',
+  'contact.email',
+  'contact.phone',
+  'contact.commercial_name',
+];
 
 @Injectable()
 export class ContactsRepository {
@@ -36,6 +61,28 @@ export class ContactsRepository {
         id: 'ASC',
       },
     });
+  }
+
+  async find_paginated_by_business(
+    business_id: number,
+    query: PaginatedQueryDto,
+    mapper: (contact: Contact) => unknown,
+  ): Promise<PaginatedResponseDto<unknown>> {
+    const qb = this.contact_repository
+      .createQueryBuilder('contact')
+      .where('contact.business_id = :business_id', { business_id });
+
+    apply_search(qb, query.search, CONTACT_SEARCH_COLUMNS);
+    apply_sorting(
+      qb,
+      query.sort_by,
+      query.sort_order,
+      CONTACT_SORT_COLUMNS,
+      'contact.name',
+      'ASC',
+    );
+
+    return apply_pagination(qb, query, mapper);
   }
 
   async find_by_id_in_business(

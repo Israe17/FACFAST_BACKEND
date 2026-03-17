@@ -25,6 +25,8 @@ import { WarrantyProfile } from './warranty-profile.entity';
 @Index(['business_id', 'code'], { unique: true })
 @Index(['business_id', 'sku'], { unique: true })
 @Index(['business_id', 'barcode'], { unique: true })
+@Index(['business_id', 'name'])
+@Index(['business_id', 'is_active'])
 export class Product extends AuditedCodeEntity {
   @Column({
     type: 'int',

@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import {
+  apply_pagination,
+  apply_search,
+  apply_sorting,
+} from '../../common/utils/query-builder.util';
 import { InventoryLot } from '../entities/inventory-lot.entity';
 
 const lot_relations = {
@@ -10,6 +17,22 @@ const lot_relations = {
   product: true,
   supplier_contact: true,
 } as const;
+
+const LOT_SORT_COLUMNS: Record<string, string> = {
+  lot_number: 'lot.lot_number',
+  code: 'lot.code',
+  created_at: 'lot.created_at',
+  expiration_date: 'lot.expiration_date',
+  current_quantity: 'lot.current_quantity',
+};
+
+const LOT_SEARCH_COLUMNS = [
+  'lot.lot_number',
+  'lot.code',
+  'product.name',
+  'product.code',
+  'warehouse.name',
+];
 
 @Injectable()
 export class InventoryLotsRepository {
@@ -51,6 +74,41 @@ export class InventoryLotsRepository {
         created_at: 'DESC',
       },
     });
+  }
+
+  async find_paginated_by_business(
+    business_id: number,
+    branch_ids: number[] | undefined,
+    query: PaginatedQueryDto,
+    mapper: (lot: InventoryLot) => unknown,
+  ): Promise<PaginatedResponseDto<unknown>> {
+    if (branch_ids && branch_ids.length === 0) {
+      return new PaginatedResponseDto([], 0, query.page ?? 1, query.limit ?? 20);
+    }
+
+    const qb = this.inventory_lot_repository
+      .createQueryBuilder('lot')
+      .leftJoinAndSelect('lot.warehouse', 'warehouse')
+      .leftJoinAndSelect('lot.location', 'location')
+      .leftJoinAndSelect('lot.product', 'product')
+      .leftJoinAndSelect('lot.supplier_contact', 'supplier_contact')
+      .where('lot.business_id = :business_id', { business_id });
+
+    if (branch_ids?.length) {
+      qb.andWhere('lot.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    apply_search(qb, query.search, LOT_SEARCH_COLUMNS);
+    apply_sorting(
+      qb,
+      query.sort_by,
+      query.sort_order,
+      LOT_SORT_COLUMNS,
+      'lot.created_at',
+      'DESC',
+    );
+
+    return apply_pagination(qb, query, mapper);
   }
 
   async find_by_id_in_business(

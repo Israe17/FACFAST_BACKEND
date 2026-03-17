@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, SelectQueryBuilder } from 'typeorm';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import {
+  apply_pagination,
+  apply_search,
+  apply_sorting,
+} from '../../common/utils/query-builder.util';
 import { Product } from '../entities/product.entity';
 
 const product_relations = {
@@ -12,6 +19,23 @@ const product_relations = {
   tax_profile: true,
   warranty_profile: true,
 } as const;
+
+const PRODUCT_SORT_COLUMNS: Record<string, string> = {
+  name: 'product.name',
+  code: 'product.code',
+  sku: 'product.sku',
+  type: 'product.type',
+  created_at: 'product.created_at',
+  updated_at: 'product.updated_at',
+};
+
+const PRODUCT_SEARCH_COLUMNS = [
+  'product.name',
+  'product.code',
+  'product.sku',
+  'product.barcode',
+  'product.description',
+];
 
 @Injectable()
 export class ProductsRepository {
@@ -67,6 +91,34 @@ export class ProductsRepository {
       },
       relations: product_relations,
     });
+  }
+
+  async find_paginated_by_business(
+    business_id: number,
+    query: PaginatedQueryDto,
+    mapper: (product: Product) => unknown,
+  ): Promise<PaginatedResponseDto<unknown>> {
+    const qb = this.product_repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.stock_unit', 'stock_unit')
+      .leftJoinAndSelect('product.sale_unit', 'sale_unit')
+      .leftJoinAndSelect('product.tax_profile', 'tax_profile')
+      .leftJoinAndSelect('product.warranty_profile', 'warranty_profile')
+      .where('product.business_id = :business_id', { business_id });
+
+    apply_search(qb, query.search, PRODUCT_SEARCH_COLUMNS);
+    apply_sorting(
+      qb,
+      query.sort_by,
+      query.sort_order,
+      PRODUCT_SORT_COLUMNS,
+      'product.name',
+      'ASC',
+    );
+
+    return apply_pagination(qb, query, mapper);
   }
 
   async exists_sku_in_business(

@@ -13,6 +13,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CancelInventoryMovementDto } from '../dto/cancel-inventory-movement.dto';
 import { CreateInventoryAdjustmentDto } from '../dto/create-inventory-adjustment.dto';
 import { CreateInventoryTransferDto } from '../dto/create-inventory-transfer.dto';
@@ -44,9 +46,15 @@ export class InventoryMovementsController {
 
   @Get()
   @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_VIEW)
-  @ApiOperation({ summary: 'Listar movimientos de inventario' })
-  get_movements(@CurrentUser() current_user: AuthenticatedUserContext) {
-    return this.inventory_movements_service.get_movements(current_user);
+  @ApiOperation({ summary: 'Listar movimientos de inventario (cursor)' })
+  get_movements(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.inventory_movements_service.get_movements_cursor(
+      current_user,
+      query,
+    );
   }
 
   @Post('adjust')

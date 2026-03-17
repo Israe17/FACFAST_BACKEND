@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
@@ -23,6 +24,17 @@ export class ContactsService {
       resolve_effective_business_id(current_user),
     );
     return contacts.map((contact) => this.serialize_contact(contact));
+  }
+
+  async get_contacts_paginated(
+    current_user: AuthenticatedUserContext,
+    query: PaginatedQueryDto,
+  ) {
+    return this.contacts_repository.find_paginated_by_business(
+      resolve_effective_business_id(current_user),
+      query,
+      (contact) => this.serialize_contact(contact),
+    );
   }
 
   async create_contact(
