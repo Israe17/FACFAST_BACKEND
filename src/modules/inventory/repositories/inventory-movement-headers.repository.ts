@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
-import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import {
-  apply_cursor,
+  apply_pagination,
   apply_search,
+  apply_sorting,
 } from '../../common/utils/query-builder.util';
 import { InventoryMovementHeader } from '../entities/inventory-movement-header.entity';
 
@@ -14,6 +15,14 @@ const MOVEMENT_SEARCH_COLUMNS = [
   'header.notes',
   'header.source_document_number',
 ];
+
+const MOVEMENT_SORT_COLUMNS: Record<string, string> = {
+  occurred_at: 'header.occurred_at',
+  code: 'header.code',
+  movement_type: 'header.movement_type',
+  status: 'header.status',
+  created_at: 'header.created_at',
+};
 
 @Injectable()
 export class InventoryMovementHeadersRepository {
@@ -89,14 +98,14 @@ export class InventoryMovementHeadersRepository {
     });
   }
 
-  async find_cursor_by_business(
+  async find_paginated_by_business(
     business_id: number,
     branch_ids: number[] | undefined,
-    query: CursorQueryDto,
+    query: PaginatedQueryDto,
     mapper: (header: InventoryMovementHeader) => unknown,
-  ): Promise<CursorResponseDto<unknown>> {
+  ): Promise<PaginatedResponseDto<unknown>> {
     if (branch_ids && branch_ids.length === 0) {
-      return new CursorResponseDto([], null, false);
+      return new PaginatedResponseDto([], 0, query.page ?? 1, query.limit ?? 20);
     }
 
     const qb = this.inventory_movement_header_repository
@@ -114,11 +123,15 @@ export class InventoryMovementHeadersRepository {
     }
 
     apply_search(qb, query.search, MOVEMENT_SEARCH_COLUMNS);
+    apply_sorting(
+      qb,
+      query.sort_by,
+      query.sort_order,
+      MOVEMENT_SORT_COLUMNS,
+      'header.occurred_at',
+      'DESC',
+    );
 
-    const sort_order = query.sort_order ?? 'DESC';
-    qb.orderBy('header.occurred_at', sort_order);
-    qb.addOrderBy('header.id', sort_order);
-
-    return apply_cursor(qb, query, 'header.id', mapper);
+    return apply_pagination(qb, query, mapper);
   }
 }
