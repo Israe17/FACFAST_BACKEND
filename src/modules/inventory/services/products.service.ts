@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
@@ -27,6 +28,18 @@ export class ProductsService {
     const products =
       await this.products_repository.find_all_by_business(business_id);
     return products.map((product) => this.serialize_product(product));
+  }
+
+  async get_products_paginated(
+    current_user: AuthenticatedUserContext,
+    query: PaginatedQueryDto,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    return this.products_repository.find_paginated_by_business(
+      business_id,
+      query,
+      (product) => this.serialize_product(product),
+    );
   }
 
   async create_product(

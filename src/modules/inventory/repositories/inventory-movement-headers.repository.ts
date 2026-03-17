@@ -1,7 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
+import {
+  apply_cursor,
+  apply_search,
+} from '../../common/utils/query-builder.util';
 import { InventoryMovementHeader } from '../entities/inventory-movement-header.entity';
+
+const MOVEMENT_SEARCH_COLUMNS = [
+  'header.code',
+  'header.notes',
+  'header.source_document_number',
+];
 
 @Injectable()
 export class InventoryMovementHeadersRepository {
@@ -75,5 +87,38 @@ export class InventoryMovementHeadersRepository {
         },
       },
     });
+  }
+
+  async find_cursor_by_business(
+    business_id: number,
+    branch_ids: number[] | undefined,
+    query: CursorQueryDto,
+    mapper: (header: InventoryMovementHeader) => unknown,
+  ): Promise<CursorResponseDto<unknown>> {
+    if (branch_ids && branch_ids.length === 0) {
+      return new CursorResponseDto([], null, false);
+    }
+
+    const qb = this.inventory_movement_header_repository
+      .createQueryBuilder('header')
+      .leftJoinAndSelect('header.branch', 'branch')
+      .leftJoinAndSelect('header.performed_by_user', 'performed_by_user')
+      .leftJoinAndSelect('header.lines', 'lines')
+      .leftJoinAndSelect('lines.product_variant', 'product_variant')
+      .leftJoinAndSelect('product_variant.product', 'product')
+      .leftJoinAndSelect('lines.warehouse', 'warehouse')
+      .where('header.business_id = :business_id', { business_id });
+
+    if (branch_ids?.length) {
+      qb.andWhere('header.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    apply_search(qb, query.search, MOVEMENT_SEARCH_COLUMNS);
+
+    const sort_order = query.sort_order ?? 'DESC';
+    qb.orderBy('header.occurred_at', sort_order);
+    qb.addOrderBy('header.id', sort_order);
+
+    return apply_cursor(qb, query, 'header.id', mapper);
   }
 }

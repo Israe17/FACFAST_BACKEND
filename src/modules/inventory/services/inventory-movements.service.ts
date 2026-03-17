@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -44,6 +45,32 @@ export class InventoryMovementsService {
     return movement_headers.flatMap((movement_header) =>
       this.serialize_movement_header(movement_header),
     );
+  }
+
+  async get_movements_cursor(
+    current_user: AuthenticatedUserContext,
+    query: CursorQueryDto,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const branch_ids =
+      this.inventory_validation_service.resolve_accessible_branch_ids(
+        current_user,
+      );
+
+    const result =
+      await this.inventory_movement_headers_repository.find_cursor_by_business(
+        business_id,
+        branch_ids,
+        query,
+        (header) => this.serialize_movement_header(header),
+      );
+
+    // Flatten: each header produces an array of serialized lines
+    return {
+      data: result.data.flat(),
+      next_cursor: result.next_cursor,
+      has_more: result.has_more,
+    };
   }
 
   async adjust_inventory(

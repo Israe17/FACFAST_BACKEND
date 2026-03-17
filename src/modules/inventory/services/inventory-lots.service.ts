@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
@@ -32,6 +33,21 @@ export class InventoryLotsService {
       ),
     );
     return lots.map((lot) => this.serialize_lot(lot));
+  }
+
+  async get_lots_paginated(
+    current_user: AuthenticatedUserContext,
+    query: PaginatedQueryDto,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    return this.inventory_lots_repository.find_paginated_by_business(
+      business_id,
+      this.inventory_validation_service.resolve_accessible_branch_ids(
+        current_user,
+      ),
+      query,
+      (lot) => this.serialize_lot(lot),
+    );
   }
 
   async create_lot(

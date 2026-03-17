@@ -15,6 +15,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { CreateProductPriceDto } from '../dto/create-product-price.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
@@ -48,9 +50,12 @@ export class ProductsController {
 
   @Get()
   @RequirePermissions(PermissionKey.PRODUCTS_VIEW)
-  @ApiOperation({ summary: 'Listar productos y servicios' })
-  get_products(@CurrentUser() current_user: AuthenticatedUserContext) {
-    return this.products_service.get_products(current_user);
+  @ApiOperation({ summary: 'Listar productos y servicios (paginado)' })
+  get_products(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: PaginatedQueryDto,
+  ) {
+    return this.products_service.get_products_paginated(current_user, query);
   }
 
   @Post()

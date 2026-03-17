@@ -15,6 +15,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CreateInventoryLotDto } from '../dto/create-inventory-lot.dto';
 import { UpdateInventoryLotDto } from '../dto/update-inventory-lot.dto';
 import { InventoryLotsService } from '../services/inventory-lots.service';
@@ -43,9 +45,12 @@ export class InventoryLotsController {
 
   @Get()
   @RequirePermissions(PermissionKey.INVENTORY_LOTS_VIEW)
-  @ApiOperation({ summary: 'Listar lotes de inventario' })
-  get_lots(@CurrentUser() current_user: AuthenticatedUserContext) {
-    return this.inventory_lots_service.get_lots(current_user);
+  @ApiOperation({ summary: 'Listar lotes de inventario (paginado)' })
+  get_lots(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: PaginatedQueryDto,
+  ) {
+    return this.inventory_lots_service.get_lots_paginated(current_user, query);
   }
 
   @Post()
