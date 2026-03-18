@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { Product } from './product.entity';
+import { ProductVariant } from './product-variant.entity';
 import { Promotion } from './promotion.entity';
 
 @Entity('promotion_items')
@@ -39,6 +40,20 @@ export class PromotionItem {
     name: 'product_id',
   })
   product?: Product;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  product_variant_id!: number | null;
+
+  @ManyToOne(() => ProductVariant, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'product_variant_id',
+  })
+  product_variant?: ProductVariant | null;
 
   @Column({
     type: 'numeric',

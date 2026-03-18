@@ -12,6 +12,7 @@ import { Business } from '../../common/entities/business.entity';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { PriceList } from './price-list.entity';
 import { Product } from './product.entity';
+import { ProductVariant } from './product-variant.entity';
 
 @Entity('product_prices')
 @Index(['product_id', 'price_list_id', 'min_quantity'], { unique: true })
@@ -44,6 +45,20 @@ export class ProductPrice {
     name: 'product_id',
   })
   product?: Product;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  product_variant_id!: number | null;
+
+  @ManyToOne(() => ProductVariant, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({
+    name: 'product_variant_id',
+  })
+  product_variant?: ProductVariant | null;
 
   @Column({
     type: 'int',

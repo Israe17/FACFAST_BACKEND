@@ -13,6 +13,7 @@ import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { InventoryMovement } from './inventory-movement.entity';
 import { Product } from './product.entity';
+import { ProductVariant } from './product-variant.entity';
 import { WarehouseLocation } from './warehouse-location.entity';
 import { Warehouse } from './warehouse.entity';
 
@@ -87,6 +88,20 @@ export class InventoryLot extends AuditedCodeEntity {
     name: 'product_id',
   })
   product?: Product;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  product_variant_id!: number | null;
+
+  @ManyToOne(() => ProductVariant, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({
+    name: 'product_variant_id',
+  })
+  product_variant?: ProductVariant | null;
 
   @Column({
     type: 'varchar',

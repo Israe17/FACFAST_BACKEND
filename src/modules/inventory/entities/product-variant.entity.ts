@@ -4,6 +4,8 @@ import {
   Entity,
   Index,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -16,10 +18,10 @@ import { Product } from './product.entity';
 import { WarrantyProfile } from './warranty-profile.entity';
 import { InventoryBalance } from './inventory-balance.entity';
 import { InventoryMovementLine } from './inventory-movement-line.entity';
+import { VariantAttributeValue } from './variant-attribute-value.entity';
 
 @Entity('product_variants')
 @Index(['business_id', 'sku'], { unique: true })
-@Index(['business_id', 'barcode'], { unique: true })
 export class ProductVariant {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -157,6 +159,12 @@ export class ProductVariant {
 
   @Column({
     type: 'boolean',
+    default: false,
+  })
+  track_serials!: boolean;
+
+  @Column({
+    type: 'boolean',
     default: true,
   })
   is_active!: boolean;
@@ -170,6 +178,17 @@ export class ProductVariant {
     type: 'timestamptz',
   })
   updated_at!: Date;
+
+  @ManyToMany(() => VariantAttributeValue)
+  @JoinTable({
+    name: 'product_variant_attribute_values',
+    joinColumn: { name: 'product_variant_id', referencedColumnName: 'id' },
+    inverseJoinColumn: {
+      name: 'attribute_value_id',
+      referencedColumnName: 'id',
+    },
+  })
+  attribute_values?: VariantAttributeValue[];
 
   @OneToMany(() => InventoryBalance, (balance) => balance.product_variant)
   inventory_balances?: InventoryBalance[];

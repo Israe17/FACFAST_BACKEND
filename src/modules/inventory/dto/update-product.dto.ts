@@ -88,6 +88,11 @@ export class UpdateProductDto {
   @IsBoolean()
   allow_negative_stock?: boolean;
 
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  has_variants?: boolean;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
