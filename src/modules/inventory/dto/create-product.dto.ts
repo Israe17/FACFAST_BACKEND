@@ -88,6 +88,11 @@ export class CreateProductDto {
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
+  has_variants?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
   has_warranty?: boolean;
 
   @ApiPropertyOptional({ example: 1 })

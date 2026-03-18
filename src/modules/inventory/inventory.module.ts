@@ -9,9 +9,12 @@ import { MeasurementUnitsController } from './controllers/measurement-units.cont
 import { PriceListsController } from './controllers/price-lists.controller';
 import { ProductCategoriesController } from './controllers/product-categories.controller';
 import { ProductPricesController } from './controllers/product-prices.controller';
+import { ProductSerialsController } from './controllers/product-serials.controller';
+import { ProductVariantsController } from './controllers/product-variants.controller';
 import { ProductsController } from './controllers/products.controller';
 import { PromotionsController } from './controllers/promotions.controller';
 import { TaxProfilesController } from './controllers/tax-profiles.controller';
+import { VariantAttributesController } from './controllers/variant-attributes.controller';
 import { WarehouseLocationsController } from './controllers/warehouse-locations.controller';
 import { WarehousesController } from './controllers/warehouses.controller';
 import { WarehouseStockController } from './controllers/warehouse-stock.controller';
@@ -27,10 +30,14 @@ import { PriceList } from './entities/price-list.entity';
 import { ProductCategory } from './entities/product-category.entity';
 import { ProductPrice } from './entities/product-price.entity';
 import { Product } from './entities/product.entity';
+import { ProductSerial } from './entities/product-serial.entity';
 import { ProductVariant } from './entities/product-variant.entity';
 import { PromotionItem } from './entities/promotion-item.entity';
 import { Promotion } from './entities/promotion.entity';
+import { SerialEvent } from './entities/serial-event.entity';
 import { TaxProfile } from './entities/tax-profile.entity';
+import { VariantAttribute } from './entities/variant-attribute.entity';
+import { VariantAttributeValue } from './entities/variant-attribute-value.entity';
 import { WarehouseBranchLink } from './entities/warehouse-branch-link.entity';
 import { WarehouseLocation } from './entities/warehouse-location.entity';
 import { WarehouseStock } from './entities/warehouse-stock.entity';
@@ -46,6 +53,7 @@ import { MeasurementUnitsRepository } from './repositories/measurement-units.rep
 import { PriceListsRepository } from './repositories/price-lists.repository';
 import { ProductCategoriesRepository } from './repositories/product-categories.repository';
 import { ProductPricesRepository } from './repositories/product-prices.repository';
+import { ProductSerialsRepository } from './repositories/product-serials.repository';
 import { ProductVariantsRepository } from './repositories/product-variants.repository';
 import { ProductsRepository } from './repositories/products.repository';
 import { PromotionsRepository } from './repositories/promotions.repository';
@@ -65,10 +73,12 @@ import { InventoryValidationService } from './services/inventory-validation.serv
 import { MeasurementUnitsService } from './services/measurement-units.service';
 import { PricingService } from './services/pricing.service';
 import { ProductCategoriesService } from './services/product-categories.service';
+import { ProductSerialsService } from './services/product-serials.service';
 import { ProductVariantsService } from './services/product-variants.service';
 import { ProductsService } from './services/products.service';
 import { PromotionsService } from './services/promotions.service';
 import { TaxProfilesService } from './services/tax-profiles.service';
+import { VariantAttributesService } from './services/variant-attributes.service';
 import { WarehousesService } from './services/warehouses.service';
 import { WarehouseStockService } from './services/warehouse-stock.service';
 import { WarrantyProfilesService } from './services/warranty-profiles.service';
@@ -96,6 +106,10 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
       InventoryMovement,
       InventoryMovementHeader,
       InventoryMovementLine,
+      VariantAttribute,
+      VariantAttributeValue,
+      ProductSerial,
+      SerialEvent,
     ]),
     BranchesModule,
     ContactsModule,
@@ -106,8 +120,11 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
     MeasurementUnitsController,
     TaxProfilesController,
     ProductsController,
+    ProductVariantsController,
+    VariantAttributesController,
     PriceListsController,
     ProductPricesController,
+    ProductSerialsController,
     WarrantyProfilesController,
     PromotionsController,
     WarehousesController,
@@ -123,6 +140,7 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
     TaxProfilesRepository,
     ProductsRepository,
     ProductVariantsRepository,
+    ProductSerialsRepository,
     PriceListsRepository,
     ProductPricesRepository,
     WarrantyProfilesRepository,
@@ -144,6 +162,8 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
     TaxProfilesService,
     ProductsService,
     ProductVariantsService,
+    VariantAttributesService,
+    ProductSerialsService,
     PricingService,
     WarrantyProfilesService,
     PromotionsService,
@@ -156,6 +176,7 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
   ],
   exports: [
     ProductsService,
+    ProductVariantsService,
     PricingService,
     WarehousesService,
     WarehouseStockService,

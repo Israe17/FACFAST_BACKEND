@@ -151,6 +151,7 @@ export class ProductsService {
       track_lots: dto.track_lots ?? false,
       track_expiration: dto.track_expiration ?? false,
       allow_negative_stock: dto.allow_negative_stock ?? false,
+      has_variants: dto.has_variants ?? false,
       has_warranty: dto.has_warranty ?? false,
       warranty_profile_id: warranty_profile?.id ?? null,
       is_active: dto.is_active ?? true,
@@ -342,6 +343,23 @@ export class ProductsService {
     if (dto.allow_negative_stock !== undefined) {
       product.allow_negative_stock = dto.allow_negative_stock;
     }
+    if (dto.has_variants !== undefined) {
+      if (dto.has_variants === false) {
+        const non_default_count =
+          await this.product_variants_service.count_non_default_variants(
+            business_id,
+            product.id,
+          );
+        if (non_default_count > 0) {
+          throw new DomainBadRequestException({
+            code: 'PRODUCT_HAS_NON_DEFAULT_VARIANTS',
+            messageKey: 'inventory.product_has_non_default_variants',
+            details: { product_id: product.id, non_default_count },
+          });
+        }
+      }
+      product.has_variants = dto.has_variants;
+    }
     if (dto.has_warranty !== undefined) {
       product.has_warranty = dto.has_warranty;
     }
@@ -496,6 +514,7 @@ export class ProductsService {
       track_lots: product.track_lots,
       track_expiration: product.track_expiration,
       allow_negative_stock: product.allow_negative_stock,
+      has_variants: product.has_variants,
       has_warranty: product.has_warranty,
       warranty_profile: product.warranty_profile
         ? {
@@ -504,6 +523,15 @@ export class ProductsService {
             name: product.warranty_profile.name,
           }
         : null,
+      variants: (product.variants ?? []).map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        barcode: variant.barcode,
+        variant_name: variant.variant_name,
+        is_default: variant.is_default,
+        is_active: variant.is_active,
+        track_serials: variant.track_serials,
+      })),
       is_active: product.is_active,
       created_at: product.created_at,
       updated_at: product.updated_at,

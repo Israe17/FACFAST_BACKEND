@@ -179,6 +179,12 @@ export class Product extends AuditedCodeEntity {
     type: 'boolean',
     default: false,
   })
+  has_variants!: boolean;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
   has_warranty!: boolean;
 
   @Column({

@@ -18,6 +18,7 @@ const product_relations = {
   sale_unit: true,
   tax_profile: true,
   warranty_profile: true,
+  variants: true,
 } as const;
 
 const PRODUCT_SORT_COLUMNS: Record<string, string> = {
@@ -106,6 +107,7 @@ export class ProductsRepository {
       .leftJoinAndSelect('product.sale_unit', 'sale_unit')
       .leftJoinAndSelect('product.tax_profile', 'tax_profile')
       .leftJoinAndSelect('product.warranty_profile', 'warranty_profile')
+      .leftJoinAndSelect('product.variants', 'variants')
       .where('product.business_id = :business_id', { business_id });
 
     apply_search(qb, query.search, PRODUCT_SEARCH_COLUMNS);
