@@ -16,6 +16,10 @@ import { ProductCategory } from '../modules/inventory/entities/product-category.
 import { ProductPrice } from '../modules/inventory/entities/product-price.entity';
 import { Product } from '../modules/inventory/entities/product.entity';
 import { ProductVariant } from '../modules/inventory/entities/product-variant.entity';
+import { ProductSerial } from '../modules/inventory/entities/product-serial.entity';
+import { SerialEvent } from '../modules/inventory/entities/serial-event.entity';
+import { VariantAttribute } from '../modules/inventory/entities/variant-attribute.entity';
+import { VariantAttributeValue } from '../modules/inventory/entities/variant-attribute-value.entity';
 import { PromotionItem } from '../modules/inventory/entities/promotion-item.entity';
 import { Promotion } from '../modules/inventory/entities/promotion.entity';
 import { TaxProfile } from '../modules/inventory/entities/tax-profile.entity';
@@ -50,6 +54,10 @@ export const database_entities = [
   TaxProfile,
   Product,
   ProductVariant,
+  VariantAttribute,
+  VariantAttributeValue,
+  ProductSerial,
+  SerialEvent,
   PriceList,
   ProductPrice,
   WarrantyProfile,
