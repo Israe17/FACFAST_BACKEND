@@ -31,6 +31,11 @@ export class CreateInventoryLotDto {
   @IsInt()
   product_id!: number;
 
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsInt()
+  product_variant_id?: number | null;
+
   @ApiProperty({ example: 'L-2026-0001' })
   @IsString()
   @MinLength(2)

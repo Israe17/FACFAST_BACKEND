@@ -14,6 +14,7 @@ import { InventoryMovementType } from '../enums/inventory-movement-type.enum';
 import { InventoryLotsRepository } from '../repositories/inventory-lots.repository';
 import { InventoryAdjustmentsService } from './inventory-adjustments.service';
 import { InventoryValidationService } from './inventory-validation.service';
+import { ProductVariantsService } from './product-variants.service';
 
 @Injectable()
 export class InventoryLotsService {
@@ -22,6 +23,7 @@ export class InventoryLotsService {
     private readonly inventory_validation_service: InventoryValidationService,
     private readonly inventory_adjustments_service: InventoryAdjustmentsService,
     private readonly entity_code_service: EntityCodeService,
+    private readonly product_variants_service: ProductVariantsService,
   ) {}
 
   async get_lots(current_user: AuthenticatedUserContext) {
@@ -82,7 +84,15 @@ export class InventoryLotsService {
     this.inventory_validation_service.assert_product_is_inventory_enabled(
       product,
     );
-    if (!product.track_lots) {
+
+    const product_variant =
+      await this.product_variants_service.resolve_variant_for_operation(
+        business_id,
+        product,
+        dto.product_variant_id,
+      );
+
+    if (!product_variant.track_lots) {
       throw new DomainBadRequestException({
         code: 'PRODUCT_LOT_TRACKING_REQUIRED',
         messageKey: 'inventory.product_lot_tracking_required',
@@ -92,7 +102,7 @@ export class InventoryLotsService {
       });
     }
 
-    if (product.track_expiration && !dto.expiration_date) {
+    if (product_variant.track_expiration && !dto.expiration_date) {
       throw new DomainBadRequestException({
         code: 'INVENTORY_LOT_EXPIRATION_REQUIRED',
         messageKey: 'inventory.inventory_lot_expiration_required',
@@ -107,6 +117,8 @@ export class InventoryLotsService {
         warehouse.id,
         product.id,
         dto.lot_number.trim(),
+        undefined,
+        product_variant.id,
       )
     ) {
       throw new DomainConflictException({
@@ -141,6 +153,7 @@ export class InventoryLotsService {
         warehouse_id: warehouse.id,
         location_id: location?.id ?? null,
         product_id: product.id,
+        product_variant_id: product_variant.id,
         code: dto.code?.trim() ?? null,
         lot_number: dto.lot_number.trim(),
         expiration_date: dto.expiration_date?.trim() ?? null,
@@ -159,6 +172,7 @@ export class InventoryLotsService {
         warehouse_id: warehouse.id,
         location_id: location?.id ?? null,
         product_id: product.id,
+        product_variant_id: product_variant.id,
         inventory_lot_id: lot.id,
         movement_type: InventoryMovementType.ADJUSTMENT_IN,
         quantity: dto.initial_quantity,
@@ -326,6 +340,14 @@ export class InventoryLotsService {
         : {
             id: lot.product_id,
           },
+      product_variant: lot.product_variant
+        ? {
+            id: lot.product_variant.id,
+            sku: lot.product_variant.sku,
+            variant_name: lot.product_variant.variant_name,
+            is_default: lot.product_variant.is_default,
+          }
+        : null,
       lot_number: lot.lot_number,
       expiration_date: lot.expiration_date,
       manufacturing_date: lot.manufacturing_date,

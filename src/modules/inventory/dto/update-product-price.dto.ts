@@ -9,6 +9,11 @@ import {
 } from 'class-validator';
 
 export class UpdateProductPriceDto {
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsInt()
+  product_variant_id?: number | null;
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsInt()

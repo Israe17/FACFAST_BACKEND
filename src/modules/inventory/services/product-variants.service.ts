@@ -75,6 +75,45 @@ export class ProductVariantsService {
     );
   }
 
+  async resolve_variant_for_operation(
+    business_id: number,
+    product: Product,
+    product_variant_id?: number | null,
+  ): Promise<ProductVariant> {
+    if (product_variant_id) {
+      const variant = await this.get_variant_entity(
+        business_id,
+        product_variant_id,
+      );
+      if (variant.product_id !== product.id) {
+        throw new DomainBadRequestException({
+          code: 'VARIANT_PRODUCT_MISMATCH',
+          messageKey: 'inventory.variant_product_mismatch',
+          details: {
+            product_id: product.id,
+            product_variant_id,
+          },
+        });
+      }
+      if (!variant.is_active) {
+        throw new DomainBadRequestException({
+          code: 'VARIANT_INACTIVE',
+          messageKey: 'inventory.variant_inactive',
+          details: { product_variant_id },
+        });
+      }
+      return variant;
+    }
+    if (product.has_variants) {
+      throw new DomainBadRequestException({
+        code: 'VARIANT_REQUIRED_FOR_MULTI_VARIANT_PRODUCT',
+        messageKey: 'inventory.variant_required_for_multi_variant_product',
+        details: { product_id: product.id },
+      });
+    }
+    return this.ensure_default_variant_for_product(product);
+  }
+
   async create_variant(
     business_id: number,
     product: Product,

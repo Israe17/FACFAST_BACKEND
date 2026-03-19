@@ -11,6 +11,7 @@ import { Branch } from '../../branches/entities/branch.entity';
 import { Business } from '../../common/entities/business.entity';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { Product } from './product.entity';
+import { ProductVariant } from './product-variant.entity';
 import { Warehouse } from './warehouse.entity';
 
 @Entity('warehouse_stock')
@@ -70,6 +71,20 @@ export class WarehouseStock {
     name: 'product_id',
   })
   product?: Product;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  product_variant_id!: number | null;
+
+  @ManyToOne(() => ProductVariant, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({
+    name: 'product_variant_id',
+  })
+  product_variant?: ProductVariant | null;
 
   @Column({
     type: 'numeric',

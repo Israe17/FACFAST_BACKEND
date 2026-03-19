@@ -29,6 +29,7 @@ export class ProductPricesRepository {
       },
       relations: {
         price_list: true,
+        product_variant: true,
       },
       order: {
         is_active: 'DESC',
@@ -49,6 +50,7 @@ export class ProductPricesRepository {
       },
       relations: {
         product: true,
+        product_variant: true,
         price_list: true,
       },
     });

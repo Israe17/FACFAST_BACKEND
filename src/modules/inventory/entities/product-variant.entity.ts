@@ -17,8 +17,12 @@ import { TaxProfile } from './tax-profile.entity';
 import { Product } from './product.entity';
 import { WarrantyProfile } from './warranty-profile.entity';
 import { InventoryBalance } from './inventory-balance.entity';
+import { InventoryLot } from './inventory-lot.entity';
+import { InventoryMovement } from './inventory-movement.entity';
 import { InventoryMovementLine } from './inventory-movement-line.entity';
+import { ProductPrice } from './product-price.entity';
 import { VariantAttributeValue } from './variant-attribute-value.entity';
+import { WarehouseStock } from './warehouse-stock.entity';
 
 @Entity('product_variants')
 @Index(['business_id', 'sku'], { unique: true })
@@ -195,4 +199,16 @@ export class ProductVariant {
 
   @OneToMany(() => InventoryMovementLine, (line) => line.product_variant)
   inventory_movement_lines?: InventoryMovementLine[];
+
+  @OneToMany(() => WarehouseStock, (stock) => stock.product_variant)
+  warehouse_stock?: WarehouseStock[];
+
+  @OneToMany(() => InventoryMovement, (movement) => movement.product_variant)
+  inventory_movements?: InventoryMovement[];
+
+  @OneToMany(() => InventoryLot, (lot) => lot.product_variant)
+  inventory_lots?: InventoryLot[];
+
+  @OneToMany(() => ProductPrice, (price) => price.product_variant)
+  product_prices?: ProductPrice[];
 }

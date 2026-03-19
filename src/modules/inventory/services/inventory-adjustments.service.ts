@@ -58,8 +58,10 @@ export class InventoryAdjustmentsService {
         dto.product_id,
       );
     const product_variant =
-      await this.product_variants_service.ensure_default_variant_for_product(
+      await this.product_variants_service.resolve_variant_for_operation(
+        business_id,
         product,
+        dto.product_variant_id,
       );
     this.inventory_validation_service.assert_product_is_inventory_enabled(
       product,
@@ -128,14 +130,14 @@ export class InventoryAdjustmentsService {
       }
     }
 
-    if (product.track_lots && !inventory_lot) {
+    if (product_variant.track_lots && !inventory_lot) {
       throw new DomainBadRequestException({
         code: 'INVENTORY_LOT_REQUIRED',
         messageKey: 'inventory.inventory_lot_required',
       });
     }
 
-    if (!product.track_lots && inventory_lot) {
+    if (!product_variant.track_lots && inventory_lot) {
       throw new DomainBadRequestException({
         code: 'PRODUCT_LOT_TRACKING_REQUIRED',
         messageKey: 'inventory.product_lot_tracking_required',
@@ -153,6 +155,7 @@ export class InventoryAdjustmentsService {
         where: {
           warehouse_id: warehouse.id,
           product_id: product.id,
+          product_variant_id: product_variant.id,
         },
       });
 
@@ -162,6 +165,7 @@ export class InventoryAdjustmentsService {
           branch_id,
           warehouse_id: warehouse.id,
           product_id: product.id,
+          product_variant_id: product_variant.id,
           quantity: 0,
           reserved_quantity: 0,
           min_stock: null,
@@ -176,7 +180,7 @@ export class InventoryAdjustmentsService {
           : -Number(dto.quantity);
       const new_quantity = previous_quantity + delta;
 
-      if (new_quantity < 0 && !product.allow_negative_stock) {
+      if (new_quantity < 0 && !product_variant.allow_negative_stock) {
         throw new DomainBadRequestException({
           code: 'INVENTORY_NEGATIVE_STOCK_FORBIDDEN',
           messageKey: 'inventory.negative_stock_forbidden',
@@ -226,6 +230,7 @@ export class InventoryAdjustmentsService {
         warehouse_id: warehouse.id,
         location_id: location?.id ?? persisted_lot?.location_id ?? null,
         product_id: product.id,
+        product_variant_id: product_variant.id,
         inventory_lot_id: persisted_lot?.id ?? null,
         movement_type: dto.movement_type,
         reference_type: this.normalize_optional_string(dto.reference_type),
