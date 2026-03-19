@@ -15,7 +15,7 @@ import { ProductVariant } from './product-variant.entity';
 import { Warehouse } from './warehouse.entity';
 
 @Entity('warehouse_stock')
-@Index(['warehouse_id', 'product_id'], { unique: true })
+@Index(['warehouse_id', 'product_id', 'product_variant_id'], { unique: true })
 export class WarehouseStock {
   @PrimaryGeneratedColumn()
   id!: number;

@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -125,6 +126,24 @@ export class ProductVariantsController {
       business_id,
       variant_id,
       dto,
+    );
+    return this.product_variants_service.serialize_variant(variant);
+  }
+
+  @Delete(':id/variants/:variantId')
+  @RequirePermissions(PermissionKey.PRODUCTS_UPDATE)
+  @ApiOperation({ summary: 'Desactivar variante de producto' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'variantId', type: Number })
+  async deactivate_variant(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) _product_id: number,
+    @Param('variantId', ParseIntPipe) variant_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const variant = await this.product_variants_service.deactivate_variant(
+      business_id,
+      variant_id,
     );
     return this.product_variants_service.serialize_variant(variant);
   }
