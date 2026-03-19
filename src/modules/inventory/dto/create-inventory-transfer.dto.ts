@@ -14,6 +14,11 @@ export class CreateInventoryTransferDto {
   @IsInt()
   product_id!: number;
 
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsInt()
+  product_variant_id?: number | null;
+
   @ApiProperty({ example: 5 })
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001)

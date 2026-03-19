@@ -23,6 +23,11 @@ export class CreateInventoryAdjustmentDto {
   @IsInt()
   product_id!: number;
 
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsInt()
+  product_variant_id?: number | null;
+
   @ApiPropertyOptional({ example: 10 })
   @IsOptional()
   @IsInt()

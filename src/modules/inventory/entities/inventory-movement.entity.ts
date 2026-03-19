@@ -7,6 +7,7 @@ import { User } from '../../users/entities/user.entity';
 import { InventoryMovementType } from '../enums/inventory-movement-type.enum';
 import { InventoryLot } from './inventory-lot.entity';
 import { Product } from './product.entity';
+import { ProductVariant } from './product-variant.entity';
 import { WarehouseLocation } from './warehouse-location.entity';
 import { Warehouse } from './warehouse.entity';
 
@@ -82,6 +83,20 @@ export class InventoryMovement extends CreatedCodeEntity {
     name: 'product_id',
   })
   product?: Product;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  product_variant_id!: number | null;
+
+  @ManyToOne(() => ProductVariant, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'product_variant_id',
+  })
+  product_variant?: ProductVariant | null;
 
   @Column({
     type: 'int',

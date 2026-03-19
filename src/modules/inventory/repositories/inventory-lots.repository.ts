@@ -15,6 +15,7 @@ const lot_relations = {
   warehouse: true,
   location: true,
   product: true,
+  product_variant: true,
   supplier_contact: true,
 } as const;
 
@@ -91,6 +92,7 @@ export class InventoryLotsRepository {
       .leftJoinAndSelect('lot.warehouse', 'warehouse')
       .leftJoinAndSelect('lot.location', 'location')
       .leftJoinAndSelect('lot.product', 'product')
+      .leftJoinAndSelect('lot.product_variant', 'product_variant')
       .leftJoinAndSelect('lot.supplier_contact', 'supplier_contact')
       .where('lot.business_id = :business_id', { business_id });
 
@@ -129,6 +131,7 @@ export class InventoryLotsRepository {
     product_id: number,
     lot_number: string,
     exclude_id?: number,
+    product_variant_id?: number,
   ): Promise<boolean> {
     const query = this.inventory_lot_repository
       .createQueryBuilder('inventory_lot')
@@ -137,6 +140,13 @@ export class InventoryLotsRepository {
       .andWhere('LOWER(inventory_lot.lot_number) = LOWER(:lot_number)', {
         lot_number,
       });
+
+    if (product_variant_id !== undefined) {
+      query.andWhere(
+        'inventory_lot.product_variant_id = :product_variant_id',
+        { product_variant_id },
+      );
+    }
 
     if (exclude_id !== undefined) {
       query.andWhere('inventory_lot.id != :exclude_id', { exclude_id });

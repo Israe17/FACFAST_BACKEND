@@ -14,6 +14,7 @@ import { ProductPrice } from '../entities/product-price.entity';
 import { PriceListsRepository } from '../repositories/price-lists.repository';
 import { ProductPricesRepository } from '../repositories/product-prices.repository';
 import { InventoryValidationService } from './inventory-validation.service';
+import { ProductVariantsService } from './product-variants.service';
 
 @Injectable()
 export class PricingService {
@@ -22,6 +23,7 @@ export class PricingService {
     private readonly product_prices_repository: ProductPricesRepository,
     private readonly inventory_validation_service: InventoryValidationService,
     private readonly entity_code_service: EntityCodeService,
+    private readonly product_variants_service: ProductVariantsService,
   ) {}
 
   async get_price_lists(current_user: AuthenticatedUserContext) {
@@ -184,12 +186,24 @@ export class PricingService {
         dto.price_list_id,
       );
 
+    let resolved_variant_id: number | null = null;
+    if (dto.product_variant_id) {
+      const variant =
+        await this.product_variants_service.resolve_variant_for_operation(
+          business_id,
+          product,
+          dto.product_variant_id,
+        );
+      resolved_variant_id = variant.id;
+    }
+
     this.assert_valid_date_range(dto.valid_from, dto.valid_to);
 
     const saved_product_price = await this.product_prices_repository.save(
       this.product_prices_repository.create({
         business_id,
         product_id: product.id,
+        product_variant_id: resolved_variant_id,
         price_list_id: price_list.id,
         price: dto.price,
         min_quantity: dto.min_quantity ?? null,
@@ -238,6 +252,24 @@ export class PricingService {
       });
     }
 
+    if (dto.product_variant_id !== undefined) {
+      if (dto.product_variant_id) {
+        const product =
+          await this.inventory_validation_service.get_product_in_business(
+            business_id,
+            product_price.product_id,
+          );
+        const variant =
+          await this.product_variants_service.resolve_variant_for_operation(
+            business_id,
+            product,
+            dto.product_variant_id,
+          );
+        product_price.product_variant_id = variant.id;
+      } else {
+        product_price.product_variant_id = null;
+      }
+    }
     if (dto.price_list_id !== undefined) {
       product_price.price_list_id = (
         await this.inventory_validation_service.get_price_list_in_business(
@@ -365,6 +397,14 @@ export class PricingService {
       id: product_price.id,
       business_id: product_price.business_id,
       product_id: product_price.product_id,
+      product_variant: product_price.product_variant
+        ? {
+            id: product_price.product_variant.id,
+            sku: product_price.product_variant.sku,
+            variant_name: product_price.product_variant.variant_name,
+            is_default: product_price.product_variant.is_default,
+          }
+        : null,
       price_list: product_price.price_list
         ? {
             id: product_price.price_list.id,

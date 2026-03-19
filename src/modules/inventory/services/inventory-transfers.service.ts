@@ -55,8 +55,10 @@ export class InventoryTransfersService {
     );
 
     const product_variant =
-      await this.product_variants_service.ensure_default_variant_for_product(
+      await this.product_variants_service.resolve_variant_for_operation(
+        business_id,
         product,
+        dto.product_variant_id,
       );
 
     const branch_id =
@@ -98,6 +100,7 @@ export class InventoryTransfersService {
         where: {
           warehouse_id: origin_warehouse.id,
           product_id: product.id,
+          product_variant_id: product_variant.id,
         },
       });
 
@@ -107,6 +110,7 @@ export class InventoryTransfersService {
           branch_id,
           warehouse_id: origin_warehouse.id,
           product_id: product.id,
+          product_variant_id: product_variant.id,
           quantity: 0,
           reserved_quantity: 0,
           min_stock: null,
@@ -118,6 +122,7 @@ export class InventoryTransfersService {
         where: {
           warehouse_id: destination_warehouse.id,
           product_id: product.id,
+          product_variant_id: product_variant.id,
         },
       });
 
@@ -127,6 +132,7 @@ export class InventoryTransfersService {
           branch_id,
           warehouse_id: destination_warehouse.id,
           product_id: product.id,
+          product_variant_id: product_variant.id,
           quantity: 0,
           reserved_quantity: 0,
           min_stock: null,
@@ -202,6 +208,7 @@ export class InventoryTransfersService {
           warehouse_id: origin_warehouse.id,
           location_id: null,
           product_id: product.id,
+          product_variant_id: product_variant.id,
           inventory_lot_id: null,
           movement_type: InventoryMovementType.TRANSFER_OUT,
           reference_type: 'inventory_transfer',
@@ -221,6 +228,7 @@ export class InventoryTransfersService {
           warehouse_id: destination_warehouse.id,
           location_id: null,
           product_id: product.id,
+          product_variant_id: product_variant.id,
           inventory_lot_id: null,
           movement_type: InventoryMovementType.TRANSFER_IN,
           reference_type: 'inventory_transfer',

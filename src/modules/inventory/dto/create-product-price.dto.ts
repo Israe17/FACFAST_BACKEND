@@ -9,6 +9,11 @@ import {
 } from 'class-validator';
 
 export class CreateProductPriceDto {
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsInt()
+  product_variant_id?: number | null;
+
   @ApiProperty({ example: 1 })
   @IsInt()
   price_list_id!: number;

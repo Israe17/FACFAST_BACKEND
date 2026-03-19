@@ -59,19 +59,21 @@ export class WarehouseStockService {
   ) {
     const legacy_stock_map = new Map(
       legacy_stock_rows.map((row) => [
-        `${row.warehouse_id}:${row.product_id}`,
+        `${row.warehouse_id}:${row.product_id}:${row.product_variant_id ?? 0}`,
         row,
       ]),
     );
 
-    return balances.map((balance) =>
-      this.serialize_stock(
+    return balances.map((balance) => {
+      const variant_key = `${balance.warehouse_id}:${balance.product_variant?.product_id ?? 0}:${balance.product_variant_id ?? 0}`;
+      const product_key = `${balance.warehouse_id}:${balance.product_variant?.product_id ?? 0}:0`;
+      return this.serialize_stock(
         balance,
-        legacy_stock_map.get(
-          `${balance.warehouse_id}:${balance.product_variant?.product_id ?? 0}`,
-        ) ?? null,
-      ),
-    );
+        legacy_stock_map.get(variant_key) ??
+          legacy_stock_map.get(product_key) ??
+          null,
+      );
+    });
   }
 
   private serialize_stock(
