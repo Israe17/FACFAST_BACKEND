@@ -418,6 +418,11 @@ export class ProductVariantsService {
       is_active: variant.is_active,
       created_at: variant.created_at,
       updated_at: variant.updated_at,
+      attribute_values: (variant.attribute_values ?? []).map((av) => ({
+        id: av.id,
+        value: av.value,
+        attribute_id: av.attribute_id,
+      })),
     };
   }
 

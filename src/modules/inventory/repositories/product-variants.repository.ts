@@ -52,6 +52,7 @@ export class ProductVariantsRepository {
         sale_unit_measure: true,
         fiscal_profile: true,
         default_warranty_profile: true,
+        attribute_values: true,
       },
       order: {
         is_default: 'DESC',
@@ -75,6 +76,7 @@ export class ProductVariantsRepository {
         sale_unit_measure: true,
         fiscal_profile: true,
         default_warranty_profile: true,
+        attribute_values: true,
       },
     });
   }
