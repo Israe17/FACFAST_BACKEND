@@ -314,6 +314,7 @@ export class InventoryMovementsService {
           business_id,
           warehouse_id: movement_line.warehouse_id,
           product_id: product_variant.product_id,
+          product_variant_id: product_variant.id,
         },
       });
 
@@ -323,6 +324,7 @@ export class InventoryMovementsService {
           branch_id,
           warehouse_id: movement_line.warehouse_id,
           product_id: product_variant.product_id,
+          product_variant_id: product_variant.id,
           quantity: 0,
           reserved_quantity: 0,
           min_stock: null,
