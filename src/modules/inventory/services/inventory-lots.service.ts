@@ -287,6 +287,12 @@ export class InventoryLotsService {
     return this.serialize_lot(await this.inventory_lots_repository.save(lot));
   }
 
+  async deactivate_lot(current_user: AuthenticatedUserContext, lot_id: number) {
+    const lot = await this.get_lot_entity(current_user, lot_id);
+    lot.is_active = false;
+    return this.serialize_lot(await this.inventory_lots_repository.save(lot));
+  }
+
   private async get_lot_entity(
     current_user: AuthenticatedUserContext,
     lot_id: number,

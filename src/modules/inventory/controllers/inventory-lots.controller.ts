@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -86,5 +87,16 @@ export class InventoryLotsController {
     @Body() dto: UpdateInventoryLotDto,
   ) {
     return this.inventory_lots_service.update_lot(current_user, lot_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.INVENTORY_LOTS_UPDATE)
+  @ApiOperation({ summary: 'Desactivar lote de inventario (soft delete)' })
+  @ApiParam({ name: 'id', type: Number })
+  deactivate_lot(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) lot_id: number,
+  ) {
+    return this.inventory_lots_service.deactivate_lot(current_user, lot_id);
   }
 }

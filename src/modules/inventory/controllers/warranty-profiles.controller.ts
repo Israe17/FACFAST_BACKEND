@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -92,6 +93,22 @@ export class WarrantyProfilesController {
       current_user,
       warranty_profile_id,
       dto,
+    );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.WARRANTY_PROFILES_UPDATE)
+  @ApiOperation({
+    summary: 'Eliminar perfil de garantia (solo si no está en uso)',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  delete_warranty_profile(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) warranty_profile_id: number,
+  ) {
+    return this.warranty_profiles_service.delete_warranty_profile(
+      current_user,
+      warranty_profile_id,
     );
   }
 }

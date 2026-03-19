@@ -204,6 +204,19 @@ export class PromotionsService {
     return this.serialize_promotion(hydrated);
   }
 
+  async delete_promotion(
+    current_user: AuthenticatedUserContext,
+    promotion_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const promotion = await this.get_promotion_entity(
+      business_id,
+      promotion_id,
+    );
+    await this.promotions_repository.remove(promotion);
+    return { id: promotion_id };
+  }
+
   private async get_promotion_entity(
     business_id: number,
     promotion_id: number,

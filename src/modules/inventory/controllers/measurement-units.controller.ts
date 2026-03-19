@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -92,6 +93,22 @@ export class MeasurementUnitsController {
       current_user,
       measurement_unit_id,
       dto,
+    );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.MEASUREMENT_UNITS_UPDATE)
+  @ApiOperation({
+    summary: 'Eliminar unidad de medida (solo si no está en uso)',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  delete_measurement_unit(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) measurement_unit_id: number,
+  ) {
+    return this.measurement_units_service.delete_measurement_unit(
+      current_user,
+      measurement_unit_id,
     );
   }
 }

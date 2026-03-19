@@ -377,6 +377,22 @@ export class ProductsService {
     );
   }
 
+  async deactivate_product(
+    current_user: AuthenticatedUserContext,
+    product_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const product = await this.get_product_entity(business_id, product_id);
+    product.is_active = false;
+    const saved = await this.products_repository.save(product);
+    await this.product_variants_service.ensure_default_variant_for_product(
+      saved,
+    );
+    return this.serialize_product(
+      await this.get_product_entity(business_id, product_id),
+    );
+  }
+
   private async get_product_entity(
     business_id: number,
     product_id: number,

@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -81,5 +82,16 @@ export class BrandsController {
     @Body() dto: UpdateBrandDto,
   ) {
     return this.brands_service.update_brand(current_user, brand_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.BRANDS_UPDATE)
+  @ApiOperation({ summary: 'Eliminar marca (solo si no está en uso)' })
+  @ApiParam({ name: 'id', type: Number })
+  delete_brand(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) brand_id: number,
+  ) {
+    return this.brands_service.delete_brand(current_user, brand_id);
   }
 }

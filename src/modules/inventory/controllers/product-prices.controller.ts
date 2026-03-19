@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Param,
   ParseIntPipe,
   Patch,
@@ -52,6 +53,20 @@ export class ProductPricesController {
       current_user,
       product_price_id,
       dto,
+    );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.PRODUCT_PRICES_UPDATE)
+  @ApiOperation({ summary: 'Eliminar precio de producto' })
+  @ApiParam({ name: 'id', type: Number })
+  delete_product_price(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) product_price_id: number,
+  ) {
+    return this.pricing_service.delete_product_price(
+      current_user,
+      product_price_id,
     );
   }
 }

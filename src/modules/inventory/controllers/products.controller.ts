@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -119,5 +120,16 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
   ) {
     return this.products_service.update_product(current_user, product_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.PRODUCTS_UPDATE)
+  @ApiOperation({ summary: 'Desactivar producto (soft delete)' })
+  @ApiParam({ name: 'id', type: Number })
+  deactivate_product(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) product_id: number,
+  ) {
+    return this.products_service.deactivate_product(current_user, product_id);
   }
 }

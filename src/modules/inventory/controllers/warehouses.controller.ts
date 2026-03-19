@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -113,6 +114,20 @@ export class WarehousesController {
       current_user,
       warehouse_id,
       dto,
+    );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.WAREHOUSES_UPDATE)
+  @ApiOperation({ summary: 'Desactivar bodega (soft delete)' })
+  @ApiParam({ name: 'id', type: Number })
+  deactivate_warehouse(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) warehouse_id: number,
+  ) {
+    return this.warehouses_service.deactivate_warehouse(
+      current_user,
+      warehouse_id,
     );
   }
 }
