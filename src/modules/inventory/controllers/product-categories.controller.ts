@@ -11,6 +11,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -98,6 +99,20 @@ export class ProductCategoriesController {
       current_user,
       category_id,
       dto,
+    );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.CATEGORIES_UPDATE)
+  @ApiOperation({ summary: 'Eliminar categoría (solo si no está en uso)' })
+  @ApiParam({ name: 'id', type: Number })
+  delete_category(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) category_id: number,
+  ) {
+    return this.product_categories_service.delete_category(
+      current_user,
+      category_id,
     );
   }
 }

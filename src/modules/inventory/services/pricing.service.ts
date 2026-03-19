@@ -330,6 +330,53 @@ export class PricingService {
     return this.serialize_product_price(hydrated_product_price);
   }
 
+  async delete_product_price(
+    current_user: AuthenticatedUserContext,
+    product_price_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const product_price =
+      await this.product_prices_repository.find_by_id_in_business(
+        product_price_id,
+        business_id,
+      );
+    if (!product_price) {
+      throw new DomainNotFoundException({
+        code: 'PRODUCT_PRICE_NOT_FOUND',
+        messageKey: 'inventory.product_price_not_found',
+        details: { product_price_id },
+      });
+    }
+    await this.product_prices_repository.remove(product_price);
+    return { id: product_price_id };
+  }
+
+  async delete_price_list(
+    current_user: AuthenticatedUserContext,
+    price_list_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const price_list = await this.get_price_list_entity(
+      business_id,
+      price_list_id,
+    );
+
+    if (price_list.is_default) {
+      throw new DomainBadRequestException({
+        code: 'CANNOT_DELETE_DEFAULT_PRICE_LIST',
+        messageKey: 'inventory.cannot_delete_default_price_list',
+        details: { price_list_id },
+      });
+    }
+
+    await this.product_prices_repository.delete_by_price_list_in_business(
+      business_id,
+      price_list_id,
+    );
+    await this.price_lists_repository.remove(price_list);
+    return { id: price_list_id };
+  }
+
   private async get_price_list_entity(
     business_id: number,
     price_list_id: number,

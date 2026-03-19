@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -7,6 +8,8 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { CreateWarrantyProfileDto } from '../dto/create-warranty-profile.dto';
 import { UpdateWarrantyProfileDto } from '../dto/update-warranty-profile.dto';
 import { WarrantyProfile } from '../entities/warranty-profile.entity';
+import { ProductVariantsRepository } from '../repositories/product-variants.repository';
+import { ProductsRepository } from '../repositories/products.repository';
 import { WarrantyProfilesRepository } from '../repositories/warranty-profiles.repository';
 
 @Injectable()
@@ -14,6 +17,8 @@ export class WarrantyProfilesService {
   constructor(
     private readonly warranty_profiles_repository: WarrantyProfilesRepository,
     private readonly entity_code_service: EntityCodeService,
+    private readonly products_repository: ProductsRepository,
+    private readonly product_variants_repository: ProductVariantsRepository,
   ) {}
 
   async get_warranty_profiles(current_user: AuthenticatedUserContext) {
@@ -129,6 +134,39 @@ export class WarrantyProfilesService {
     return this.serialize_warranty_profile(
       await this.warranty_profiles_repository.save(warranty_profile),
     );
+  }
+
+  async delete_warranty_profile(
+    current_user: AuthenticatedUserContext,
+    warranty_profile_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const profile = await this.get_warranty_profile_entity(
+      business_id,
+      warranty_profile_id,
+    );
+
+    const product_count =
+      await this.products_repository.count_by_warranty_profile_in_business(
+        business_id,
+        warranty_profile_id,
+      );
+    const variant_count =
+      await this.product_variants_repository.count_by_warranty_profile_in_business(
+        business_id,
+        warranty_profile_id,
+      );
+
+    if (product_count + variant_count > 0) {
+      throw new DomainBadRequestException({
+        code: 'WARRANTY_PROFILE_IN_USE',
+        messageKey: 'inventory.warranty_profile_in_use',
+        details: { warranty_profile_id, product_count, variant_count },
+      });
+    }
+
+    await this.warranty_profiles_repository.remove(profile);
+    return { id: warranty_profile_id };
   }
 
   private async get_warranty_profile_entity(

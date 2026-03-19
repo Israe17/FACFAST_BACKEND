@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -85,5 +86,19 @@ export class PriceListsController {
       price_list_id,
       dto,
     );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.PRICE_LISTS_UPDATE)
+  @ApiOperation({
+    summary:
+      'Eliminar lista de precios y todos sus precios (no aplica a la lista por defecto)',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  delete_price_list(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) price_list_id: number,
+  ) {
+    return this.pricing_service.delete_price_list(current_user, price_list_id);
   }
 }

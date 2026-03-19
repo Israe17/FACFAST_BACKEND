@@ -78,6 +78,10 @@ export class ProductCategoriesRepository {
     });
   }
 
+  async remove(category: ProductCategory): Promise<void> {
+    await this.product_category_repository.remove(category);
+  }
+
   async exists_name_in_scope(
     business_id: number,
     name: string,

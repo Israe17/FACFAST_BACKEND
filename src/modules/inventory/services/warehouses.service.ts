@@ -326,6 +326,19 @@ export class WarehousesService {
     );
   }
 
+  async deactivate_warehouse(
+    current_user: AuthenticatedUserContext,
+    warehouse_id: number,
+  ) {
+    const warehouse = await this.get_warehouse_entity(
+      current_user,
+      warehouse_id,
+    );
+    warehouse.is_active = false;
+    const saved = await this.warehouses_repository.save(warehouse);
+    return this.serialize_warehouse(saved);
+  }
+
   private async get_warehouse_entity(
     current_user: AuthenticatedUserContext,
     warehouse_id: number,

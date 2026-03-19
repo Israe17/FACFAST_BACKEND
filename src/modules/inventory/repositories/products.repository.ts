@@ -156,4 +156,43 @@ export class ProductsRepository {
 
     return (await query.getCount()) > 0;
   }
+
+  async count_by_brand_in_business(
+    business_id: number,
+    brand_id: number,
+  ): Promise<number> {
+    return this.product_repository.count({ where: { business_id, brand_id } });
+  }
+
+  async count_by_category_in_business(
+    business_id: number,
+    category_id: number,
+  ): Promise<number> {
+    return this.product_repository.count({
+      where: { business_id, category_id },
+    });
+  }
+
+  async count_by_measurement_unit_in_business(
+    business_id: number,
+    unit_id: number,
+  ): Promise<number> {
+    return this.product_repository
+      .createQueryBuilder('product')
+      .where('product.business_id = :business_id', { business_id })
+      .andWhere(
+        '(product.stock_unit_id = :unit_id OR product.sale_unit_id = :unit_id)',
+        { unit_id },
+      )
+      .getCount();
+  }
+
+  async count_by_warranty_profile_in_business(
+    business_id: number,
+    warranty_profile_id: number,
+  ): Promise<number> {
+    return this.product_repository.count({
+      where: { business_id, warranty_profile_id },
+    });
+  }
 }

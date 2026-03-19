@@ -10,6 +10,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -85,5 +86,16 @@ export class PromotionsController {
       promotion_id,
       dto,
     );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.PROMOTIONS_UPDATE)
+  @ApiOperation({ summary: 'Eliminar promocion' })
+  @ApiParam({ name: 'id', type: Number })
+  delete_promotion(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) promotion_id: number,
+  ) {
+    return this.promotions_service.delete_promotion(current_user, promotion_id);
   }
 }

@@ -55,4 +55,15 @@ export class ProductPricesRepository {
       },
     });
   }
+
+  async remove(product_price: ProductPrice): Promise<void> {
+    await this.product_price_repository.remove(product_price);
+  }
+
+  async delete_by_price_list_in_business(
+    business_id: number,
+    price_list_id: number,
+  ): Promise<void> {
+    await this.product_price_repository.delete({ business_id, price_list_id });
+  }
 }

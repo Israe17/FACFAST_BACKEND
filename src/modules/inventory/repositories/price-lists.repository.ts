@@ -61,6 +61,10 @@ export class PriceListsRepository {
     });
   }
 
+  async remove(price_list: PriceList): Promise<void> {
+    await this.price_list_repository.remove(price_list);
+  }
+
   async exists_name_in_business(
     business_id: number,
     name: string,

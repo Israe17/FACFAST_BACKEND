@@ -41,6 +41,10 @@ export class BrandsRepository {
     });
   }
 
+  async remove(brand: Brand): Promise<void> {
+    await this.brand_repository.remove(brand);
+  }
+
   async exists_name_in_business(
     business_id: number,
     name: string,

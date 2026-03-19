@@ -42,6 +42,10 @@ export class MeasurementUnitsRepository {
     });
   }
 
+  async remove(measurement_unit: MeasurementUnit): Promise<void> {
+    await this.measurement_unit_repository.remove(measurement_unit);
+  }
+
   async exists_name_or_symbol_in_business(
     business_id: number,
     name: string,

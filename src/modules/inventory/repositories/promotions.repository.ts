@@ -69,6 +69,13 @@ export class PromotionsRepository {
     });
   }
 
+  async remove(promotion: Promotion): Promise<void> {
+    await this.promotion_item_repository.delete({
+      promotion_id: promotion.id,
+    });
+    await this.promotion_repository.remove(promotion);
+  }
+
   async exists_name_in_business(
     business_id: number,
     name: string,

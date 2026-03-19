@@ -42,6 +42,10 @@ export class WarrantyProfilesRepository {
     });
   }
 
+  async remove(warranty_profile: WarrantyProfile): Promise<void> {
+    await this.warranty_profile_repository.remove(warranty_profile);
+  }
+
   async exists_name_in_business(
     business_id: number,
     name: string,

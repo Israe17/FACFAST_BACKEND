@@ -130,4 +130,27 @@ export class ProductVariantsRepository {
       },
     });
   }
+
+  async count_by_measurement_unit_in_business(
+    business_id: number,
+    unit_id: number,
+  ): Promise<number> {
+    return this.product_variant_repository
+      .createQueryBuilder('variant')
+      .where('variant.business_id = :business_id', { business_id })
+      .andWhere(
+        '(variant.stock_unit_measure_id = :unit_id OR variant.sale_unit_measure_id = :unit_id)',
+        { unit_id },
+      )
+      .getCount();
+  }
+
+  async count_by_warranty_profile_in_business(
+    business_id: number,
+    warranty_profile_id: number,
+  ): Promise<number> {
+    return this.product_variant_repository.count({
+      where: { business_id, default_warranty_profile_id: warranty_profile_id },
+    });
+  }
 }

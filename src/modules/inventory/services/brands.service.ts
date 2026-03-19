@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -8,12 +9,14 @@ import { CreateBrandDto } from '../dto/create-brand.dto';
 import { UpdateBrandDto } from '../dto/update-brand.dto';
 import { Brand } from '../entities/brand.entity';
 import { BrandsRepository } from '../repositories/brands.repository';
+import { ProductsRepository } from '../repositories/products.repository';
 
 @Injectable()
 export class BrandsService {
   constructor(
     private readonly brands_repository: BrandsRepository,
     private readonly entity_code_service: EntityCodeService,
+    private readonly products_repository: ProductsRepository,
   ) {}
 
   async get_brands(current_user: AuthenticatedUserContext) {
@@ -109,6 +112,27 @@ export class BrandsService {
     }
 
     return this.serialize_brand(await this.brands_repository.save(brand));
+  }
+
+  async delete_brand(current_user: AuthenticatedUserContext, brand_id: number) {
+    const business_id = resolve_effective_business_id(current_user);
+    const brand = await this.get_brand_entity(business_id, brand_id);
+
+    const product_count =
+      await this.products_repository.count_by_brand_in_business(
+        business_id,
+        brand_id,
+      );
+    if (product_count > 0) {
+      throw new DomainBadRequestException({
+        code: 'BRAND_IN_USE',
+        messageKey: 'inventory.brand_in_use',
+        details: { brand_id, product_count },
+      });
+    }
+
+    await this.brands_repository.remove(brand);
+    return { id: brand_id };
   }
 
   private async get_brand_entity(

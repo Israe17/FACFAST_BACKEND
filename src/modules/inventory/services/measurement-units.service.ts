@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -8,12 +9,16 @@ import { CreateMeasurementUnitDto } from '../dto/create-measurement-unit.dto';
 import { UpdateMeasurementUnitDto } from '../dto/update-measurement-unit.dto';
 import { MeasurementUnit } from '../entities/measurement-unit.entity';
 import { MeasurementUnitsRepository } from '../repositories/measurement-units.repository';
+import { ProductVariantsRepository } from '../repositories/product-variants.repository';
+import { ProductsRepository } from '../repositories/products.repository';
 
 @Injectable()
 export class MeasurementUnitsService {
   constructor(
     private readonly measurement_units_repository: MeasurementUnitsRepository,
     private readonly entity_code_service: EntityCodeService,
+    private readonly products_repository: ProductsRepository,
+    private readonly product_variants_repository: ProductVariantsRepository,
   ) {}
 
   async get_measurement_units(current_user: AuthenticatedUserContext) {
@@ -120,6 +125,39 @@ export class MeasurementUnitsService {
     return this.serialize_unit(
       await this.measurement_units_repository.save(measurement_unit),
     );
+  }
+
+  async delete_measurement_unit(
+    current_user: AuthenticatedUserContext,
+    measurement_unit_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const unit = await this.get_measurement_unit_entity(
+      business_id,
+      measurement_unit_id,
+    );
+
+    const product_count =
+      await this.products_repository.count_by_measurement_unit_in_business(
+        business_id,
+        measurement_unit_id,
+      );
+    const variant_count =
+      await this.product_variants_repository.count_by_measurement_unit_in_business(
+        business_id,
+        measurement_unit_id,
+      );
+
+    if (product_count + variant_count > 0) {
+      throw new DomainBadRequestException({
+        code: 'MEASUREMENT_UNIT_IN_USE',
+        messageKey: 'inventory.measurement_unit_in_use',
+        details: { measurement_unit_id, product_count, variant_count },
+      });
+    }
+
+    await this.measurement_units_repository.remove(unit);
+    return { id: measurement_unit_id };
   }
 
   private async get_measurement_unit_entity(
