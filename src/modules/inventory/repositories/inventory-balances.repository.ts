@@ -48,20 +48,18 @@ export class InventoryBalancesRepository {
         'branch_link',
         'branch_link.is_active = true',
       )
-      .leftJoinAndSelect(
-        'inventory_balance.product_variant',
-        'product_variant',
-      )
+      .leftJoinAndSelect('inventory_balance.product_variant', 'product_variant')
       .leftJoinAndSelect('product_variant.product', 'product')
       .where('inventory_balance.business_id = :business_id', { business_id });
 
     if (branch_ids?.length) {
       query.andWhere(
         new Brackets((qb) => {
-          qb.where('warehouse.branch_id IN (:...branch_ids)', { branch_ids })
-            .orWhere('branch_link.branch_id IN (:...branch_ids)', {
-              branch_ids,
-            });
+          qb.where('warehouse.branch_id IN (:...branch_ids)', {
+            branch_ids,
+          }).orWhere('branch_link.branch_id IN (:...branch_ids)', {
+            branch_ids,
+          });
         }),
       );
     }
@@ -90,6 +88,18 @@ export class InventoryBalancesRepository {
       },
       order: {
         product_variant_id: 'ASC',
+      },
+    });
+  }
+
+  async count_by_variant_in_business(
+    business_id: number,
+    product_variant_id: number,
+  ): Promise<number> {
+    return this.inventory_balance_repository.count({
+      where: {
+        business_id,
+        product_variant_id,
       },
     });
   }

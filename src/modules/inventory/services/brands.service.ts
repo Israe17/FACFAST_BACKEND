@@ -169,6 +169,12 @@ export class BrandsService {
       name: brand.name,
       description: brand.description,
       is_active: brand.is_active,
+      lifecycle: {
+        can_delete: true,
+        can_deactivate: brand.is_active,
+        can_reactivate: !brand.is_active,
+        reasons: [],
+      },
       created_at: brand.created_at,
       updated_at: brand.updated_at,
     };

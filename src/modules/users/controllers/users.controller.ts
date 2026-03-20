@@ -11,6 +11,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -163,5 +164,17 @@ export class UsersController {
     @Param('id', ParseIntPipe) user_id: number,
   ) {
     return this.users_service.get_effective_permissions(current_user, user_id);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('users.delete')
+  @ApiOperation({ summary: 'Eliminar usuario' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Usuario eliminado exitosamente.' })
+  delete_user(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) user_id: number,
+  ) {
+    return this.users_service.delete_user(current_user, user_id);
   }
 }

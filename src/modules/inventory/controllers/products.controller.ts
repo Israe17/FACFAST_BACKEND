@@ -123,7 +123,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.PRODUCTS_UPDATE)
+  @RequirePermissions(PermissionKey.PRODUCTS_DELETE)
   @ApiOperation({ summary: 'Desactivar producto (soft delete)' })
   @ApiParam({ name: 'id', type: Number })
   deactivate_product(

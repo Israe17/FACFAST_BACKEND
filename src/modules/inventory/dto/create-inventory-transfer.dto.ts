@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateInventoryTransferDto {
   @ApiProperty({ example: 1 })
@@ -10,14 +18,30 @@ export class CreateInventoryTransferDto {
   @IsInt()
   destination_warehouse_id!: number;
 
-  @ApiProperty({ example: 3 })
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
   @IsInt()
-  product_id!: number;
+  origin_location_id?: number | null;
+
+  @ApiPropertyOptional({ example: 8 })
+  @IsOptional()
+  @IsInt()
+  destination_location_id?: number | null;
+
+  @ApiPropertyOptional({ example: 3 })
+  @IsOptional()
+  @IsInt()
+  product_id?: number | null;
 
   @ApiPropertyOptional({ example: 5 })
   @IsOptional()
   @IsInt()
   product_variant_id?: number | null;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @IsInt()
+  inventory_lot_id?: number | null;
 
   @ApiProperty({ example: 5 })
   @IsNumber({ maxDecimalPlaces: 4 })
@@ -44,4 +68,16 @@ export class CreateInventoryTransferDto {
   @IsOptional()
   @IsString()
   notes?: string | null;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    example: [101, 102],
+    description:
+      'Seriales a transferir cuando la variante utiliza serial tracking.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsInt({ each: true })
+  serial_ids?: number[];
 }

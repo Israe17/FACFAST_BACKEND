@@ -11,6 +11,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -45,7 +46,9 @@ export class ContactsController {
 
   @Get()
   @RequirePermissions('contacts.view')
-  @ApiOperation({ summary: 'Listar contactos del negocio autenticado (paginado)' })
+  @ApiOperation({
+    summary: 'Listar contactos del negocio autenticado (paginado)',
+  })
   @ApiOkResponse({ description: 'Lista paginada de clientes y proveedores.' })
   get_contacts(
     @CurrentUser() current_user: AuthenticatedUserContext,
@@ -111,5 +114,17 @@ export class ContactsController {
     @Body() dto: UpdateContactDto,
   ) {
     return this.contacts_service.update_contact(current_user, contact_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('contacts.delete')
+  @ApiOperation({ summary: 'Eliminar contacto' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Contacto eliminado exitosamente.' })
+  delete_contact(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) contact_id: number,
+  ) {
+    return this.contacts_service.delete_contact(current_user, contact_id);
   }
 }

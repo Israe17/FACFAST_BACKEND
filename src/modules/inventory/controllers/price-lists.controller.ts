@@ -89,7 +89,7 @@ export class PriceListsController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.PRICE_LISTS_UPDATE)
+  @RequirePermissions(PermissionKey.PRICE_LISTS_DELETE)
   @ApiOperation({
     summary:
       'Eliminar lista de precios y todos sus precios (no aplica a la lista por defecto)',

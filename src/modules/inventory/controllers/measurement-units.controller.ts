@@ -97,7 +97,7 @@ export class MeasurementUnitsController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.MEASUREMENT_UNITS_UPDATE)
+  @RequirePermissions(PermissionKey.MEASUREMENT_UNITS_DELETE)
   @ApiOperation({
     summary: 'Eliminar unidad de medida (solo si no está en uso)',
   })

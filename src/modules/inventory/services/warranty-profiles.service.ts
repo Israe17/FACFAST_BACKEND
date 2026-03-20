@@ -206,6 +206,12 @@ export class WarrantyProfilesService {
       duration_unit: warranty_profile.duration_unit,
       coverage_notes: warranty_profile.coverage_notes,
       is_active: warranty_profile.is_active,
+      lifecycle: {
+        can_delete: true,
+        can_deactivate: warranty_profile.is_active,
+        can_reactivate: !warranty_profile.is_active,
+        reasons: [],
+      },
       created_at: warranty_profile.created_at,
       updated_at: warranty_profile.updated_at,
     };

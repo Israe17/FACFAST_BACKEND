@@ -89,6 +89,9 @@ export class ProductsService {
       await this.inventory_validation_service.get_tax_profile_in_business(
         business_id,
         dto.tax_profile_id,
+        {
+          require_active: true,
+        },
       );
     this.inventory_validation_service.assert_product_tax_profile_compatibility(
       dto.type,
@@ -100,6 +103,9 @@ export class ProductsService {
         ? await this.inventory_validation_service.get_category_in_business(
             business_id,
             dto.category_id,
+            {
+              require_active: true,
+            },
           )
         : null;
     const brand =
@@ -107,6 +113,9 @@ export class ProductsService {
         ? await this.inventory_validation_service.get_brand_in_business(
             business_id,
             dto.brand_id,
+            {
+              require_active: true,
+            },
           )
         : null;
     const stock_unit =
@@ -114,6 +123,9 @@ export class ProductsService {
         ? await this.inventory_validation_service.get_measurement_unit_in_business(
             business_id,
             dto.stock_unit_id,
+            {
+              require_active: true,
+            },
           )
         : null;
     const sale_unit =
@@ -121,6 +133,9 @@ export class ProductsService {
         ? await this.inventory_validation_service.get_measurement_unit_in_business(
             business_id,
             dto.sale_unit_id,
+            {
+              require_active: true,
+            },
           )
         : null;
     const warranty_profile =
@@ -128,6 +143,9 @@ export class ProductsService {
         ? await this.inventory_validation_service.get_warranty_profile_in_business(
             business_id,
             dto.warranty_profile_id,
+            {
+              require_active: true,
+            },
           )
         : null;
 
@@ -150,6 +168,7 @@ export class ProductsService {
       track_inventory: dto.track_inventory ?? true,
       track_lots: dto.track_lots ?? false,
       track_expiration: dto.track_expiration ?? false,
+      track_serials: dto.track_serials ?? false,
       allow_negative_stock: dto.allow_negative_stock ?? false,
       has_variants: dto.has_variants ?? false,
       has_warranty: dto.has_warranty ?? false,
@@ -236,6 +255,9 @@ export class ProductsService {
         ? await this.inventory_validation_service.get_tax_profile_in_business(
             business_id,
             dto.tax_profile_id,
+            {
+              require_active: true,
+            },
           )
         : product.tax_profile;
     if (!tax_profile) {
@@ -261,6 +283,9 @@ export class ProductsService {
               await this.inventory_validation_service.get_category_in_business(
                 business_id,
                 dto.category_id,
+                {
+                  require_active: true,
+                },
               )
             ).id;
     }
@@ -272,6 +297,9 @@ export class ProductsService {
               await this.inventory_validation_service.get_brand_in_business(
                 business_id,
                 dto.brand_id,
+                {
+                  require_active: true,
+                },
               )
             ).id;
     }
@@ -283,6 +311,9 @@ export class ProductsService {
               await this.inventory_validation_service.get_measurement_unit_in_business(
                 business_id,
                 dto.stock_unit_id,
+                {
+                  require_active: true,
+                },
               )
             ).id;
     }
@@ -294,6 +325,9 @@ export class ProductsService {
               await this.inventory_validation_service.get_measurement_unit_in_business(
                 business_id,
                 dto.sale_unit_id,
+                {
+                  require_active: true,
+                },
               )
             ).id;
     }
@@ -305,6 +339,9 @@ export class ProductsService {
               await this.inventory_validation_service.get_warranty_profile_in_business(
                 business_id,
                 dto.warranty_profile_id,
+                {
+                  require_active: true,
+                },
               )
             ).id;
     }
@@ -339,6 +376,9 @@ export class ProductsService {
     }
     if (dto.track_expiration !== undefined) {
       product.track_expiration = dto.track_expiration;
+    }
+    if (dto.track_serials !== undefined) {
+      product.track_serials = dto.track_serials;
     }
     if (dto.allow_negative_stock !== undefined) {
       product.allow_negative_stock = dto.allow_negative_stock;
@@ -419,6 +459,7 @@ export class ProductsService {
       product.track_inventory = false;
       product.track_lots = false;
       product.track_expiration = false;
+      product.track_serials = false;
       product.allow_negative_stock = false;
     } else {
       if (product.track_lots && !product.track_inventory) {
@@ -438,6 +479,7 @@ export class ProductsService {
       if (!product.track_inventory) {
         product.track_lots = false;
         product.track_expiration = false;
+        product.track_serials = false;
         product.allow_negative_stock = false;
       }
     }
@@ -529,6 +571,7 @@ export class ProductsService {
       track_inventory: product.track_inventory,
       track_lots: product.track_lots,
       track_expiration: product.track_expiration,
+      track_serials: product.track_serials,
       allow_negative_stock: product.allow_negative_stock,
       has_variants: product.has_variants,
       has_warranty: product.has_warranty,
@@ -549,6 +592,12 @@ export class ProductsService {
         track_serials: variant.track_serials,
       })),
       is_active: product.is_active,
+      lifecycle: {
+        can_delete: false,
+        can_deactivate: product.is_active,
+        can_reactivate: !product.is_active,
+        reasons: ['hard_delete_not_supported'],
+      },
       created_at: product.created_at,
       updated_at: product.updated_at,
     };

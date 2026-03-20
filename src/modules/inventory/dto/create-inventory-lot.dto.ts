@@ -27,9 +27,10 @@ export class CreateInventoryLotDto {
   @IsInt()
   location_id?: number | null;
 
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
   @IsInt()
-  product_id!: number;
+  product_id?: number | null;
 
   @ApiPropertyOptional({ example: 5 })
   @IsOptional()

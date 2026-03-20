@@ -14,6 +14,9 @@ import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { PasswordHashService } from '../../common/services/password-hash.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { InventoryMovementHeader } from '../../inventory/entities/inventory-movement-header.entity';
+import { InventoryMovement } from '../../inventory/entities/inventory-movement.entity';
+import { SerialEvent } from '../../inventory/entities/serial-event.entity';
 import { RolesRepository } from '../../rbac/repositories/roles.repository';
 import { AssignUserBranchesDto } from '../dto/assign-user-branches.dto';
 import { AssignUserRolesDto } from '../dto/assign-user-roles.dto';
@@ -48,6 +51,12 @@ export class UsersService {
     private readonly user_role_repository: Repository<UserRole>,
     @InjectRepository(UserBranchAccess)
     private readonly user_branch_access_repository: Repository<UserBranchAccess>,
+    @InjectRepository(InventoryMovementHeader)
+    private readonly inventory_movement_header_repository: Repository<InventoryMovementHeader>,
+    @InjectRepository(InventoryMovement)
+    private readonly inventory_movement_repository: Repository<InventoryMovement>,
+    @InjectRepository(SerialEvent)
+    private readonly serial_event_repository: Repository<SerialEvent>,
   ) {}
 
   async get_users(current_user: AuthenticatedUserContext) {
@@ -182,6 +191,96 @@ export class UsersService {
     await this.users_repository.save(user);
     return {
       success: true,
+    };
+  }
+
+  async delete_user(
+    current_user: AuthenticatedUserContext,
+    user_id: number,
+  ): Promise<{ id: number; deleted: true }> {
+    const user = await this.get_user_entity(current_user, user_id);
+
+    if (current_user.id === user.id) {
+      throw new DomainBadRequestException({
+        code: 'USER_SELF_DELETE_FORBIDDEN',
+        messageKey: 'users.self_delete_forbidden',
+        details: {
+          user_id,
+        },
+      });
+    }
+
+    if (user.is_platform_admin) {
+      throw new DomainBadRequestException({
+        code: 'USER_PLATFORM_ADMIN_DELETE_FORBIDDEN',
+        messageKey: 'users.platform_admin_delete_forbidden',
+        details: {
+          user_id,
+        },
+      });
+    }
+
+    if (user.user_type === UserType.OWNER) {
+      const owner_count = await this.users_repository.count_by_type_in_business(
+        user.business_id,
+        UserType.OWNER,
+      );
+      if (owner_count <= 1) {
+        throw new DomainBadRequestException({
+          code: 'USER_LAST_OWNER_DELETE_FORBIDDEN',
+          messageKey: 'users.last_owner_delete_forbidden',
+          details: {
+            user_id,
+          },
+        });
+      }
+    }
+
+    const [inventory_movement_headers, inventory_movements, serial_events] =
+      await Promise.all([
+        this.inventory_movement_header_repository.count({
+          where: {
+            business_id: user.business_id,
+            performed_by_user_id: user.id,
+          },
+        }),
+        this.inventory_movement_repository.count({
+          where: {
+            business_id: user.business_id,
+            created_by: user.id,
+          },
+        }),
+        this.serial_event_repository.count({
+          where: {
+            business_id: user.business_id,
+            performed_by_user_id: user.id,
+          },
+        }),
+      ]);
+
+    if (
+      inventory_movement_headers > 0 ||
+      inventory_movements > 0 ||
+      serial_events > 0
+    ) {
+      throw new DomainBadRequestException({
+        code: 'USER_DELETE_FORBIDDEN',
+        messageKey: 'users.delete_forbidden',
+        details: {
+          user_id,
+          dependencies: {
+            inventory_movement_headers,
+            inventory_movements,
+            serial_events,
+          },
+        },
+      });
+    }
+
+    await this.users_repository.remove(user);
+    return {
+      id: user_id,
+      deleted: true,
     };
   }
 

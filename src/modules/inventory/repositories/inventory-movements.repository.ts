@@ -69,4 +69,16 @@ export class InventoryMovementsRepository {
       relations: movement_relations,
     });
   }
+
+  async count_by_variant_in_business(
+    business_id: number,
+    product_variant_id: number,
+  ): Promise<number> {
+    return this.inventory_movement_repository.count({
+      where: {
+        business_id,
+        product_variant_id,
+      },
+    });
+  }
 }

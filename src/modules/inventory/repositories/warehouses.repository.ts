@@ -59,10 +59,11 @@ export class WarehousesRepository {
     if (branch_ids?.length) {
       query.andWhere(
         new Brackets((qb) => {
-          qb.where('warehouse.branch_id IN (:...branch_ids)', { branch_ids })
-            .orWhere('branch_link.branch_id IN (:...branch_ids)', {
-              branch_ids,
-            });
+          qb.where('warehouse.branch_id IN (:...branch_ids)', {
+            branch_ids,
+          }).orWhere('branch_link.branch_id IN (:...branch_ids)', {
+            branch_ids,
+          });
         }),
       );
     }

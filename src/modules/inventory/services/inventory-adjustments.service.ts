@@ -8,10 +8,12 @@ import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CreateInventoryAdjustmentDto } from '../dto/create-inventory-adjustment.dto';
 import { InventoryLot } from '../entities/inventory-lot.entity';
+import { InventoryMovementHeader } from '../entities/inventory-movement-header.entity';
 import { InventoryMovement } from '../entities/inventory-movement.entity';
 import { WarehouseStock } from '../entities/warehouse-stock.entity';
 import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { InventoryMovementType } from '../enums/inventory-movement-type.enum';
+import { InventoryMovementHeadersRepository } from '../repositories/inventory-movement-headers.repository';
 import { InventoryMovementsRepository } from '../repositories/inventory-movements.repository';
 import { InventoryLedgerService } from './inventory-ledger.service';
 import { InventoryValidationService } from './inventory-validation.service';
@@ -24,6 +26,7 @@ export class InventoryAdjustmentsService {
     private readonly data_source: DataSource,
     private readonly inventory_validation_service: InventoryValidationService,
     private readonly inventory_movements_repository: InventoryMovementsRepository,
+    private readonly inventory_movement_headers_repository: InventoryMovementHeadersRepository,
     private readonly entity_code_service: EntityCodeService,
     private readonly product_variants_service: ProductVariantsService,
     private readonly inventory_ledger_service: InventoryLedgerService,
@@ -32,7 +35,10 @@ export class InventoryAdjustmentsService {
   async adjust_inventory(
     current_user: AuthenticatedUserContext,
     dto: CreateInventoryAdjustmentDto,
-  ): Promise<InventoryMovement> {
+  ): Promise<{
+    legacy_movement: InventoryMovement;
+    movement_header: InventoryMovementHeader;
+  }> {
     const business_id = resolve_effective_business_id(current_user);
     if (
       dto.movement_type !== InventoryMovementType.ADJUSTMENT_IN &&
@@ -51,23 +57,26 @@ export class InventoryAdjustmentsService {
       await this.inventory_validation_service.get_warehouse_for_operation(
         current_user,
         dto.warehouse_id,
+        {
+          require_active: true,
+        },
       );
-    const product =
-      await this.inventory_validation_service.get_product_in_business(
+    const { product, product_variant } =
+      await this.product_variants_service.resolve_product_and_variant_for_operation(
         business_id,
-        dto.product_id,
-      );
-    const product_variant =
-      await this.product_variants_service.resolve_variant_for_operation(
-        business_id,
-        product,
-        dto.product_variant_id,
+        {
+          product_id: dto.product_id,
+          product_variant_id: dto.product_variant_id,
+        },
       );
     this.inventory_validation_service.assert_product_is_inventory_enabled(
       product,
     );
+    this.inventory_validation_service.assert_variant_is_inventory_enabled(
+      product_variant,
+    );
     const branch_id =
-      await this.inventory_ledger_service.resolve_operational_branch_id(
+      this.inventory_ledger_service.resolve_operational_branch_id(
         current_user,
         [warehouse],
       );
@@ -88,6 +97,9 @@ export class InventoryAdjustmentsService {
         ? await this.inventory_validation_service.get_location_for_operation(
             current_user,
             dto.location_id,
+            {
+              require_active: true,
+            },
           )
         : null;
     if (location) {
@@ -102,6 +114,9 @@ export class InventoryAdjustmentsService {
         ? await this.inventory_validation_service.get_inventory_lot_for_operation(
             current_user,
             dto.inventory_lot_id,
+            {
+              require_active: true,
+            },
           )
         : null;
 
@@ -116,6 +131,19 @@ export class InventoryAdjustmentsService {
         throw new DomainBadRequestException({
           code: 'INVENTORY_LOT_PRODUCT_MISMATCH',
           messageKey: 'inventory.inventory_lot_product_mismatch',
+        });
+      }
+      if (
+        inventory_lot.product_variant_id !== null &&
+        inventory_lot.product_variant_id !== product_variant.id
+      ) {
+        throw new DomainBadRequestException({
+          code: 'INVENTORY_LOT_VARIANT_MISMATCH',
+          messageKey: 'inventory.inventory_lot_variant_mismatch',
+          details: {
+            inventory_lot_id: inventory_lot.id,
+            product_variant_id: product_variant.id,
+          },
         });
       }
       if (
@@ -145,6 +173,7 @@ export class InventoryAdjustmentsService {
     }
 
     let movement_id: number | null = null;
+    let movement_header_id: number | null = null;
     await this.data_source.transaction(async (manager) => {
       const warehouse_stock_repository = manager.getRepository(WarehouseStock);
       const inventory_lot_repository = manager.getRepository(InventoryLot);
@@ -249,32 +278,36 @@ export class InventoryAdjustmentsService {
         'IM',
       );
 
-      await this.inventory_ledger_service.post_posted_movement(
-        manager,
-        {
-          business_id,
-          branch_id,
-          performed_by_user_id: current_user.id,
-          occurred_at: new Date(),
-          movement_type: InventoryMovementHeaderType.STOCK_ADJUSTMENT,
-          source_document_type: this.normalize_optional_string(
-            dto.reference_type,
-          ),
-          source_document_id: dto.reference_id ?? null,
-          source_document_number: null,
-          notes: this.normalize_optional_string(dto.notes),
-        },
-        [
+      const { header } =
+        await this.inventory_ledger_service.post_posted_movement(
+          manager,
           {
-            warehouse,
-            product_variant,
-            quantity: Number(dto.quantity),
-            unit_cost: null,
-            on_hand_delta: delta,
+            business_id,
+            branch_id,
+            performed_by_user_id: current_user.id,
+            occurred_at: new Date(),
+            movement_type: InventoryMovementHeaderType.STOCK_ADJUSTMENT,
+            source_document_type: this.normalize_optional_string(
+              dto.reference_type,
+            ),
+            source_document_id: dto.reference_id ?? null,
+            source_document_number: null,
+            notes: this.normalize_optional_string(dto.notes),
           },
-        ],
-      );
+          [
+            {
+              warehouse,
+              location: location ?? inventory_lot?.location ?? null,
+              inventory_lot: persisted_lot,
+              product_variant,
+              quantity: Number(dto.quantity),
+              unit_cost: null,
+              on_hand_delta: delta,
+            },
+          ],
+        );
       movement_id = movement.id;
+      movement_header_id = header.id;
     });
 
     const movement = movement_id
@@ -293,7 +326,26 @@ export class InventoryAdjustmentsService {
       });
     }
 
-    return movement;
+    const movement_header = movement_header_id
+      ? await this.inventory_movement_headers_repository.find_by_id_in_business(
+          movement_header_id,
+          business_id,
+        )
+      : null;
+    if (!movement_header) {
+      throw new DomainNotFoundException({
+        code: 'INVENTORY_MOVEMENT_NOT_FOUND',
+        messageKey: 'inventory.inventory_movement_not_found',
+        details: {
+          movement_header_id,
+        },
+      });
+    }
+
+    return {
+      legacy_movement: movement,
+      movement_header,
+    };
   }
 
   private normalize_optional_string(value?: string | null): string | null {

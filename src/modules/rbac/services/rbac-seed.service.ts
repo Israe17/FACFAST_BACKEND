@@ -35,6 +35,12 @@ const inventory_permissions: PermissionSeed[] = [
     description: 'Can update product categories.',
   },
   {
+    key: PermissionKey.CATEGORIES_DELETE,
+    module: 'categories',
+    action: 'delete',
+    description: 'Can delete product categories.',
+  },
+  {
     key: PermissionKey.BRANDS_VIEW,
     module: 'brands',
     action: 'view',
@@ -53,6 +59,12 @@ const inventory_permissions: PermissionSeed[] = [
     description: 'Can update brands.',
   },
   {
+    key: PermissionKey.BRANDS_DELETE,
+    module: 'brands',
+    action: 'delete',
+    description: 'Can delete brands.',
+  },
+  {
     key: PermissionKey.MEASUREMENT_UNITS_VIEW,
     module: 'measurement_units',
     action: 'view',
@@ -69,6 +81,12 @@ const inventory_permissions: PermissionSeed[] = [
     module: 'measurement_units',
     action: 'update',
     description: 'Can update measurement units.',
+  },
+  {
+    key: PermissionKey.MEASUREMENT_UNITS_DELETE,
+    module: 'measurement_units',
+    action: 'delete',
+    description: 'Can delete measurement units.',
   },
   {
     key: PermissionKey.TAX_PROFILES_VIEW,
@@ -107,6 +125,55 @@ const inventory_permissions: PermissionSeed[] = [
     description: 'Can update products.',
   },
   {
+    key: PermissionKey.PRODUCTS_DELETE,
+    module: 'products',
+    action: 'delete',
+    description: 'Can deactivate products.',
+  },
+  {
+    key: PermissionKey.PRODUCT_VARIANTS_VIEW,
+    module: 'product_variants',
+    action: 'view',
+    description: 'Can view product variants.',
+  },
+  {
+    key: PermissionKey.PRODUCT_VARIANTS_CREATE,
+    module: 'product_variants',
+    action: 'create',
+    description: 'Can create product variants.',
+  },
+  {
+    key: PermissionKey.PRODUCT_VARIANTS_UPDATE,
+    module: 'product_variants',
+    action: 'update',
+    description: 'Can update product variants.',
+  },
+  {
+    key: PermissionKey.PRODUCT_VARIANTS_DELETE,
+    module: 'product_variants',
+    action: 'delete',
+    description:
+      'Can deactivate or permanently delete product variants when allowed.',
+  },
+  {
+    key: PermissionKey.VARIANT_ATTRIBUTES_VIEW,
+    module: 'variant_attributes',
+    action: 'view',
+    description: 'Can view variant attribute definitions.',
+  },
+  {
+    key: PermissionKey.VARIANT_ATTRIBUTES_CONFIGURE,
+    module: 'variant_attributes',
+    action: 'configure',
+    description: 'Can configure variant attributes.',
+  },
+  {
+    key: PermissionKey.VARIANT_ATTRIBUTES_GENERATE,
+    module: 'variant_attributes',
+    action: 'generate',
+    description: 'Can generate variants from attribute combinations.',
+  },
+  {
     key: PermissionKey.PRICE_LISTS_VIEW,
     module: 'price_lists',
     action: 'view',
@@ -123,6 +190,36 @@ const inventory_permissions: PermissionSeed[] = [
     module: 'price_lists',
     action: 'update',
     description: 'Can update price lists.',
+  },
+  {
+    key: PermissionKey.PRICE_LISTS_DELETE,
+    module: 'price_lists',
+    action: 'delete',
+    description: 'Can delete price lists.',
+  },
+  {
+    key: PermissionKey.PRICE_LISTS_VIEW_BRANCH_ASSIGNMENTS,
+    module: 'price_lists',
+    action: 'view_branch_assignments',
+    description: 'Can view branch assignments for price lists.',
+  },
+  {
+    key: PermissionKey.PRICE_LISTS_CREATE_BRANCH_ASSIGNMENT,
+    module: 'price_lists',
+    action: 'create_branch_assignment',
+    description: 'Can create branch assignments for price lists.',
+  },
+  {
+    key: PermissionKey.PRICE_LISTS_UPDATE_BRANCH_ASSIGNMENT,
+    module: 'price_lists',
+    action: 'update_branch_assignment',
+    description: 'Can update branch assignments for price lists.',
+  },
+  {
+    key: PermissionKey.PRICE_LISTS_DELETE_BRANCH_ASSIGNMENT,
+    module: 'price_lists',
+    action: 'delete_branch_assignment',
+    description: 'Can delete branch assignments for price lists.',
   },
   {
     key: PermissionKey.PRODUCT_PRICES_VIEW,
@@ -143,6 +240,12 @@ const inventory_permissions: PermissionSeed[] = [
     description: 'Can update product prices.',
   },
   {
+    key: PermissionKey.PRODUCT_PRICES_DELETE,
+    module: 'product_prices',
+    action: 'delete',
+    description: 'Can delete product prices.',
+  },
+  {
     key: PermissionKey.WARRANTY_PROFILES_VIEW,
     module: 'warranty_profiles',
     action: 'view',
@@ -159,6 +262,12 @@ const inventory_permissions: PermissionSeed[] = [
     module: 'warranty_profiles',
     action: 'update',
     description: 'Can update warranty profiles.',
+  },
+  {
+    key: PermissionKey.WARRANTY_PROFILES_DELETE,
+    module: 'warranty_profiles',
+    action: 'delete',
+    description: 'Can delete warranty profiles.',
   },
   {
     key: PermissionKey.PROMOTIONS_VIEW,
@@ -179,6 +288,36 @@ const inventory_permissions: PermissionSeed[] = [
     description: 'Can update promotions.',
   },
   {
+    key: PermissionKey.PROMOTIONS_DELETE,
+    module: 'promotions',
+    action: 'delete',
+    description: 'Can delete promotions.',
+  },
+  {
+    key: PermissionKey.PROMOTIONS_VIEW_BRANCH_ASSIGNMENTS,
+    module: 'promotions',
+    action: 'view_branch_assignments',
+    description: 'Can view branch assignments for promotions.',
+  },
+  {
+    key: PermissionKey.PROMOTIONS_CREATE_BRANCH_ASSIGNMENT,
+    module: 'promotions',
+    action: 'create_branch_assignment',
+    description: 'Can create branch assignments for promotions.',
+  },
+  {
+    key: PermissionKey.PROMOTIONS_UPDATE_BRANCH_ASSIGNMENT,
+    module: 'promotions',
+    action: 'update_branch_assignment',
+    description: 'Can update branch assignments for promotions.',
+  },
+  {
+    key: PermissionKey.PROMOTIONS_DELETE_BRANCH_ASSIGNMENT,
+    module: 'promotions',
+    action: 'delete_branch_assignment',
+    description: 'Can delete branch assignments for promotions.',
+  },
+  {
     key: PermissionKey.WAREHOUSES_VIEW,
     module: 'warehouses',
     action: 'view',
@@ -195,6 +334,12 @@ const inventory_permissions: PermissionSeed[] = [
     module: 'warehouses',
     action: 'update',
     description: 'Can update warehouses.',
+  },
+  {
+    key: PermissionKey.WAREHOUSES_DELETE,
+    module: 'warehouses',
+    action: 'delete',
+    description: 'Can deactivate warehouses.',
   },
   {
     key: PermissionKey.WAREHOUSE_LOCATIONS_VIEW,
@@ -239,6 +384,12 @@ const inventory_permissions: PermissionSeed[] = [
     description: 'Can update inventory lots.',
   },
   {
+    key: PermissionKey.INVENTORY_LOTS_DELETE,
+    module: 'inventory_lots',
+    action: 'delete',
+    description: 'Can deactivate inventory lots.',
+  },
+  {
     key: PermissionKey.INVENTORY_MOVEMENTS_VIEW,
     module: 'inventory_movements',
     action: 'view',
@@ -249,6 +400,36 @@ const inventory_permissions: PermissionSeed[] = [
     module: 'inventory_movements',
     action: 'adjust',
     description: 'Can register manual inventory adjustments.',
+  },
+  {
+    key: PermissionKey.INVENTORY_MOVEMENTS_TRANSFER,
+    module: 'inventory_movements',
+    action: 'transfer',
+    description: 'Can register inventory transfers between warehouses.',
+  },
+  {
+    key: PermissionKey.INVENTORY_MOVEMENTS_CANCEL,
+    module: 'inventory_movements',
+    action: 'cancel',
+    description: 'Can cancel posted inventory movements.',
+  },
+  {
+    key: PermissionKey.PRODUCT_SERIALS_VIEW,
+    module: 'product_serials',
+    action: 'view',
+    description: 'Can view product serials and their history.',
+  },
+  {
+    key: PermissionKey.PRODUCT_SERIALS_CREATE,
+    module: 'product_serials',
+    action: 'create',
+    description: 'Can register product serials.',
+  },
+  {
+    key: PermissionKey.PRODUCT_SERIALS_UPDATE,
+    module: 'product_serials',
+    action: 'update',
+    description: 'Can update product serial status and notes.',
   },
 ];
 
@@ -380,6 +561,36 @@ const base_permissions: PermissionSeed[] = [
     description: 'Can update contacts.',
   },
   {
+    key: PermissionKey.CONTACTS_DELETE,
+    module: 'contacts',
+    action: 'delete',
+    description: 'Can delete contacts.',
+  },
+  {
+    key: PermissionKey.CONTACTS_VIEW_BRANCH_ASSIGNMENTS,
+    module: 'contacts',
+    action: 'view_branch_assignments',
+    description: 'Can view branch assignments for contacts.',
+  },
+  {
+    key: PermissionKey.CONTACTS_CREATE_BRANCH_ASSIGNMENT,
+    module: 'contacts',
+    action: 'create_branch_assignment',
+    description: 'Can create branch assignments for contacts.',
+  },
+  {
+    key: PermissionKey.CONTACTS_UPDATE_BRANCH_ASSIGNMENT,
+    module: 'contacts',
+    action: 'update_branch_assignment',
+    description: 'Can update branch assignments for contacts.',
+  },
+  {
+    key: PermissionKey.CONTACTS_DELETE_BRANCH_ASSIGNMENT,
+    module: 'contacts',
+    action: 'delete_branch_assignment',
+    description: 'Can delete branch assignments for contacts.',
+  },
+  {
     key: 'branches.view',
     module: 'branches',
     action: 'view',
@@ -398,6 +609,12 @@ const base_permissions: PermissionSeed[] = [
     description: 'Can update branches.',
   },
   {
+    key: PermissionKey.BRANCHES_DELETE,
+    module: 'branches',
+    action: 'delete',
+    description: 'Can delete branches.',
+  },
+  {
     key: 'branches.configure',
     module: 'branches',
     action: 'configure',
@@ -414,6 +631,12 @@ const base_permissions: PermissionSeed[] = [
     module: 'branches',
     action: 'update_terminal',
     description: 'Can update terminals.',
+  },
+  {
+    key: PermissionKey.BRANCHES_DELETE_TERMINAL,
+    module: 'branches',
+    action: 'delete_terminal',
+    description: 'Can delete terminals.',
   },
   ...inventory_permissions,
 ];
@@ -470,6 +693,74 @@ const suggested_role_permissions: Record<string, string[]> = {
   ],
 };
 
+const derived_inventory_permissions: Partial<
+  Record<PermissionKey, PermissionKey[]>
+> = {
+  [PermissionKey.CATEGORIES_UPDATE]: [PermissionKey.CATEGORIES_DELETE],
+  [PermissionKey.BRANDS_UPDATE]: [PermissionKey.BRANDS_DELETE],
+  [PermissionKey.CONTACTS_VIEW]: [
+    PermissionKey.CONTACTS_VIEW_BRANCH_ASSIGNMENTS,
+  ],
+  [PermissionKey.CONTACTS_UPDATE]: [
+    PermissionKey.CONTACTS_DELETE,
+    PermissionKey.CONTACTS_CREATE_BRANCH_ASSIGNMENT,
+    PermissionKey.CONTACTS_UPDATE_BRANCH_ASSIGNMENT,
+    PermissionKey.CONTACTS_DELETE_BRANCH_ASSIGNMENT,
+  ],
+  [PermissionKey.BRANCHES_UPDATE]: [PermissionKey.BRANCHES_DELETE],
+  [PermissionKey.BRANCHES_UPDATE_TERMINAL]: [
+    PermissionKey.BRANCHES_DELETE_TERMINAL,
+  ],
+  [PermissionKey.MEASUREMENT_UNITS_UPDATE]: [
+    PermissionKey.MEASUREMENT_UNITS_DELETE,
+  ],
+  [PermissionKey.PRODUCTS_VIEW]: [
+    PermissionKey.PRODUCT_VARIANTS_VIEW,
+    PermissionKey.VARIANT_ATTRIBUTES_VIEW,
+    PermissionKey.PRODUCT_SERIALS_VIEW,
+  ],
+  [PermissionKey.PRODUCTS_CREATE]: [
+    PermissionKey.PRODUCT_VARIANTS_CREATE,
+    PermissionKey.VARIANT_ATTRIBUTES_GENERATE,
+    PermissionKey.PRODUCT_SERIALS_CREATE,
+  ],
+  [PermissionKey.PRODUCTS_UPDATE]: [
+    PermissionKey.PRODUCTS_DELETE,
+    PermissionKey.PRODUCT_VARIANTS_UPDATE,
+    PermissionKey.PRODUCT_VARIANTS_DELETE,
+    PermissionKey.VARIANT_ATTRIBUTES_CONFIGURE,
+    PermissionKey.PRODUCT_SERIALS_UPDATE,
+  ],
+  [PermissionKey.PRICE_LISTS_VIEW]: [
+    PermissionKey.PRICE_LISTS_VIEW_BRANCH_ASSIGNMENTS,
+  ],
+  [PermissionKey.PRICE_LISTS_UPDATE]: [
+    PermissionKey.PRICE_LISTS_DELETE,
+    PermissionKey.PRICE_LISTS_CREATE_BRANCH_ASSIGNMENT,
+    PermissionKey.PRICE_LISTS_UPDATE_BRANCH_ASSIGNMENT,
+    PermissionKey.PRICE_LISTS_DELETE_BRANCH_ASSIGNMENT,
+  ],
+  [PermissionKey.PRODUCT_PRICES_UPDATE]: [PermissionKey.PRODUCT_PRICES_DELETE],
+  [PermissionKey.WARRANTY_PROFILES_UPDATE]: [
+    PermissionKey.WARRANTY_PROFILES_DELETE,
+  ],
+  [PermissionKey.PROMOTIONS_VIEW]: [
+    PermissionKey.PROMOTIONS_VIEW_BRANCH_ASSIGNMENTS,
+  ],
+  [PermissionKey.PROMOTIONS_UPDATE]: [
+    PermissionKey.PROMOTIONS_DELETE,
+    PermissionKey.PROMOTIONS_CREATE_BRANCH_ASSIGNMENT,
+    PermissionKey.PROMOTIONS_UPDATE_BRANCH_ASSIGNMENT,
+    PermissionKey.PROMOTIONS_DELETE_BRANCH_ASSIGNMENT,
+  ],
+  [PermissionKey.WAREHOUSES_UPDATE]: [PermissionKey.WAREHOUSES_DELETE],
+  [PermissionKey.INVENTORY_LOTS_UPDATE]: [PermissionKey.INVENTORY_LOTS_DELETE],
+  [PermissionKey.INVENTORY_MOVEMENTS_ADJUST]: [
+    PermissionKey.INVENTORY_MOVEMENTS_TRANSFER,
+    PermissionKey.INVENTORY_MOVEMENTS_CANCEL,
+  ],
+};
+
 @Injectable()
 export class RbacSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RbacSeedService.name);
@@ -498,6 +789,7 @@ export class RbacSeedService implements OnApplicationBootstrap {
     const businesses = await this.business_repository.find();
     for (const business of businesses) {
       await this.ensure_suggested_roles_for_business(business.id);
+      await this.ensure_derived_permissions_for_business_roles(business.id);
     }
   }
 
@@ -623,6 +915,85 @@ export class RbacSeedService implements OnApplicationBootstrap {
           role_permission_repository.create({
             role_id: role.id,
             permission_id: permission.id,
+          }),
+        );
+      }
+    }
+  }
+
+  async ensure_derived_permissions_for_business_roles(
+    business_id: number,
+  ): Promise<void> {
+    return this.ensure_derived_permissions_for_business_roles_in_manager(
+      business_id,
+      undefined,
+    );
+  }
+
+  async ensure_derived_permissions_for_business_roles_in_manager(
+    business_id: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const permission_repository =
+      manager?.getRepository(Permission) ?? this.permission_repository;
+    const role_repository =
+      manager?.getRepository(Role) ?? this.role_repository;
+    const role_permission_repository =
+      manager?.getRepository(RolePermission) ?? this.role_permission_repository;
+
+    const permissions = await permission_repository.find();
+    const permissions_by_key = new Map(
+      permissions.map((permission) => [permission.key, permission]),
+    );
+    const roles = await role_repository.find({
+      where: {
+        business_id,
+      },
+      relations: this.role_relations,
+    });
+
+    for (const role of roles) {
+      const existing_permission_ids = new Set(
+        role.role_permissions?.map(
+          (role_permission) => role_permission.permission_id,
+        ) ?? [],
+      );
+      const existing_permission_keys = new Set(
+        role.role_permissions
+          ?.map((role_permission) => role_permission.permission?.key)
+          .filter((permission_key): permission_key is string =>
+            Boolean(permission_key),
+          ) ?? [],
+      );
+
+      const permission_ids_to_assign = new Set<number>();
+
+      for (const [source_permission, derived_permissions] of Object.entries(
+        derived_inventory_permissions,
+      ) as [PermissionKey, PermissionKey[]][]) {
+        if (!existing_permission_keys.has(source_permission)) {
+          continue;
+        }
+
+        for (const derived_permission_key of derived_permissions) {
+          const derived_permission = permissions_by_key.get(
+            derived_permission_key,
+          );
+          if (
+            !derived_permission ||
+            existing_permission_ids.has(derived_permission.id)
+          ) {
+            continue;
+          }
+          permission_ids_to_assign.add(derived_permission.id);
+        }
+      }
+
+      for (const permission_id of permission_ids_to_assign) {
+        await role_permission_repository.save(
+          role_permission_repository.create({
+            role_id: role.id,
+            permission_id,
           }),
         );
       }

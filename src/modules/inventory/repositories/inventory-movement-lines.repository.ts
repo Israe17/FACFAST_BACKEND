@@ -17,7 +17,9 @@ export class InventoryMovementLinesRepository {
   async save(
     inventory_movement_line: InventoryMovementLine,
   ): Promise<InventoryMovementLine> {
-    return this.inventory_movement_line_repository.save(inventory_movement_line);
+    return this.inventory_movement_line_repository.save(
+      inventory_movement_line,
+    );
   }
 
   async find_all_by_business(
@@ -29,11 +31,25 @@ export class InventoryMovementLinesRepository {
       },
       relations: {
         header: true,
+        location: true,
+        inventory_lot: true,
         product_variant: true,
         warehouse: true,
       },
       order: {
         id: 'ASC',
+      },
+    });
+  }
+
+  async count_by_variant_in_business(
+    business_id: number,
+    product_variant_id: number,
+  ): Promise<number> {
+    return this.inventory_movement_line_repository.count({
+      where: {
+        business_id,
+        product_variant_id,
       },
     });
   }

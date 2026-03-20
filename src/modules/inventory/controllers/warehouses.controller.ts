@@ -118,7 +118,7 @@ export class WarehousesController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.WAREHOUSES_UPDATE)
+  @RequirePermissions(PermissionKey.WAREHOUSES_DELETE)
   @ApiOperation({ summary: 'Desactivar bodega (soft delete)' })
   @ApiParam({ name: 'id', type: Number })
   deactivate_warehouse(

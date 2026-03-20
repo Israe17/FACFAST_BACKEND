@@ -61,12 +61,18 @@ export class InventoryLotsService {
       await this.inventory_validation_service.get_warehouse_for_operation(
         current_user,
         dto.warehouse_id,
+        {
+          require_active: true,
+        },
       );
     const location =
       dto.location_id !== undefined && dto.location_id !== null
         ? await this.inventory_validation_service.get_location_for_operation(
             current_user,
             dto.location_id,
+            {
+              require_active: true,
+            },
           )
         : null;
     if (location) {
@@ -76,21 +82,20 @@ export class InventoryLotsService {
       );
     }
 
-    const product =
-      await this.inventory_validation_service.get_product_in_business(
+    const { product, product_variant } =
+      await this.product_variants_service.resolve_product_and_variant_for_operation(
         business_id,
-        dto.product_id,
+        {
+          product_id: dto.product_id,
+          product_variant_id: dto.product_variant_id,
+        },
       );
     this.inventory_validation_service.assert_product_is_inventory_enabled(
       product,
     );
-
-    const product_variant =
-      await this.product_variants_service.resolve_variant_for_operation(
-        business_id,
-        product,
-        dto.product_variant_id,
-      );
+    this.inventory_validation_service.assert_variant_is_inventory_enabled(
+      product_variant,
+    );
 
     if (!product_variant.track_lots) {
       throw new DomainBadRequestException({
@@ -208,6 +213,9 @@ export class InventoryLotsService {
           : await this.inventory_validation_service.get_location_for_operation(
               current_user,
               dto.location_id,
+              {
+                require_active: true,
+              },
             )
         : null;
     if (location) {
@@ -224,6 +232,7 @@ export class InventoryLotsService {
         lot.product_id,
         next_lot_number,
         lot.id,
+        lot.product_variant_id,
       )
     ) {
       throw new DomainConflictException({
@@ -237,7 +246,10 @@ export class InventoryLotsService {
       });
     }
 
-    if (dto.expiration_date === null && lot.product?.track_expiration) {
+    if (
+      dto.expiration_date === null &&
+      (lot.product_variant?.track_expiration ?? lot.product?.track_expiration)
+    ) {
       throw new DomainBadRequestException({
         code: 'INVENTORY_LOT_EXPIRATION_REQUIRED',
         messageKey: 'inventory.inventory_lot_expiration_required',
@@ -369,6 +381,12 @@ export class InventoryLotsService {
           }
         : null,
       is_active: lot.is_active,
+      lifecycle: {
+        can_delete: false,
+        can_deactivate: lot.is_active,
+        can_reactivate: !lot.is_active,
+        reasons: ['hard_delete_not_supported'],
+      },
       created_at: lot.created_at,
       updated_at: lot.updated_at,
     };

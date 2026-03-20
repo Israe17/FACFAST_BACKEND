@@ -11,11 +11,16 @@ import {
 import { Business } from '../../common/entities/business.entity';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { InventoryMovementHeader } from './inventory-movement-header.entity';
+import { InventoryLot } from './inventory-lot.entity';
 import { ProductVariant } from './product-variant.entity';
 import { Warehouse } from './warehouse.entity';
+import { WarehouseLocation } from './warehouse-location.entity';
 
 @Entity('inventory_movement_lines')
 @Index(['business_id', 'header_id', 'line_no'], { unique: true })
+@Index(['business_id', 'warehouse_id', 'product_variant_id'])
+@Index(['inventory_lot_id'])
+@Index(['location_id'])
 export class InventoryMovementLine {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -73,13 +78,45 @@ export class InventoryMovementLine {
   })
   warehouse_id!: number;
 
-  @ManyToOne(() => Warehouse, (warehouse) => warehouse.inventory_movement_lines, {
-    onDelete: 'RESTRICT',
-  })
+  @ManyToOne(
+    () => Warehouse,
+    (warehouse) => warehouse.inventory_movement_lines,
+    {
+      onDelete: 'RESTRICT',
+    },
+  )
   @JoinColumn({
     name: 'warehouse_id',
   })
   warehouse?: Warehouse;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  location_id!: number | null;
+
+  @ManyToOne(() => WarehouseLocation, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'location_id',
+  })
+  location?: WarehouseLocation | null;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  inventory_lot_id!: number | null;
+
+  @ManyToOne(() => InventoryLot, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'inventory_lot_id',
+  })
+  inventory_lot?: InventoryLot | null;
 
   @Column({
     type: 'numeric',

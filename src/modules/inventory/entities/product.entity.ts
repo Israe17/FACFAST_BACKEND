@@ -173,6 +173,12 @@ export class Product extends AuditedCodeEntity {
     type: 'boolean',
     default: false,
   })
+  track_serials!: boolean;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
   allow_negative_stock!: boolean;
 
   @Column({

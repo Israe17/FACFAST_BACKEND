@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { UserType } from '../../common/enums/user-type.enum';
 import { User } from '../entities/user.entity';
 
 const user_relations = {
@@ -37,6 +38,10 @@ export class UsersRepository {
       saved_user,
       'US',
     );
+  }
+
+  async remove(user: User): Promise<void> {
+    await this.user_repository.remove(user);
   }
 
   async find_all_by_business(business_id: number): Promise<User[]> {
@@ -114,5 +119,17 @@ export class UsersRepository {
 
     const count = await query_builder.getCount();
     return count > 0;
+  }
+
+  async count_by_type_in_business(
+    business_id: number,
+    user_type: UserType,
+  ): Promise<number> {
+    return this.user_repository.count({
+      where: {
+        business_id,
+        user_type,
+      },
+    });
   }
 }

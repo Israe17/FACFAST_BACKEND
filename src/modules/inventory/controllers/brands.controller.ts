@@ -85,7 +85,7 @@ export class BrandsController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.BRANDS_UPDATE)
+  @RequirePermissions(PermissionKey.BRANDS_DELETE)
   @ApiOperation({ summary: 'Eliminar marca (solo si no está en uso)' })
   @ApiParam({ name: 'id', type: Number })
   delete_brand(

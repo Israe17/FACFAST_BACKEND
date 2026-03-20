@@ -83,6 +83,11 @@ export class CreateProductDto {
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
+  track_serials?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
   allow_negative_stock?: boolean;
 
   @ApiPropertyOptional({ example: false })

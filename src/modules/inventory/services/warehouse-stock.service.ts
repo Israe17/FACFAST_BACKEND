@@ -21,14 +21,16 @@ export class WarehouseStockService {
       this.inventory_validation_service.resolve_accessible_branch_ids(
         current_user,
       );
-    const balances = await this.inventory_balances_repository.find_all_by_business(
-      business_id,
-      accessible_branch_ids,
-    );
-    const legacy_stock = await this.warehouse_stock_repository.find_all_by_business(
-      business_id,
-      accessible_branch_ids,
-    );
+    const balances =
+      await this.inventory_balances_repository.find_all_by_business(
+        business_id,
+        accessible_branch_ids,
+      );
+    const legacy_stock =
+      await this.warehouse_stock_repository.find_all_by_business(
+        business_id,
+        accessible_branch_ids,
+      );
     return this.serialize_balances_with_legacy_settings(balances, legacy_stock);
   }
 
@@ -42,14 +44,16 @@ export class WarehouseStockService {
         warehouse_id,
       );
     const business_id = resolve_effective_business_id(current_user);
-    const balances = await this.inventory_balances_repository.find_all_by_warehouse(
-      business_id,
-      warehouse.id,
-    );
-    const legacy_stock = await this.warehouse_stock_repository.find_all_by_warehouse(
-      warehouse.id,
-      business_id,
-    );
+    const balances =
+      await this.inventory_balances_repository.find_all_by_warehouse(
+        business_id,
+        warehouse.id,
+      );
+    const legacy_stock =
+      await this.warehouse_stock_repository.find_all_by_warehouse(
+        warehouse.id,
+        business_id,
+      );
     return this.serialize_balances_with_legacy_settings(balances, legacy_stock);
   }
 

@@ -95,18 +95,37 @@ export const error_translations = {
       'Solo un owner puede gestionar a otro owner.',
     'users.system_management_forbidden':
       'Los usuarios de sistema no pueden ser gestionados desde este contexto.',
+    'users.self_delete_forbidden': 'Un usuario no puede eliminarse a si mismo.',
+    'users.platform_admin_delete_forbidden':
+      'Los usuarios platform admin no pueden eliminarse desde este contexto.',
+    'users.last_owner_delete_forbidden':
+      'No se puede eliminar el ultimo usuario owner de la empresa.',
+    'users.delete_forbidden':
+      'El usuario no puede eliminarse porque tiene historial operativo asociado.',
     'contacts.not_found': 'El contacto no existe.',
     'contacts.code_duplicate': 'El codigo del contacto ya existe.',
     'contacts.identification_duplicate':
       'La identificacion ya existe en esta empresa.',
     'contacts.lookup_multiple':
       'Existe mas de un contacto con esa identificacion en esta empresa.',
+    'contacts.delete_forbidden':
+      'El contacto no puede eliminarse porque tiene historial operativo asociado.',
+    'contacts.branch_assignment_not_found':
+      'El assignment del contacto por sucursal no existe.',
+    'contacts.branch_assignment_duplicate':
+      'Ya existe un assignment de este contacto para la sucursal seleccionada.',
+    'contacts.branch_exclusive_conflict':
+      'El contacto ya tiene una asignacion exclusiva activa en otra sucursal.',
+    'contacts.account_manager_branch_scope_invalid':
+      'El encargado asignado no tiene alcance sobre la sucursal seleccionada.',
     'branches.not_found': 'La sucursal no existe.',
     'branches.access_forbidden': 'El usuario no tiene acceso a esta sucursal.',
     'branches.manage_scope_forbidden':
       'El usuario no puede operar sobre una o mas sucursales indicadas.',
     'branches.configuration_permission_required':
       'Se requiere branches.configure para editar configuracion sensible.',
+    'branches.delete_forbidden':
+      'La sucursal no puede eliminarse porque tiene dependencias operativas asociadas.',
     'terminals.not_found': 'La terminal no existe.',
     'inventory.category_not_found': 'La categoria no existe.',
     'inventory.category_name_duplicate':
@@ -149,14 +168,28 @@ export const error_translations = {
     'inventory.product_lot_tracking_required':
       'Este producto no soporta inventario basado en lotes.',
     'inventory.price_list_not_found': 'La lista de precios no existe.',
+    'inventory.price_list_inactive':
+      'La lista de precios seleccionada no se encuentra activa.',
     'inventory.price_list_name_duplicate':
       'Ya existe una lista de precios con ese nombre.',
+    'inventory.branch_price_list_assignment_not_found':
+      'El assignment de lista de precios por sucursal no existe.',
+    'inventory.branch_price_list_assignment_duplicate':
+      'La lista de precios ya esta asignada a la sucursal seleccionada.',
+    'inventory.branch_price_list_default_requires_active_assignment':
+      'Solo un assignment activo puede marcarse como default para la sucursal.',
     'inventory.product_price_not_found': 'El precio del producto no existe.',
     'inventory.price_valid_range_invalid':
       'valid_to no puede ser anterior a valid_from.',
     'inventory.promotion_not_found': 'La promocion no existe.',
+    'inventory.promotion_inactive':
+      'La promocion seleccionada no se encuentra activa.',
     'inventory.promotion_name_duplicate':
       'Ya existe una promocion con ese nombre.',
+    'inventory.branch_promotion_assignment_not_found':
+      'El assignment de promocion por sucursal no existe.',
+    'inventory.branch_promotion_assignment_duplicate':
+      'La promocion ya esta asignada a la sucursal seleccionada.',
     'inventory.promotion_duplicate_items':
       'Los items de la promocion no pueden repetir el mismo producto.',
     'inventory.promotion_items_outside_business':
@@ -228,6 +261,8 @@ export const error_translations = {
       'El movimiento de inventario no existe.',
     'inventory.product_unit_conversion_not_supported':
       'La conversion de unidades distinta entre venta y stock aun no esta soportada.',
+    'inventory.product_variant_delete_forbidden':
+      'La variante no puede eliminarse permanentemente porque aun tiene restricciones o dependencias.',
     'rbac.role_not_found': 'El rol no existe.',
     'rbac.role_key_duplicate':
       'Ya existe un rol con esa clave en la empresa activa.',
@@ -350,12 +385,29 @@ export const error_translations = {
       'Only an owner can manage another owner.',
     'users.system_management_forbidden':
       'System users cannot be managed from this context.',
+    'users.self_delete_forbidden': 'A user cannot delete itself.',
+    'users.platform_admin_delete_forbidden':
+      'Platform admin users cannot be deleted from this context.',
+    'users.last_owner_delete_forbidden':
+      'The last owner user of the business cannot be deleted.',
+    'users.delete_forbidden':
+      'The user cannot be deleted because it has associated operational history.',
     'contacts.not_found': 'The contact does not exist.',
     'contacts.code_duplicate': 'The contact code already exists.',
     'contacts.identification_duplicate':
       'The identification already exists in this business.',
     'contacts.lookup_multiple':
       'More than one contact matches that identification in this business.',
+    'contacts.delete_forbidden':
+      'The contact cannot be deleted because it has associated operational history.',
+    'contacts.branch_assignment_not_found':
+      'The contact branch assignment does not exist.',
+    'contacts.branch_assignment_duplicate':
+      'This contact already has an assignment for the selected branch.',
+    'contacts.branch_exclusive_conflict':
+      'The contact already has an active exclusive assignment in another branch.',
+    'contacts.account_manager_branch_scope_invalid':
+      'The assigned account manager does not have access to the selected branch.',
     'branches.not_found': 'The branch does not exist.',
     'branches.access_forbidden':
       'The user does not have access to this branch.',
@@ -363,6 +415,8 @@ export const error_translations = {
       'The user cannot operate on one or more selected branches.',
     'branches.configuration_permission_required':
       'branches.configure is required to edit sensitive configuration.',
+    'branches.delete_forbidden':
+      'The branch cannot be deleted because it has associated operational dependencies.',
     'terminals.not_found': 'The terminal does not exist.',
     'inventory.category_not_found': 'The category does not exist.',
     'inventory.category_name_duplicate':
@@ -408,14 +462,26 @@ export const error_translations = {
     'inventory.product_lot_tracking_required':
       'This product does not support lot-based inventory.',
     'inventory.price_list_not_found': 'The price list does not exist.',
+    'inventory.price_list_inactive': 'The selected price list is not active.',
     'inventory.price_list_name_duplicate':
       'A price list with that name already exists.',
+    'inventory.branch_price_list_assignment_not_found':
+      'The branch price list assignment does not exist.',
+    'inventory.branch_price_list_assignment_duplicate':
+      'The price list is already assigned to the selected branch.',
+    'inventory.branch_price_list_default_requires_active_assignment':
+      'Only an active assignment can be marked as the default for the branch.',
     'inventory.product_price_not_found': 'The product price does not exist.',
     'inventory.price_valid_range_invalid':
       'valid_to cannot be earlier than valid_from.',
     'inventory.promotion_not_found': 'The promotion does not exist.',
+    'inventory.promotion_inactive': 'The selected promotion is not active.',
     'inventory.promotion_name_duplicate':
       'A promotion with that name already exists.',
+    'inventory.branch_promotion_assignment_not_found':
+      'The branch promotion assignment does not exist.',
+    'inventory.branch_promotion_assignment_duplicate':
+      'The promotion is already assigned to the selected branch.',
     'inventory.promotion_duplicate_items':
       'Promotion items cannot repeat the same product.',
     'inventory.promotion_items_outside_business':
@@ -488,6 +554,8 @@ export const error_translations = {
       'The inventory movement does not exist.',
     'inventory.product_unit_conversion_not_supported':
       'Different sale and stock unit conversion is not supported yet.',
+    'inventory.product_variant_delete_forbidden':
+      'The variant cannot be permanently deleted because it still has restrictions or dependencies.',
     'rbac.role_not_found': 'The role does not exist.',
     'rbac.role_key_duplicate':
       'A role with that business key already exists in the active business.',

@@ -6,10 +6,13 @@ import { BusinessSequenceService } from '../../common/services/business-sequence
 import { resolve_effective_branch_scope_ids } from '../../common/utils/tenant-context.util';
 import { build_entity_code } from '../../common/utils/entity-code.util';
 import { InventoryBalance } from '../entities/inventory-balance.entity';
+import { InventoryLot } from '../entities/inventory-lot.entity';
 import { InventoryMovementHeader } from '../entities/inventory-movement-header.entity';
 import { InventoryMovementLine } from '../entities/inventory-movement-line.entity';
 import { ProductVariant } from '../entities/product-variant.entity';
 import { Warehouse } from '../entities/warehouse.entity';
+import { WarehouseLocation } from '../entities/warehouse-location.entity';
+import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { InventoryMovementStatus } from '../enums/inventory-movement-status.enum';
 import { WarehouseBranchLinksRepository } from '../repositories/warehouse-branch-links.repository';
 
@@ -17,6 +20,8 @@ const INVENTORY_MOVEMENT_HEADER_CODE_SCOPE = 'inventory_movement_headers';
 
 type LedgerLineInput = {
   warehouse: Warehouse;
+  location?: WarehouseLocation | null;
+  inventory_lot?: InventoryLot | null;
   product_variant: ProductVariant;
   quantity: number;
   unit_cost?: number | null;
@@ -46,10 +51,10 @@ export class InventoryLedgerService {
     private readonly business_sequence_service: BusinessSequenceService,
   ) {}
 
-  async resolve_operational_branch_id(
+  resolve_operational_branch_id(
     current_user: AuthenticatedUserContext,
     warehouses: Warehouse[],
-  ): Promise<number> {
+  ): number {
     const candidate_branch_ids = Array.from(
       new Set(
         warehouses.flatMap((warehouse) => {
@@ -167,11 +172,14 @@ export class InventoryLedgerService {
 
     this.assert_transfer_consistency(header_input.movement_type, line_inputs);
 
-    const inventory_balance_repository = manager.getRepository(InventoryBalance);
-    const inventory_movement_header_repository =
-      manager.getRepository(InventoryMovementHeader);
-    const inventory_movement_line_repository =
-      manager.getRepository(InventoryMovementLine);
+    const inventory_balance_repository =
+      manager.getRepository(InventoryBalance);
+    const inventory_movement_header_repository = manager.getRepository(
+      InventoryMovementHeader,
+    );
+    const inventory_movement_line_repository = manager.getRepository(
+      InventoryMovementLine,
+    );
     const header_code = await this.generate_header_code(
       manager,
       header_input.business_id,
@@ -281,6 +289,8 @@ export class InventoryLedgerService {
           line_no: index + 1,
           product_variant_id: line_input.product_variant.id,
           warehouse_id: line_input.warehouse.id,
+          location_id: line_input.location?.id ?? null,
+          inventory_lot_id: line_input.inventory_lot?.id ?? null,
           quantity,
           unit_cost,
           total_cost,
@@ -293,12 +303,14 @@ export class InventoryLedgerService {
       );
       line.header = header;
       line.warehouse = line_input.warehouse;
+      line.location = line_input.location ?? null;
+      line.inventory_lot = line_input.inventory_lot ?? null;
       line.product_variant = line_input.product_variant;
       persisted_lines.push(line);
     }
 
     if (
-      header_input.movement_type === 'transfer' &&
+      header_input.movement_type === InventoryMovementHeaderType.TRANSFER &&
       persisted_lines.length === 2
     ) {
       persisted_lines[0].linked_line_id = persisted_lines[1].id;
@@ -400,9 +412,11 @@ export class InventoryLedgerService {
     manager: EntityManager,
     business_id: number,
   ): Promise<void> {
-    const inventory_balance_repository = manager.getRepository(InventoryBalance);
-    const inventory_movement_line_repository =
-      manager.getRepository(InventoryMovementLine);
+    const inventory_balance_repository =
+      manager.getRepository(InventoryBalance);
+    const inventory_movement_line_repository = manager.getRepository(
+      InventoryMovementLine,
+    );
 
     await inventory_balance_repository.delete({ business_id });
 
@@ -464,7 +478,7 @@ export class InventoryLedgerService {
     movement_type: InventoryMovementHeader['movement_type'],
     line_inputs: LedgerLineInput[],
   ): void {
-    if (movement_type !== 'transfer') {
+    if (movement_type !== InventoryMovementHeaderType.TRANSFER) {
       return;
     }
 
@@ -479,7 +493,8 @@ export class InventoryLedgerService {
     if (
       origin_line.warehouse.id === destination_line.warehouse.id ||
       Number(origin_line.quantity) !== Number(destination_line.quantity) ||
-      Number(origin_line.on_hand_delta ?? 0) !== -Number(origin_line.quantity) ||
+      Number(origin_line.on_hand_delta ?? 0) !==
+        -Number(origin_line.quantity) ||
       Number(destination_line.on_hand_delta ?? 0) !==
         Number(destination_line.quantity)
     ) {
@@ -495,7 +510,7 @@ export class InventoryLedgerService {
     original_lines: InventoryMovementLine[],
   ): LedgerLineInput[] {
     const ordered_original_lines =
-      original_header.movement_type === 'transfer'
+      original_header.movement_type === InventoryMovementHeaderType.TRANSFER
         ? [...original_lines].sort(
             (left, right) =>
               Number(right.on_hand_delta ?? 0) -
@@ -517,6 +532,8 @@ export class InventoryLedgerService {
 
       return {
         warehouse: original_line.warehouse,
+        location: original_line.location ?? null,
+        inventory_lot: original_line.inventory_lot ?? null,
         product_variant: original_line.product_variant,
         quantity: Number(original_line.quantity),
         unit_cost: original_line.unit_cost,

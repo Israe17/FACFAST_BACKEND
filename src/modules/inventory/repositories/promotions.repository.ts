@@ -8,6 +8,7 @@ import { Promotion } from '../entities/promotion.entity';
 const promotion_relations = {
   items: {
     product: true,
+    product_variant: true,
   },
 } as const;
 
@@ -91,5 +92,13 @@ export class PromotionsRepository {
     }
 
     return (await query.getCount()) > 0;
+  }
+
+  async count_items_by_variant(product_variant_id: number): Promise<number> {
+    return this.promotion_item_repository.count({
+      where: {
+        product_variant_id,
+      },
+    });
   }
 }

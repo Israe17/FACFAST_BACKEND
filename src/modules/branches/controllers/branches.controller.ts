@@ -11,6 +11,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -105,5 +106,17 @@ export class BranchesController {
     @Body() dto: CreateTerminalDto,
   ) {
     return this.branches_service.create_terminal(current_user, branch_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.BRANCHES_DELETE)
+  @ApiOperation({ summary: 'Eliminar sucursal' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Sucursal eliminada exitosamente.' })
+  delete_branch(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) branch_id: number,
+  ) {
+    return this.branches_service.delete_branch(current_user, branch_id);
   }
 }

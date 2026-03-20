@@ -3,16 +3,20 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
 import { ContactsModule } from '../contacts/contacts.module';
 import { BrandsController } from './controllers/brands.controller';
+import { BranchPriceListsController } from './controllers/branch-price-lists.controller';
+import { BranchPromotionsController } from './controllers/branch-promotions.controller';
 import { InventoryLotsController } from './controllers/inventory-lots.controller';
 import { InventoryMovementsController } from './controllers/inventory-movements.controller';
 import { MeasurementUnitsController } from './controllers/measurement-units.controller';
 import { PriceListsController } from './controllers/price-lists.controller';
+import { PriceListBranchAssignmentsController } from './controllers/price-list-branch-assignments.controller';
 import { ProductCategoriesController } from './controllers/product-categories.controller';
 import { ProductPricesController } from './controllers/product-prices.controller';
 import { ProductSerialsController } from './controllers/product-serials.controller';
 import { ProductVariantsController } from './controllers/product-variants.controller';
 import { ProductsController } from './controllers/products.controller';
 import { PromotionsController } from './controllers/promotions.controller';
+import { PromotionBranchAssignmentsController } from './controllers/promotion-branch-assignments.controller';
 import { TaxProfilesController } from './controllers/tax-profiles.controller';
 import { VariantAttributesController } from './controllers/variant-attributes.controller';
 import { WarehouseLocationsController } from './controllers/warehouse-locations.controller';
@@ -27,12 +31,14 @@ import { InventoryMovementHeader } from './entities/inventory-movement-header.en
 import { InventoryMovementLine } from './entities/inventory-movement-line.entity';
 import { MeasurementUnit } from './entities/measurement-unit.entity';
 import { PriceList } from './entities/price-list.entity';
+import { PriceListBranchAssignment } from './entities/price-list-branch-assignment.entity';
 import { ProductCategory } from './entities/product-category.entity';
 import { ProductPrice } from './entities/product-price.entity';
 import { Product } from './entities/product.entity';
 import { ProductSerial } from './entities/product-serial.entity';
 import { ProductVariant } from './entities/product-variant.entity';
 import { PromotionItem } from './entities/promotion-item.entity';
+import { PromotionBranchAssignment } from './entities/promotion-branch-assignment.entity';
 import { Promotion } from './entities/promotion.entity';
 import { SerialEvent } from './entities/serial-event.entity';
 import { TaxProfile } from './entities/tax-profile.entity';
@@ -51,11 +57,13 @@ import { InventoryMovementLinesRepository } from './repositories/inventory-movem
 import { InventoryMovementsRepository } from './repositories/inventory-movements.repository';
 import { MeasurementUnitsRepository } from './repositories/measurement-units.repository';
 import { PriceListsRepository } from './repositories/price-lists.repository';
+import { PriceListBranchAssignmentsRepository } from './repositories/price-list-branch-assignments.repository';
 import { ProductCategoriesRepository } from './repositories/product-categories.repository';
 import { ProductPricesRepository } from './repositories/product-prices.repository';
 import { ProductSerialsRepository } from './repositories/product-serials.repository';
 import { ProductVariantsRepository } from './repositories/product-variants.repository';
 import { ProductsRepository } from './repositories/products.repository';
+import { PromotionBranchAssignmentsRepository } from './repositories/promotion-branch-assignments.repository';
 import { PromotionsRepository } from './repositories/promotions.repository';
 import { TaxProfilesRepository } from './repositories/tax-profiles.repository';
 import { WarehouseBranchLinksRepository } from './repositories/warehouse-branch-links.repository';
@@ -72,9 +80,11 @@ import { InventoryTransfersService } from './services/inventory-transfers.servic
 import { InventoryValidationService } from './services/inventory-validation.service';
 import { MeasurementUnitsService } from './services/measurement-units.service';
 import { PricingService } from './services/pricing.service';
+import { PriceListBranchAssignmentsService } from './services/price-list-branch-assignments.service';
 import { ProductCategoriesService } from './services/product-categories.service';
 import { ProductSerialsService } from './services/product-serials.service';
 import { ProductVariantsService } from './services/product-variants.service';
+import { PromotionBranchAssignmentsService } from './services/promotion-branch-assignments.service';
 import { ProductsService } from './services/products.service';
 import { PromotionsService } from './services/promotions.service';
 import { TaxProfilesService } from './services/tax-profiles.service';
@@ -93,10 +103,12 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
       Product,
       ProductVariant,
       PriceList,
+      PriceListBranchAssignment,
       ProductPrice,
       WarrantyProfile,
       Promotion,
       PromotionItem,
+      PromotionBranchAssignment,
       Warehouse,
       WarehouseBranchLink,
       WarehouseLocation,
@@ -123,15 +135,19 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
     ProductVariantsController,
     VariantAttributesController,
     PriceListsController,
+    PriceListBranchAssignmentsController,
     ProductPricesController,
     ProductSerialsController,
     WarrantyProfilesController,
     PromotionsController,
+    PromotionBranchAssignmentsController,
     WarehousesController,
     WarehouseLocationsController,
     WarehouseStockController,
     InventoryLotsController,
     InventoryMovementsController,
+    BranchPriceListsController,
+    BranchPromotionsController,
   ],
   providers: [
     ProductCategoriesRepository,
@@ -142,8 +158,10 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
     ProductVariantsRepository,
     ProductSerialsRepository,
     PriceListsRepository,
+    PriceListBranchAssignmentsRepository,
     ProductPricesRepository,
     WarrantyProfilesRepository,
+    PromotionBranchAssignmentsRepository,
     PromotionsRepository,
     WarehousesRepository,
     WarehouseBranchLinksRepository,
@@ -165,8 +183,10 @@ import { WarrantyProfilesService } from './services/warranty-profiles.service';
     VariantAttributesService,
     ProductSerialsService,
     PricingService,
+    PriceListBranchAssignmentsService,
     WarrantyProfilesService,
     PromotionsService,
+    PromotionBranchAssignmentsService,
     WarehousesService,
     WarehouseStockService,
     InventoryAdjustmentsService,

@@ -79,6 +79,7 @@ export class WarehousesService {
         code: dto.code?.trim() ?? null,
         name: dto.name.trim(),
         description: this.normalize_optional_string(dto.description),
+        purpose: dto.purpose,
         uses_locations: dto.uses_locations ?? false,
         is_default: dto.is_default ?? false,
         is_active: dto.is_active ?? true,
@@ -146,6 +147,9 @@ export class WarehousesService {
     if (dto.description !== undefined) {
       warehouse.description = this.normalize_optional_string(dto.description);
     }
+    if (dto.purpose !== undefined) {
+      warehouse.purpose = dto.purpose;
+    }
     if (dto.uses_locations !== undefined) {
       warehouse.uses_locations = dto.uses_locations;
     }
@@ -163,7 +167,10 @@ export class WarehousesService {
     }
 
     const saved_warehouse = await this.warehouses_repository.save(warehouse);
-    await this.sync_primary_branch_link(saved_warehouse, saved_warehouse.branch_id);
+    await this.sync_primary_branch_link(
+      saved_warehouse,
+      saved_warehouse.branch_id,
+    );
     return this.serialize_warehouse(saved_warehouse);
   }
 
@@ -426,6 +433,12 @@ export class WarehousesService {
       uses_locations: warehouse.uses_locations,
       is_default: warehouse.is_default,
       is_active: warehouse.is_active,
+      lifecycle: {
+        can_delete: false,
+        can_deactivate: warehouse.is_active,
+        can_reactivate: !warehouse.is_active,
+        reasons: ['hard_delete_not_supported'],
+      },
       created_at: warehouse.created_at,
       updated_at: warehouse.updated_at,
     };
@@ -450,6 +463,12 @@ export class WarehousesService {
       is_receiving_area: location.is_receiving_area,
       is_dispatch_area: location.is_dispatch_area,
       is_active: location.is_active,
+      lifecycle: {
+        can_delete: false,
+        can_deactivate: location.is_active,
+        can_reactivate: !location.is_active,
+        reasons: ['hard_delete_not_supported'],
+      },
       created_at: location.created_at,
       updated_at: location.updated_at,
     };

@@ -25,6 +25,10 @@ export class BranchesRepository {
     );
   }
 
+  async remove(branch: Branch): Promise<void> {
+    await this.branch_repository.remove(branch);
+  }
+
   async find_all_by_business(
     business_id: number,
     branch_ids?: number[],

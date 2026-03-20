@@ -96,7 +96,9 @@ describe('EntityCodeService', () => {
 
   it('uses business-scoped sequences for entities with business_id', async () => {
     const repository = {
-      save: jest.fn().mockImplementation(async (entity) => entity),
+      save: jest
+        .fn()
+        .mockImplementation((entity: { code: string | null }) => entity),
       manager: {},
       metadata: {
         tableName: 'users',
@@ -115,11 +117,11 @@ describe('EntityCodeService', () => {
       'US',
     );
 
-    expect(business_sequence_service.next_value).toHaveBeenCalledWith(
+    expect(business_sequence_service.next_value.mock.calls[0]).toEqual([
       repository.manager,
       3,
       'users:code:US',
-    );
+    ]);
     expect(saved_user.code).toBe('US-0007');
   });
 

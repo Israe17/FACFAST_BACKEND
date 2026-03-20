@@ -1,5 +1,6 @@
 import { AuthenticatedUserMode } from '../../common/enums/authenticated-user-mode.enum';
 import { UserType } from '../../common/enums/user-type.enum';
+import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { User } from '../entities/user.entity';
 import { UserManagementPolicy } from './user-management.policy';
@@ -35,7 +36,17 @@ describe('UserManagementPolicy', () => {
 
     expect(() =>
       policy.assert_can_manage_user(current_user, target_user),
-    ).toThrow('Cross-business user management is not allowed.');
+    ).toThrow(DomainForbiddenException);
+
+    try {
+      policy.assert_can_manage_user(current_user, target_user);
+    } catch (error) {
+      expect(error).toBeInstanceOf(DomainForbiddenException);
+      expect((error as DomainForbiddenException).getResponse()).toMatchObject({
+        code: 'USER_CROSS_BUSINESS_MANAGEMENT_FORBIDDEN',
+        messageKey: 'users.cross_business_management_forbidden',
+      });
+    }
   });
 
   it('rejects non-owner management of owner users', () => {
@@ -63,6 +74,16 @@ describe('UserManagementPolicy', () => {
 
     expect(() =>
       policy.assert_can_manage_user(current_user, target_user),
-    ).toThrow('Owner users can only be managed by owners.');
+    ).toThrow(DomainForbiddenException);
+
+    try {
+      policy.assert_can_manage_user(current_user, target_user);
+    } catch (error) {
+      expect(error).toBeInstanceOf(DomainForbiddenException);
+      expect((error as DomainForbiddenException).getResponse()).toMatchObject({
+        code: 'USER_OWNER_MANAGEMENT_FORBIDDEN',
+        messageKey: 'users.owner_management_forbidden',
+      });
+    }
   });
 });

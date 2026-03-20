@@ -84,7 +84,12 @@ export class InventoryLotsRepository {
     mapper: (lot: InventoryLot) => unknown,
   ): Promise<PaginatedResponseDto<unknown>> {
     if (branch_ids && branch_ids.length === 0) {
-      return new PaginatedResponseDto([], 0, query.page ?? 1, query.limit ?? 20);
+      return new PaginatedResponseDto(
+        [],
+        0,
+        query.page ?? 1,
+        query.limit ?? 20,
+      );
     }
 
     const qb = this.inventory_lot_repository
@@ -131,7 +136,7 @@ export class InventoryLotsRepository {
     product_id: number,
     lot_number: string,
     exclude_id?: number,
-    product_variant_id?: number,
+    product_variant_id?: number | null,
   ): Promise<boolean> {
     const query = this.inventory_lot_repository
       .createQueryBuilder('inventory_lot')
@@ -142,10 +147,14 @@ export class InventoryLotsRepository {
       });
 
     if (product_variant_id !== undefined) {
-      query.andWhere(
-        'inventory_lot.product_variant_id = :product_variant_id',
-        { product_variant_id },
-      );
+      if (product_variant_id === null) {
+        query.andWhere('inventory_lot.product_variant_id IS NULL');
+      } else {
+        query.andWhere(
+          'inventory_lot.product_variant_id = :product_variant_id',
+          { product_variant_id },
+        );
+      }
     }
 
     if (exclude_id !== undefined) {
@@ -153,5 +162,17 @@ export class InventoryLotsRepository {
     }
 
     return (await query.getCount()) > 0;
+  }
+
+  async count_by_variant_in_business(
+    business_id: number,
+    product_variant_id: number,
+  ): Promise<number> {
+    return this.inventory_lot_repository.count({
+      where: {
+        business_id,
+        product_variant_id,
+      },
+    });
   }
 }

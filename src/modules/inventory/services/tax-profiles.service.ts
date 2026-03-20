@@ -252,6 +252,12 @@ export class TaxProfilesService {
       specific_tax_name: tax_profile.specific_tax_name,
       specific_tax_rate: tax_profile.specific_tax_rate,
       is_active: tax_profile.is_active,
+      lifecycle: {
+        can_delete: false,
+        can_deactivate: tax_profile.is_active,
+        can_reactivate: !tax_profile.is_active,
+        reasons: ['hard_delete_not_supported'],
+      },
       created_at: tax_profile.created_at,
       updated_at: tax_profile.updated_at,
     };

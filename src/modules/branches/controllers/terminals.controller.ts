@@ -11,6 +11,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Param,
   ParseIntPipe,
   Patch,
@@ -57,5 +58,17 @@ export class TerminalsController {
       terminal_id,
       dto,
     );
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.BRANCHES_DELETE_TERMINAL)
+  @ApiOperation({ summary: 'Eliminar terminal' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Terminal eliminada exitosamente.' })
+  delete_terminal(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) terminal_id: number,
+  ) {
+    return this.branches_service.delete_terminal(current_user, terminal_id);
   }
 }

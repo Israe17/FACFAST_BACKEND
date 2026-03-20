@@ -81,14 +81,39 @@ export class ProductSerialsRepository {
     }
     return this.serial_repository.find({
       where,
-      relations: { warehouse: true },
+      relations: {
+        warehouse: true,
+        product_variant: {
+          product: true,
+        },
+      },
       order: { created_at: 'DESC' },
     });
   }
 
-  async find_events_by_serial(
-    serial_id: number,
-  ): Promise<SerialEvent[]> {
+  async find_many_by_ids_in_business(
+    business_id: number,
+    serial_ids: number[],
+  ): Promise<ProductSerial[]> {
+    if (!serial_ids.length) {
+      return [];
+    }
+
+    return this.serial_repository.find({
+      where: serial_ids.map((id) => ({
+        id,
+        business_id,
+      })),
+      relations: {
+        warehouse: true,
+        product_variant: {
+          product: true,
+        },
+      },
+    });
+  }
+
+  async find_events_by_serial(serial_id: number): Promise<SerialEvent[]> {
     return this.event_repository.find({
       where: { serial_id },
       relations: {
@@ -110,6 +135,18 @@ export class ProductSerialsRepository {
         business_id,
         product_variant_id,
         serial_number,
+      },
+    });
+  }
+
+  async count_by_variant_in_business(
+    business_id: number,
+    product_variant_id: number,
+  ): Promise<number> {
+    return this.serial_repository.count({
+      where: {
+        business_id,
+        product_variant_id,
       },
     });
   }

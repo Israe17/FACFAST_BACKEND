@@ -97,7 +97,7 @@ export class WarrantyProfilesController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.WARRANTY_PROFILES_UPDATE)
+  @RequirePermissions(PermissionKey.WARRANTY_PROFILES_DELETE)
   @ApiOperation({
     summary: 'Eliminar perfil de garantia (solo si no está en uso)',
   })

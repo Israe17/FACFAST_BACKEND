@@ -9,16 +9,19 @@ import { CreatePromotionItemDto } from '../dto/create-promotion-item.dto';
 import { CreatePromotionDto } from '../dto/create-promotion.dto';
 import { UpdatePromotionDto } from '../dto/update-promotion.dto';
 import { Promotion } from '../entities/promotion.entity';
-import { Product } from '../entities/product.entity';
 import { PromotionType } from '../enums/promotion-type.enum';
+import { ProductVariantsRepository } from '../repositories/product-variants.repository';
 import { PromotionsRepository } from '../repositories/promotions.repository';
 import { ProductsRepository } from '../repositories/products.repository';
+import { InventoryValidationService } from './inventory-validation.service';
 
 @Injectable()
 export class PromotionsService {
   constructor(
     private readonly promotions_repository: PromotionsRepository,
     private readonly products_repository: ProductsRepository,
+    private readonly product_variants_repository: ProductVariantsRepository,
+    private readonly inventory_validation_service: InventoryValidationService,
     private readonly entity_code_service: EntityCodeService,
   ) {}
 
@@ -54,7 +57,11 @@ export class PromotionsService {
     }
     this.assert_valid_date_range(dto.valid_from, dto.valid_to);
 
-    await this.validate_promotion_items(business_id, dto.type, dto.items ?? []);
+    const normalized_items = await this.normalize_promotion_items(
+      business_id,
+      dto.type,
+      dto.items ?? [],
+    );
 
     const promotion = await this.promotions_repository.save(
       this.promotions_repository.create({
@@ -71,9 +78,10 @@ export class PromotionsService {
     if (dto.items?.length) {
       await this.promotions_repository.replace_items(
         promotion.id,
-        dto.items.map((item) => ({
+        normalized_items.map((item) => ({
           promotion_id: promotion.id,
           product_id: item.product_id,
+          product_variant_id: item.product_variant_id,
           min_quantity: item.min_quantity ?? null,
           discount_value: item.discount_value ?? null,
           override_price: item.override_price ?? null,
@@ -148,9 +156,9 @@ export class PromotionsService {
       : promotion.valid_to;
     this.assert_valid_date_range(next_valid_from, next_valid_to);
 
-    if (dto.items) {
-      await this.validate_promotion_items(business_id, next_type, dto.items);
-    }
+    const normalized_items = dto.items
+      ? await this.normalize_promotion_items(business_id, next_type, dto.items)
+      : null;
 
     if (dto.code) {
       this.entity_code_service.validate_code('PN', dto.code.trim());
@@ -173,12 +181,13 @@ export class PromotionsService {
     }
 
     const saved = await this.promotions_repository.save(promotion);
-    if (dto.items) {
+    if (normalized_items) {
       await this.promotions_repository.replace_items(
         saved.id,
-        dto.items.map((item) => ({
+        normalized_items.map((item) => ({
           promotion_id: saved.id,
           product_id: item.product_id,
+          product_variant_id: item.product_variant_id,
           min_quantity: item.min_quantity ?? null,
           discount_value: item.discount_value ?? null,
           override_price: item.override_price ?? null,
@@ -238,30 +247,113 @@ export class PromotionsService {
     return promotion;
   }
 
-  private async validate_promotion_items(
+  private async normalize_promotion_items(
     business_id: number,
     type: PromotionType,
     items: CreatePromotionItemDto[],
-  ): Promise<Product[]> {
-    const unique_product_ids = [
-      ...new Set(items.map((item) => item.product_id)),
-    ];
-    if (unique_product_ids.length !== items.length) {
-      throw new DomainBadRequestException({
-        code: 'PROMOTION_DUPLICATE_ITEMS',
-        messageKey: 'inventory.promotion_duplicate_items',
-        details: {
-          field: 'items',
-        },
+  ): Promise<
+    Array<
+      CreatePromotionItemDto & {
+        product_id: number;
+        product_variant_id: number | null;
+      }
+    >
+  > {
+    const normalized_items: Array<
+      CreatePromotionItemDto & {
+        product_id: number;
+        product_variant_id: number | null;
+      }
+    > = [];
+    const target_keys = new Set<string>();
+
+    for (const item of items) {
+      const has_product_id =
+        item.product_id !== undefined && item.product_id !== null;
+      const has_variant_id =
+        item.product_variant_id !== undefined &&
+        item.product_variant_id !== null;
+      if (!has_product_id && !has_variant_id) {
+        throw new DomainBadRequestException({
+          code: 'PROMOTION_PRODUCT_OR_VARIANT_REQUIRED',
+          messageKey: 'inventory.promotion_product_or_variant_required',
+          details: {
+            field: 'items',
+          },
+        });
+      }
+
+      let product_id = item.product_id ?? null;
+      const product_variant_id = item.product_variant_id ?? null;
+
+      if (product_variant_id !== null) {
+        const variant =
+          await this.product_variants_repository.find_by_id_in_business(
+            product_variant_id,
+            business_id,
+          );
+        if (!variant || !variant.product) {
+          throw new DomainBadRequestException({
+            code: 'PROMOTION_ITEMS_OUTSIDE_BUSINESS',
+            messageKey: 'inventory.promotion_items_outside_business',
+            details: {
+              field: 'items',
+            },
+          });
+        }
+
+        this.inventory_validation_service.assert_product_is_active(
+          variant.product,
+        );
+        this.inventory_validation_service.assert_variant_is_active(variant);
+
+        if (product_id !== null && product_id !== variant.product_id) {
+          throw new DomainBadRequestException({
+            code: 'VARIANT_PRODUCT_MISMATCH',
+            messageKey: 'inventory.variant_product_mismatch',
+            details: {
+              product_id,
+              product_variant_id,
+            },
+          });
+        }
+
+        product_id = variant.product_id;
+      } else if (product_id !== null) {
+        await this.inventory_validation_service.get_product_in_business(
+          business_id,
+          product_id,
+          {
+            require_active: true,
+          },
+        );
+      }
+
+      this.assert_item_shape(type, item);
+
+      const key =
+        product_variant_id !== null
+          ? `variant:${product_variant_id}`
+          : `product:${product_id}`;
+      if (target_keys.has(key)) {
+        throw new DomainBadRequestException({
+          code: 'PROMOTION_DUPLICATE_ITEMS',
+          messageKey: 'inventory.promotion_duplicate_items',
+          details: {
+            field: 'items',
+          },
+        });
+      }
+      target_keys.add(key);
+
+      normalized_items.push({
+        ...item,
+        product_id: product_id!,
+        product_variant_id,
       });
     }
 
-    const products =
-      await this.products_repository.find_many_by_ids_in_business(
-        business_id,
-        unique_product_ids,
-      );
-    if (products.length !== unique_product_ids.length) {
+    if (normalized_items.length !== items.length) {
       throw new DomainBadRequestException({
         code: 'PROMOTION_ITEMS_OUTSIDE_BUSINESS',
         messageKey: 'inventory.promotion_items_outside_business',
@@ -271,11 +363,7 @@ export class PromotionsService {
       });
     }
 
-    for (const item of items) {
-      this.assert_item_shape(type, item);
-    }
-
-    return products;
+    return normalized_items;
   }
 
   private assert_item_shape(
@@ -356,6 +444,12 @@ export class PromotionsService {
       valid_from: promotion.valid_from,
       valid_to: promotion.valid_to,
       is_active: promotion.is_active,
+      lifecycle: {
+        can_delete: true,
+        can_deactivate: promotion.is_active,
+        can_reactivate: !promotion.is_active,
+        reasons: [],
+      },
       items:
         promotion.items?.map((item) => ({
           id: item.id,
@@ -368,6 +462,14 @@ export class PromotionsService {
             : {
                 id: item.product_id,
               },
+          product_variant: item.product_variant
+            ? {
+                id: item.product_variant.id,
+                sku: item.product_variant.sku,
+                variant_name: item.product_variant.variant_name,
+                is_default: item.product_variant.is_default,
+              }
+            : null,
           min_quantity: item.min_quantity,
           discount_value: item.discount_value,
           override_price: item.override_price,

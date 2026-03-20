@@ -25,6 +25,10 @@ export class TerminalsRepository {
     );
   }
 
+  async remove(terminal: Terminal): Promise<void> {
+    await this.terminal_repository.remove(terminal);
+  }
+
   async find_by_id_with_branch(id: number): Promise<Terminal | null> {
     return this.terminal_repository.findOne({
       where: {

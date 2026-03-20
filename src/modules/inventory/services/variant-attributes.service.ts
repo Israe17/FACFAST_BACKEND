@@ -153,9 +153,7 @@ export class VariantAttributesService {
       });
     }
 
-    const value_groups = attributes.map(
-      (attr) => attr.values ?? [],
-    );
+    const value_groups = attributes.map((attr) => attr.values ?? []);
 
     const combinations = this.cartesian_product(value_groups);
 
@@ -219,8 +217,9 @@ export class VariantAttributesService {
         track_inventory: product.track_inventory,
         track_lots: product.track_lots,
         track_expiration: product.track_expiration,
+        track_serials: product.track_serials,
         allow_negative_stock: product.allow_negative_stock,
-        is_active: true,
+        is_active: product.is_active,
       });
 
       const saved_variant = await this.product_variant_repository.save(variant);

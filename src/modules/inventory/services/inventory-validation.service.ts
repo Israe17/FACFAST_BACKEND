@@ -33,6 +33,10 @@ import { WarehouseLocationsRepository } from '../repositories/warehouse-location
 import { WarehousesRepository } from '../repositories/warehouses.repository';
 import { WarrantyProfilesRepository } from '../repositories/warranty-profiles.repository';
 
+type ActiveLookupOptions = {
+  require_active?: boolean;
+};
+
 @Injectable()
 export class InventoryValidationService {
   constructor(
@@ -82,6 +86,7 @@ export class InventoryValidationService {
   async get_category_in_business(
     business_id: number,
     category_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<ProductCategory> {
     const category =
       await this.product_categories_repository.find_by_id_in_business(
@@ -98,12 +103,22 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      category,
+      options?.require_active ?? false,
+      'CATEGORY_INACTIVE',
+      'inventory.category_inactive',
+      {
+        category_id,
+      },
+    );
     return category;
   }
 
   async get_brand_in_business(
     business_id: number,
     brand_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<Brand> {
     const brand = await this.brands_repository.find_by_id_in_business(
       brand_id,
@@ -119,12 +134,22 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      brand,
+      options?.require_active ?? false,
+      'BRAND_INACTIVE',
+      'inventory.brand_inactive',
+      {
+        brand_id,
+      },
+    );
     return brand;
   }
 
   async get_measurement_unit_in_business(
     business_id: number,
     measurement_unit_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<MeasurementUnit> {
     const measurement_unit =
       await this.measurement_units_repository.find_by_id_in_business(
@@ -141,12 +166,22 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      measurement_unit,
+      options?.require_active ?? false,
+      'MEASUREMENT_UNIT_INACTIVE',
+      'inventory.measurement_unit_inactive',
+      {
+        measurement_unit_id,
+      },
+    );
     return measurement_unit;
   }
 
   async get_tax_profile_in_business(
     business_id: number,
     tax_profile_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<TaxProfile> {
     const tax_profile =
       await this.tax_profiles_repository.find_by_id_in_business(
@@ -163,12 +198,22 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      tax_profile,
+      options?.require_active ?? false,
+      'TAX_PROFILE_INACTIVE',
+      'inventory.tax_profile_inactive',
+      {
+        tax_profile_id,
+      },
+    );
     return tax_profile;
   }
 
   async get_warranty_profile_in_business(
     business_id: number,
     warranty_profile_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<WarrantyProfile> {
     const warranty_profile =
       await this.warranty_profiles_repository.find_by_id_in_business(
@@ -185,12 +230,22 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      warranty_profile,
+      options?.require_active ?? false,
+      'WARRANTY_PROFILE_INACTIVE',
+      'inventory.warranty_profile_inactive',
+      {
+        warranty_profile_id,
+      },
+    );
     return warranty_profile;
   }
 
   async get_product_in_business(
     business_id: number,
     product_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<Product> {
     const product = await this.products_repository.find_by_id_in_business(
       product_id,
@@ -206,12 +261,22 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      product,
+      options?.require_active ?? false,
+      'PRODUCT_INACTIVE',
+      'inventory.product_inactive',
+      {
+        product_id,
+      },
+    );
     return product;
   }
 
   async get_price_list_in_business(
     business_id: number,
     price_list_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<PriceList> {
     const price_list = await this.price_lists_repository.find_by_id_in_business(
       price_list_id,
@@ -227,12 +292,22 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      price_list,
+      options?.require_active ?? false,
+      'PRICE_LIST_INACTIVE',
+      'inventory.price_list_inactive',
+      {
+        price_list_id,
+      },
+    );
     return price_list;
   }
 
   async get_warehouse_for_operation(
     current_user: AuthenticatedUserContext,
     warehouse_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<Warehouse> {
     const warehouse = await this.warehouses_repository.find_by_id_in_business(
       warehouse_id,
@@ -248,6 +323,15 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      warehouse,
+      options?.require_active ?? false,
+      'WAREHOUSE_INACTIVE',
+      'inventory.warehouse_inactive',
+      {
+        warehouse_id,
+      },
+    );
     const accessible_branch_ids = [
       warehouse.branch_id,
       ...(warehouse.branch_links
@@ -264,6 +348,7 @@ export class InventoryValidationService {
   async get_location_for_operation(
     current_user: AuthenticatedUserContext,
     location_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<WarehouseLocation> {
     const location =
       await this.warehouse_locations_repository.find_by_id_in_business(
@@ -280,6 +365,15 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      location,
+      options?.require_active ?? false,
+      'WAREHOUSE_LOCATION_INACTIVE',
+      'inventory.warehouse_location_inactive',
+      {
+        location_id,
+      },
+    );
     this.branch_access_policy.assert_can_access_branch(
       current_user,
       location.branch_id,
@@ -290,6 +384,7 @@ export class InventoryValidationService {
   async get_inventory_lot_for_operation(
     current_user: AuthenticatedUserContext,
     inventory_lot_id: number,
+    options?: ActiveLookupOptions,
   ): Promise<InventoryLot> {
     const inventory_lot =
       await this.inventory_lots_repository.find_by_id_in_business(
@@ -306,6 +401,15 @@ export class InventoryValidationService {
       });
     }
 
+    this.assert_entity_is_active(
+      inventory_lot,
+      options?.require_active ?? false,
+      'INVENTORY_LOT_INACTIVE',
+      'inventory.inventory_lot_inactive',
+      {
+        inventory_lot_id,
+      },
+    );
     this.branch_access_policy.assert_can_access_branch(
       current_user,
       inventory_lot.branch_id,
@@ -395,6 +499,7 @@ export class InventoryValidationService {
   }
 
   assert_product_is_inventory_enabled(product: Product): void {
+    this.assert_product_is_active(product);
     if (
       product.type === ProductType.SERVICE ||
       product.track_inventory === false
@@ -407,5 +512,80 @@ export class InventoryValidationService {
         },
       });
     }
+  }
+
+  assert_product_is_active(product: Product): void {
+    this.assert_entity_is_active(
+      product,
+      true,
+      'PRODUCT_INACTIVE',
+      'inventory.product_inactive',
+      {
+        product_id: product.id,
+      },
+    );
+  }
+
+  assert_variant_belongs_to_product(
+    product: Product,
+    product_variant: { id: number; product_id: number },
+  ): void {
+    if (product_variant.product_id !== product.id) {
+      throw new DomainBadRequestException({
+        code: 'VARIANT_PRODUCT_MISMATCH',
+        messageKey: 'inventory.variant_product_mismatch',
+        details: {
+          product_id: product.id,
+          product_variant_id: product_variant.id,
+        },
+      });
+    }
+  }
+
+  assert_variant_is_inventory_enabled(variant: {
+    id: number;
+    is_active: boolean;
+    track_inventory: boolean;
+  }): void {
+    this.assert_variant_is_active(variant);
+    if (!variant.track_inventory) {
+      throw new DomainBadRequestException({
+        code: 'VARIANT_INVENTORY_TRACKING_REQUIRED',
+        messageKey: 'inventory.variant_inventory_tracking_required',
+        details: {
+          product_variant_id: variant.id,
+        },
+      });
+    }
+  }
+
+  assert_variant_is_active(variant: { id: number; is_active: boolean }): void {
+    this.assert_entity_is_active(
+      variant,
+      true,
+      'VARIANT_INACTIVE',
+      'inventory.variant_inactive',
+      {
+        product_variant_id: variant.id,
+      },
+    );
+  }
+
+  private assert_entity_is_active(
+    entity: { id: number; is_active: boolean },
+    require_active: boolean,
+    code: string,
+    messageKey: string,
+    details: Record<string, unknown>,
+  ): void {
+    if (!require_active || entity.is_active) {
+      return;
+    }
+
+    throw new DomainBadRequestException({
+      code,
+      messageKey,
+      details,
+    });
   }
 }

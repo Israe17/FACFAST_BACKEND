@@ -66,4 +66,16 @@ export class ProductPricesRepository {
   ): Promise<void> {
     await this.product_price_repository.delete({ business_id, price_list_id });
   }
+
+  async count_by_variant_in_business(
+    business_id: number,
+    product_variant_id: number,
+  ): Promise<number> {
+    return this.product_price_repository.count({
+      where: {
+        business_id,
+        product_variant_id,
+      },
+    });
+  }
 }

@@ -190,6 +190,12 @@ export class MeasurementUnitsService {
       name: measurement_unit.name,
       symbol: measurement_unit.symbol,
       is_active: measurement_unit.is_active,
+      lifecycle: {
+        can_delete: true,
+        can_deactivate: measurement_unit.is_active,
+        can_reactivate: !measurement_unit.is_active,
+        reasons: [],
+      },
       created_at: measurement_unit.created_at,
       updated_at: measurement_unit.updated_at,
     };

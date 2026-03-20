@@ -48,7 +48,7 @@ export class ProductVariantsController {
   ) {}
 
   @Post(':id/variants')
-  @RequirePermissions(PermissionKey.PRODUCTS_CREATE)
+  @RequirePermissions(PermissionKey.PRODUCT_VARIANTS_CREATE)
   @ApiOperation({ summary: 'Crear variante de producto' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: CreateProductVariantDto })
@@ -72,7 +72,7 @@ export class ProductVariantsController {
   }
 
   @Get(':id/variants')
-  @RequirePermissions(PermissionKey.PRODUCTS_VIEW)
+  @RequirePermissions(PermissionKey.PRODUCT_VARIANTS_VIEW)
   @ApiOperation({ summary: 'Listar variantes de un producto' })
   @ApiParam({ name: 'id', type: Number })
   async list_variants(
@@ -88,63 +88,131 @@ export class ProductVariantsController {
       business_id,
       product_id,
     );
-    return variants.map((v) => this.product_variants_service.serialize_variant(v));
+    return Promise.all(
+      variants.map((v) => this.product_variants_service.serialize_variant(v)),
+    );
   }
 
   @Get(':id/variants/:variantId')
-  @RequirePermissions(PermissionKey.PRODUCTS_VIEW)
+  @RequirePermissions(PermissionKey.PRODUCT_VARIANTS_VIEW)
   @ApiOperation({ summary: 'Obtener variante por id' })
   @ApiParam({ name: 'id', type: Number })
   @ApiParam({ name: 'variantId', type: Number })
   async get_variant(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) _product_id: number,
+    @Param('id', ParseIntPipe) product_id: number,
     @Param('variantId', ParseIntPipe) variant_id: number,
   ) {
     const business_id = resolve_effective_business_id(current_user);
+    const product =
+      await this.inventory_validation_service.get_product_in_business(
+        business_id,
+        product_id,
+      );
     const variant = await this.product_variants_service.get_variant(
       business_id,
       variant_id,
+    );
+    this.inventory_validation_service.assert_variant_belongs_to_product(
+      product,
+      variant,
     );
     return this.product_variants_service.serialize_variant(variant);
   }
 
   @Patch(':id/variants/:variantId')
-  @RequirePermissions(PermissionKey.PRODUCTS_UPDATE)
+  @RequirePermissions(PermissionKey.PRODUCT_VARIANTS_UPDATE)
   @ApiOperation({ summary: 'Actualizar variante de producto' })
   @ApiParam({ name: 'id', type: Number })
   @ApiParam({ name: 'variantId', type: Number })
   @ApiBody({ type: UpdateProductVariantDto })
   async update_variant(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) _product_id: number,
+    @Param('id', ParseIntPipe) product_id: number,
     @Param('variantId', ParseIntPipe) variant_id: number,
     @Body() dto: UpdateProductVariantDto,
   ) {
     const business_id = resolve_effective_business_id(current_user);
-    const variant = await this.product_variants_service.update_variant(
+    const product =
+      await this.inventory_validation_service.get_product_in_business(
+        business_id,
+        product_id,
+      );
+    const variant = await this.product_variants_service.get_variant(
+      business_id,
+      variant_id,
+    );
+    this.inventory_validation_service.assert_variant_belongs_to_product(
+      product,
+      variant,
+    );
+    const updated_variant = await this.product_variants_service.update_variant(
       business_id,
       variant_id,
       dto,
     );
-    return this.product_variants_service.serialize_variant(variant);
+    return this.product_variants_service.serialize_variant(updated_variant);
   }
 
   @Delete(':id/variants/:variantId')
-  @RequirePermissions(PermissionKey.PRODUCTS_UPDATE)
+  @RequirePermissions(PermissionKey.PRODUCT_VARIANTS_DELETE)
   @ApiOperation({ summary: 'Desactivar variante de producto' })
   @ApiParam({ name: 'id', type: Number })
   @ApiParam({ name: 'variantId', type: Number })
   async deactivate_variant(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) _product_id: number,
+    @Param('id', ParseIntPipe) product_id: number,
     @Param('variantId', ParseIntPipe) variant_id: number,
   ) {
     const business_id = resolve_effective_business_id(current_user);
-    const variant = await this.product_variants_service.deactivate_variant(
+    const product =
+      await this.inventory_validation_service.get_product_in_business(
+        business_id,
+        product_id,
+      );
+    const variant = await this.product_variants_service.get_variant(
       business_id,
       variant_id,
     );
-    return this.product_variants_service.serialize_variant(variant);
+    this.inventory_validation_service.assert_variant_belongs_to_product(
+      product,
+      variant,
+    );
+    const deactivated_variant =
+      await this.product_variants_service.deactivate_variant(
+        business_id,
+        variant_id,
+      );
+    return this.product_variants_service.serialize_variant(deactivated_variant);
+  }
+
+  @Delete(':id/variants/:variantId/permanent')
+  @RequirePermissions(PermissionKey.PRODUCT_VARIANTS_DELETE)
+  @ApiOperation({ summary: 'Eliminar variante de producto permanentemente' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'variantId', type: Number })
+  async delete_variant_permanently(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) product_id: number,
+    @Param('variantId', ParseIntPipe) variant_id: number,
+  ) {
+    const business_id = resolve_effective_business_id(current_user);
+    const product =
+      await this.inventory_validation_service.get_product_in_business(
+        business_id,
+        product_id,
+      );
+    const variant = await this.product_variants_service.get_variant(
+      business_id,
+      variant_id,
+    );
+    this.inventory_validation_service.assert_variant_belongs_to_product(
+      product,
+      variant,
+    );
+    return this.product_variants_service.delete_variant_permanently(
+      business_id,
+      variant_id,
+    );
   }
 }

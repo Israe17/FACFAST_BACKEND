@@ -89,7 +89,7 @@ export class PromotionsController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.PROMOTIONS_UPDATE)
+  @RequirePermissions(PermissionKey.PROMOTIONS_DELETE)
   @ApiOperation({ summary: 'Eliminar promocion' })
   @ApiParam({ name: 'id', type: Number })
   delete_promotion(

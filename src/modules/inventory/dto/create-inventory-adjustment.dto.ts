@@ -19,9 +19,10 @@ export class CreateInventoryAdjustmentDto {
   @IsInt()
   location_id?: number | null;
 
-  @ApiProperty({ example: 3 })
+  @ApiPropertyOptional({ example: 3 })
+  @IsOptional()
   @IsInt()
-  product_id!: number;
+  product_id?: number | null;
 
   @ApiPropertyOptional({ example: 5 })
   @IsOptional()

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
@@ -6,6 +8,8 @@ import { DomainNotFoundException } from '../../common/errors/exceptions/domain-n
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { InventoryLot } from '../../inventory/entities/inventory-lot.entity';
+import { SerialEvent } from '../../inventory/entities/serial-event.entity';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
@@ -17,6 +21,10 @@ export class ContactsService {
   constructor(
     private readonly contacts_repository: ContactsRepository,
     private readonly entity_code_service: EntityCodeService,
+    @InjectRepository(InventoryLot)
+    private readonly inventory_lot_repository: Repository<InventoryLot>,
+    @InjectRepository(SerialEvent)
+    private readonly serial_event_repository: Repository<SerialEvent>,
   ) {}
 
   async get_contacts(current_user: AuthenticatedUserContext) {
@@ -208,6 +216,48 @@ export class ContactsService {
     return this.serialize_contact(await this.contacts_repository.save(contact));
   }
 
+  async delete_contact(
+    current_user: AuthenticatedUserContext,
+    contact_id: number,
+  ) {
+    const contact = await this.get_contact_entity(current_user, contact_id);
+
+    const [inventory_lots, serial_events] = await Promise.all([
+      this.inventory_lot_repository.count({
+        where: {
+          business_id: contact.business_id,
+          supplier_contact_id: contact.id,
+        },
+      }),
+      this.serial_event_repository.count({
+        where: {
+          business_id: contact.business_id,
+          contact_id: contact.id,
+        },
+      }),
+    ]);
+
+    if (inventory_lots > 0 || serial_events > 0) {
+      throw new DomainBadRequestException({
+        code: 'CONTACT_DELETE_FORBIDDEN',
+        messageKey: 'contacts.delete_forbidden',
+        details: {
+          contact_id,
+          dependencies: {
+            inventory_lots,
+            serial_events,
+          },
+        },
+      });
+    }
+
+    await this.contacts_repository.remove(contact);
+    return {
+      id: contact_id,
+      deleted: true,
+    };
+  }
+
   async lookup_by_identification(
     current_user: AuthenticatedUserContext,
     identification: string,
@@ -269,11 +319,7 @@ export class ContactsService {
     exclude_id?: number,
   ): Promise<void> {
     if (
-      await this.contacts_repository.exists_code(
-        business_id,
-        code,
-        exclude_id,
-      )
+      await this.contacts_repository.exists_code(business_id, code, exclude_id)
     ) {
       throw new DomainConflictException({
         code: 'CONTACT_CODE_DUPLICATE',

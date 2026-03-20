@@ -56,6 +56,8 @@ export class InventoryMovementHeadersRepository {
         branch: true,
         performed_by_user: true,
         lines: {
+          location: true,
+          inventory_lot: true,
           product_variant: {
             product: true,
           },
@@ -82,6 +84,8 @@ export class InventoryMovementHeadersRepository {
         branch: true,
         performed_by_user: true,
         lines: {
+          location: true,
+          inventory_lot: true,
           product_variant: {
             product: true,
           },
@@ -105,7 +109,12 @@ export class InventoryMovementHeadersRepository {
     mapper: (header: InventoryMovementHeader) => unknown,
   ): Promise<PaginatedResponseDto<unknown>> {
     if (branch_ids && branch_ids.length === 0) {
-      return new PaginatedResponseDto([], 0, query.page ?? 1, query.limit ?? 20);
+      return new PaginatedResponseDto(
+        [],
+        0,
+        query.page ?? 1,
+        query.limit ?? 20,
+      );
     }
 
     const qb = this.inventory_movement_header_repository
@@ -113,10 +122,13 @@ export class InventoryMovementHeadersRepository {
       .leftJoinAndSelect('header.branch', 'branch')
       .leftJoinAndSelect('header.performed_by_user', 'performed_by_user')
       .leftJoinAndSelect('header.lines', 'lines')
+      .leftJoinAndSelect('lines.location', 'location')
+      .leftJoinAndSelect('lines.inventory_lot', 'inventory_lot')
       .leftJoinAndSelect('lines.product_variant', 'product_variant')
       .leftJoinAndSelect('product_variant.product', 'product')
       .leftJoinAndSelect('lines.warehouse', 'warehouse')
-      .where('header.business_id = :business_id', { business_id });
+      .where('header.business_id = :business_id', { business_id })
+      .distinct(true);
 
     if (branch_ids?.length) {
       qb.andWhere('header.branch_id IN (:...branch_ids)', { branch_ids });

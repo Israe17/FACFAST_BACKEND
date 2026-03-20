@@ -18,6 +18,10 @@ export class ProductVariantsRepository {
     return this.product_variant_repository.save(product_variant);
   }
 
+  async remove(product_variant: ProductVariant): Promise<void> {
+    await this.product_variant_repository.remove(product_variant);
+  }
+
   async find_default_by_product_in_business(
     business_id: number,
     product_id: number,

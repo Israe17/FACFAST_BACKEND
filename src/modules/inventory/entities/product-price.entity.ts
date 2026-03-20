@@ -15,7 +15,9 @@ import { Product } from './product.entity';
 import { ProductVariant } from './product-variant.entity';
 
 @Entity('product_prices')
-@Index(['product_id', 'product_variant_id', 'price_list_id', 'min_quantity'], { unique: true })
+@Index(['product_id', 'product_variant_id', 'price_list_id', 'min_quantity'], {
+  unique: true,
+})
 export class ProductPrice {
   @PrimaryGeneratedColumn()
   id!: number;

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, SelectQueryBuilder } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -8,6 +9,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { GENERIC_ENTITY_CODE_PATTERN } from '../../common/utils/validation-patterns.util';
+import { WarehousePurpose } from '../enums/warehouse-purpose.enum';
 
 export class CreateWarehouseDto {
   @ApiPropertyOptional({ example: 'WH-0001' })
@@ -33,6 +35,14 @@ export class CreateWarehouseDto {
   @IsOptional()
   @IsBoolean()
   uses_locations?: boolean;
+
+  @ApiPropertyOptional({
+    enum: WarehousePurpose,
+    example: WarehousePurpose.GENERAL_STORAGE,
+  })
+  @IsOptional()
+  @IsEnum(WarehousePurpose)
+  purpose?: WarehousePurpose;
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()

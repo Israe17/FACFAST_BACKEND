@@ -47,7 +47,7 @@ export class VariantAttributesController {
   ) {}
 
   @Put(':id/attributes')
-  @RequirePermissions(PermissionKey.PRODUCTS_UPDATE)
+  @RequirePermissions(PermissionKey.VARIANT_ATTRIBUTES_CONFIGURE)
   @ApiOperation({ summary: 'Definir atributos de variantes' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({
@@ -80,7 +80,14 @@ export class VariantAttributesController {
   async set_attributes(
     @CurrentUser() current_user: AuthenticatedUserContext,
     @Param('id', ParseIntPipe) product_id: number,
-    @Body() body: { attributes: { name: string; display_order?: number; values: { value: string; display_order?: number }[] }[] },
+    @Body()
+    body: {
+      attributes: {
+        name: string;
+        display_order?: number;
+        values: { value: string; display_order?: number }[];
+      }[];
+    },
   ) {
     const business_id = resolve_effective_business_id(current_user);
     const product =
@@ -96,7 +103,7 @@ export class VariantAttributesController {
   }
 
   @Post(':id/attributes/generate-variants')
-  @RequirePermissions(PermissionKey.PRODUCTS_CREATE)
+  @RequirePermissions(PermissionKey.VARIANT_ATTRIBUTES_GENERATE)
   @ApiOperation({ summary: 'Generar variantes a partir de atributos' })
   @ApiParam({ name: 'id', type: Number })
   async generate_variants(
@@ -113,11 +120,13 @@ export class VariantAttributesController {
       business_id,
       product,
     );
-    return variants.map((v) => this.product_variants_service.serialize_variant(v));
+    return Promise.all(
+      variants.map((v) => this.product_variants_service.serialize_variant(v)),
+    );
   }
 
   @Get(':id/attributes')
-  @RequirePermissions(PermissionKey.PRODUCTS_VIEW)
+  @RequirePermissions(PermissionKey.VARIANT_ATTRIBUTES_VIEW)
   @ApiOperation({ summary: 'Listar atributos de variantes' })
   @ApiParam({ name: 'id', type: Number })
   async get_attributes(

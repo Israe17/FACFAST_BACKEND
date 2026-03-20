@@ -51,6 +51,10 @@ export class ContactsRepository {
     );
   }
 
+  async remove(contact: Contact): Promise<void> {
+    await this.contact_repository.remove(contact);
+  }
+
   async find_all_by_business(business_id: number): Promise<Contact[]> {
     return this.contact_repository.find({
       where: {

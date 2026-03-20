@@ -90,7 +90,7 @@ export class InventoryLotsController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.INVENTORY_LOTS_UPDATE)
+  @RequirePermissions(PermissionKey.INVENTORY_LOTS_DELETE)
   @ApiOperation({ summary: 'Desactivar lote de inventario (soft delete)' })
   @ApiParam({ name: 'id', type: Number })
   deactivate_lot(

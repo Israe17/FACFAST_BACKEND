@@ -305,6 +305,12 @@ export class ProductCategoriesService {
       level: category.level,
       path: category.path,
       is_active: category.is_active,
+      lifecycle: {
+        can_delete: true,
+        can_deactivate: category.is_active,
+        can_reactivate: !category.is_active,
+        reasons: [],
+      },
       created_at: category.created_at,
       updated_at: category.updated_at,
     };

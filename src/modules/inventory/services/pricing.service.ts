@@ -179,11 +179,17 @@ export class PricingService {
       await this.inventory_validation_service.get_product_in_business(
         business_id,
         product_id,
+        {
+          require_active: true,
+        },
       );
     const price_list =
       await this.inventory_validation_service.get_price_list_in_business(
         business_id,
         dto.price_list_id,
+        {
+          require_active: true,
+        },
       );
 
     let resolved_variant_id: number | null = null;
@@ -258,6 +264,9 @@ export class PricingService {
           await this.inventory_validation_service.get_product_in_business(
             business_id,
             product_price.product_id,
+            {
+              require_active: true,
+            },
           );
         const variant =
           await this.product_variants_service.resolve_variant_for_operation(
@@ -275,6 +284,9 @@ export class PricingService {
         await this.inventory_validation_service.get_price_list_in_business(
           business_id,
           dto.price_list_id,
+          {
+            require_active: true,
+          },
         )
       ).id;
     }
@@ -434,6 +446,12 @@ export class PricingService {
       currency: price_list.currency,
       is_default: price_list.is_default,
       is_active: price_list.is_active,
+      lifecycle: {
+        can_delete: !price_list.is_default,
+        can_deactivate: price_list.is_active,
+        can_reactivate: !price_list.is_active,
+        reasons: price_list.is_default ? ['default_price_list'] : [],
+      },
       created_at: price_list.created_at,
       updated_at: price_list.updated_at,
     };
@@ -466,6 +484,12 @@ export class PricingService {
       valid_from: product_price.valid_from,
       valid_to: product_price.valid_to,
       is_active: product_price.is_active,
+      lifecycle: {
+        can_delete: true,
+        can_deactivate: product_price.is_active,
+        can_reactivate: !product_price.is_active,
+        reasons: [],
+      },
       created_at: product_price.created_at,
       updated_at: product_price.updated_at,
     };

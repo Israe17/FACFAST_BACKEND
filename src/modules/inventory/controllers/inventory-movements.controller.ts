@@ -57,6 +57,19 @@ export class InventoryMovementsController {
     );
   }
 
+  @Get(':id')
+  @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_VIEW)
+  @ApiOperation({ summary: 'Obtener movimiento de inventario por id' })
+  get_movement(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) movement_id: number,
+  ) {
+    return this.inventory_movements_service.get_movement(
+      current_user,
+      movement_id,
+    );
+  }
+
   @Post('adjust')
   @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_ADJUST)
   @ApiOperation({ summary: 'Registrar ajuste manual de inventario' })
@@ -69,7 +82,7 @@ export class InventoryMovementsController {
   }
 
   @Post('transfer')
-  @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_ADJUST)
+  @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_TRANSFER)
   @ApiOperation({ summary: 'Registrar transferencia inmediata entre bodegas' })
   @ApiBody({ type: CreateInventoryTransferDto })
   transfer_inventory(
@@ -83,9 +96,10 @@ export class InventoryMovementsController {
   }
 
   @Post(':id/cancel')
-  @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_ADJUST)
+  @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_CANCEL)
   @ApiOperation({
-    summary: 'Cancelar un movimiento posteado mediante movimiento compensatorio',
+    summary:
+      'Cancelar un movimiento posteado mediante movimiento compensatorio',
   })
   @ApiBody({ type: CancelInventoryMovementDto, required: false })
   cancel_movement(

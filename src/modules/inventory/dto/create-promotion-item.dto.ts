@@ -1,10 +1,16 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class CreatePromotionItemDto {
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
   @IsInt()
-  product_id!: number;
+  product_id?: number | null;
+
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsInt()
+  product_variant_id?: number | null;
 
   @ApiPropertyOptional({ example: 3 })
   @IsOptional()

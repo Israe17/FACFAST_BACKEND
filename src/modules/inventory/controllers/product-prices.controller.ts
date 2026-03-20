@@ -57,7 +57,7 @@ export class ProductPricesController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.PRODUCT_PRICES_UPDATE)
+  @RequirePermissions(PermissionKey.PRODUCT_PRICES_DELETE)
   @ApiOperation({ summary: 'Eliminar precio de producto' })
   @ApiParam({ name: 'id', type: Number })
   delete_product_price(

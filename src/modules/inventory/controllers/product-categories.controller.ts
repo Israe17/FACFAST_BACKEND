@@ -103,7 +103,7 @@ export class ProductCategoriesController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PermissionKey.CATEGORIES_UPDATE)
+  @RequirePermissions(PermissionKey.CATEGORIES_DELETE)
   @ApiOperation({ summary: 'Eliminar categoría (solo si no está en uso)' })
   @ApiParam({ name: 'id', type: Number })
   delete_category(

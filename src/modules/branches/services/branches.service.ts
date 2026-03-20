@@ -1,10 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { IdentificationType } from '../../common/enums/identification-type.enum';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { EncryptionService } from '../../common/services/encryption.service';
+import { InventoryLot } from '../../inventory/entities/inventory-lot.entity';
+import { InventoryMovementHeader } from '../../inventory/entities/inventory-movement-header.entity';
+import { InventoryMovement } from '../../inventory/entities/inventory-movement.entity';
+import { WarehouseBranchLink } from '../../inventory/entities/warehouse-branch-link.entity';
+import { WarehouseLocation } from '../../inventory/entities/warehouse-location.entity';
+import { WarehouseStock } from '../../inventory/entities/warehouse-stock.entity';
+import { Warehouse } from '../../inventory/entities/warehouse.entity';
 import {
   resolve_effective_branch_scope_ids,
   resolve_effective_business_id,
@@ -31,6 +41,20 @@ export class BranchesService {
     private readonly branch_access_policy: BranchAccessPolicy,
     private readonly entity_code_service: EntityCodeService,
     private readonly encryption_service: EncryptionService,
+    @InjectRepository(Warehouse)
+    private readonly warehouse_repository: Repository<Warehouse>,
+    @InjectRepository(WarehouseLocation)
+    private readonly warehouse_location_repository: Repository<WarehouseLocation>,
+    @InjectRepository(WarehouseStock)
+    private readonly warehouse_stock_repository: Repository<WarehouseStock>,
+    @InjectRepository(WarehouseBranchLink)
+    private readonly warehouse_branch_link_repository: Repository<WarehouseBranchLink>,
+    @InjectRepository(InventoryLot)
+    private readonly inventory_lot_repository: Repository<InventoryLot>,
+    @InjectRepository(InventoryMovement)
+    private readonly inventory_movement_repository: Repository<InventoryMovement>,
+    @InjectRepository(InventoryMovementHeader)
+    private readonly inventory_movement_header_repository: Repository<InventoryMovementHeader>,
   ) {}
 
   async get_branches(current_user: AuthenticatedUserContext) {
@@ -211,6 +235,113 @@ export class BranchesService {
     return this.serialize_branch(await this.branches_repository.save(branch));
   }
 
+  async delete_branch(
+    current_user: AuthenticatedUserContext,
+    branch_id: number,
+  ): Promise<{ id: number; deleted: true }> {
+    const branch = await this.branches_repository.find_by_id_in_business(
+      branch_id,
+      resolve_effective_business_id(current_user),
+    );
+    if (!branch) {
+      throw new DomainNotFoundException({
+        code: 'BRANCH_NOT_FOUND',
+        messageKey: 'branches.not_found',
+        details: {
+          branch_id,
+        },
+      });
+    }
+
+    this.branch_access_policy.assert_can_access_branch(current_user, branch.id);
+
+    const [
+      warehouses,
+      warehouse_locations,
+      warehouse_stock,
+      warehouse_branch_links,
+      inventory_lots,
+      inventory_movement_headers,
+      inventory_movements,
+    ] = await Promise.all([
+      this.warehouse_repository.count({
+        where: {
+          business_id: branch.business_id,
+          branch_id: branch.id,
+        },
+      }),
+      this.warehouse_location_repository.count({
+        where: {
+          business_id: branch.business_id,
+          branch_id: branch.id,
+        },
+      }),
+      this.warehouse_stock_repository.count({
+        where: {
+          business_id: branch.business_id,
+          branch_id: branch.id,
+        },
+      }),
+      this.warehouse_branch_link_repository.count({
+        where: {
+          business_id: branch.business_id,
+          branch_id: branch.id,
+        },
+      }),
+      this.inventory_lot_repository.count({
+        where: {
+          business_id: branch.business_id,
+          branch_id: branch.id,
+        },
+      }),
+      this.inventory_movement_header_repository.count({
+        where: {
+          business_id: branch.business_id,
+          branch_id: branch.id,
+        },
+      }),
+      this.inventory_movement_repository.count({
+        where: {
+          business_id: branch.business_id,
+          branch_id: branch.id,
+        },
+      }),
+    ]);
+
+    if (
+      warehouses > 0 ||
+      warehouse_locations > 0 ||
+      warehouse_stock > 0 ||
+      warehouse_branch_links > 0 ||
+      inventory_lots > 0 ||
+      inventory_movement_headers > 0 ||
+      inventory_movements > 0
+    ) {
+      throw new DomainBadRequestException({
+        code: 'BRANCH_DELETE_FORBIDDEN',
+        messageKey: 'branches.delete_forbidden',
+        details: {
+          branch_id,
+          dependencies: {
+            warehouses,
+            warehouse_locations,
+            warehouse_stock,
+            warehouse_branch_links,
+            inventory_lots,
+            inventory_movement_headers,
+            inventory_movements,
+          },
+        },
+      });
+    }
+
+    await this.branches_repository.remove(branch);
+    return {
+      id: branch_id,
+      deleted: true,
+    };
+  }
+
   async create_terminal(
     current_user: AuthenticatedUserContext,
     branch_id: number,
@@ -300,6 +431,47 @@ export class BranchesService {
     return this.serialize_terminal(
       await this.terminals_repository.save(terminal),
     );
+  }
+
+  async delete_terminal(
+    current_user: AuthenticatedUserContext,
+    terminal_id: number,
+  ): Promise<{ id: number; deleted: true }> {
+    const terminal =
+      await this.terminals_repository.find_by_id_with_branch(terminal_id);
+    if (!terminal || !terminal.branch) {
+      throw new DomainNotFoundException({
+        code: 'TERMINAL_NOT_FOUND',
+        messageKey: 'terminals.not_found',
+        details: {
+          terminal_id,
+        },
+      });
+    }
+
+    if (
+      terminal.branch.business_id !==
+      resolve_effective_business_id(current_user)
+    ) {
+      throw new DomainNotFoundException({
+        code: 'TERMINAL_NOT_FOUND',
+        messageKey: 'terminals.not_found',
+        details: {
+          terminal_id,
+        },
+      });
+    }
+
+    this.branch_access_policy.assert_can_access_branch(
+      current_user,
+      terminal.branch_id,
+    );
+
+    await this.terminals_repository.remove(terminal);
+    return {
+      id: terminal_id,
+      deleted: true,
+    };
   }
 
   private assert_branch_configuration_permissions(
