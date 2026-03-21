@@ -10,6 +10,8 @@ import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { Product } from '../entities/product.entity';
 import { ProductType } from '../enums/product-type.enum';
+import { ProductSerialsRepository } from '../repositories/product-serials.repository';
+import { ProductVariantsRepository } from '../repositories/product-variants.repository';
 import { ProductsRepository } from '../repositories/products.repository';
 import { InventoryValidationService } from './inventory-validation.service';
 import { ProductVariantsService } from './product-variants.service';
@@ -21,6 +23,8 @@ export class ProductsService {
     private readonly inventory_validation_service: InventoryValidationService,
     private readonly entity_code_service: EntityCodeService,
     private readonly product_variants_service: ProductVariantsService,
+    private readonly product_variants_repository: ProductVariantsRepository,
+    private readonly product_serials_repository: ProductSerialsRepository,
   ) {}
 
   async get_products(current_user: AuthenticatedUserContext) {
@@ -398,12 +402,32 @@ export class ProductsService {
           });
         }
       }
-      // TODO: When enabling has_variants, verify the default variant has no
-      // active serials before allowing the transition. This requires either
-      // injecting ProductSerialsRepository here or exposing a check method on
-      // ProductVariantsService. Without this guard, enabling variants on a
-      // product whose default variant already owns serials could leave serial
-      // records orphaned on an uneditable default variant.
+      if (dto.has_variants === true && !product.has_variants) {
+        const default_variant =
+          await this.product_variants_repository.find_default_by_product_in_business(
+            business_id,
+            product.id,
+          );
+        if (default_variant) {
+          const serial_count =
+            await this.product_serials_repository.count_by_variant_in_business(
+              business_id,
+              default_variant.id,
+            );
+          if (serial_count > 0) {
+            throw new DomainBadRequestException({
+              code: 'HAS_VARIANTS_REQUIRES_NO_SERIALS',
+              messageKey:
+                'inventory.has_variants_requires_no_serials',
+              details: {
+                product_id: product.id,
+                default_variant_id: default_variant.id,
+                serial_count,
+              },
+            });
+          }
+        }
+      }
       product.has_variants = dto.has_variants;
     }
     if (dto.has_warranty !== undefined) {

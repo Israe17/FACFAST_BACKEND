@@ -19,6 +19,10 @@ import { Contact } from './contact.entity';
 @Index(['business_id', 'contact_id', 'branch_id'], { unique: true })
 @Index(['business_id', 'branch_id'])
 @Index(['business_id', 'contact_id'])
+@Index('idx_contact_exclusive_active', ['business_id', 'contact_id'], {
+  unique: true,
+  where: '"is_active" = true AND "is_exclusive" = true',
+})
 export class ContactBranchAssignment {
   @PrimaryGeneratedColumn()
   id!: number;
