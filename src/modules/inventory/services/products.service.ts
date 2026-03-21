@@ -398,6 +398,12 @@ export class ProductsService {
           });
         }
       }
+      // TODO: When enabling has_variants, verify the default variant has no
+      // active serials before allowing the transition. This requires either
+      // injecting ProductSerialsRepository here or exposing a check method on
+      // ProductVariantsService. Without this guard, enabling variants on a
+      // product whose default variant already owns serials could leave serial
+      // records orphaned on an uneditable default variant.
       product.has_variants = dto.has_variants;
     }
     if (dto.has_warranty !== undefined) {

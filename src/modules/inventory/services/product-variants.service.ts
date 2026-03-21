@@ -38,6 +38,8 @@ type VariantLifecycle = {
 
 @Injectable()
 export class ProductVariantsService {
+  private static readonly DEFAULT_VARIANT_NAME = 'Default';
+
   constructor(
     private readonly product_variants_repository: ProductVariantsRepository,
     private readonly inventory_validation_service: InventoryValidationService,
@@ -69,7 +71,7 @@ export class ProductVariantsService {
       if (!product.has_variants) {
         existing_default_variant.sku = default_sku;
         existing_default_variant.barcode = default_barcode;
-        existing_default_variant.variant_name = 'Default';
+        existing_default_variant.variant_name = ProductVariantsService.DEFAULT_VARIANT_NAME;
         existing_default_variant.stock_unit_measure_id =
           product.stock_unit_id ?? product.sale_unit_id;
         existing_default_variant.sale_unit_measure_id =
@@ -94,7 +96,7 @@ export class ProductVariantsService {
         product_id: product.id,
         sku: default_sku,
         barcode: default_barcode,
-        variant_name: 'Default',
+        variant_name: ProductVariantsService.DEFAULT_VARIANT_NAME,
         stock_unit_measure_id: product.stock_unit_id ?? product.sale_unit_id,
         sale_unit_measure_id: product.sale_unit_id ?? product.stock_unit_id,
         fiscal_profile_id: product.tax_profile_id,
