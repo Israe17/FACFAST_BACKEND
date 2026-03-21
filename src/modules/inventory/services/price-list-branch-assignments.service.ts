@@ -111,6 +111,15 @@ export class PriceListBranchAssignmentsService {
       next_is_active || next_is_default,
     );
 
+    // Clear other defaults BEFORE saving to minimize race window
+    if (next_is_default) {
+      await this.price_list_branch_assignments_repository.unset_default_for_branch(
+        business_id,
+        branch.id,
+        0,
+      );
+    }
+
     const assignment = this.price_list_branch_assignments_repository.create({
       business_id,
       price_list_id: price_list.id,
@@ -122,13 +131,6 @@ export class PriceListBranchAssignmentsService {
 
     const saved_assignment =
       await this.price_list_branch_assignments_repository.save(assignment);
-    if (saved_assignment.is_default) {
-      await this.price_list_branch_assignments_repository.unset_default_for_branch(
-        business_id,
-        branch.id,
-        saved_assignment.id,
-      );
-    }
 
     const hydrated_assignment =
       await this.price_list_branch_assignments_repository.find_by_id_in_business(
@@ -187,15 +189,17 @@ export class PriceListBranchAssignmentsService {
       assignment.notes = this.normalize_optional_string(dto.notes);
     }
 
-    const saved_assignment =
-      await this.price_list_branch_assignments_repository.save(assignment);
-    if (saved_assignment.is_default) {
+    // Clear other defaults BEFORE saving to minimize race window
+    if (next_is_default) {
       await this.price_list_branch_assignments_repository.unset_default_for_branch(
         business_id,
-        saved_assignment.branch_id,
-        saved_assignment.id,
+        assignment.branch_id,
+        assignment.id,
       );
     }
+
+    const saved_assignment =
+      await this.price_list_branch_assignments_repository.save(assignment);
 
     const hydrated_assignment =
       await this.price_list_branch_assignments_repository.find_by_id_in_business(

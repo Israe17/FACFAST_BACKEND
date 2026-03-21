@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy';
 import { BranchesRepository } from '../../branches/repositories/branches.repository';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
@@ -29,6 +29,8 @@ export class ContactBranchAssignmentsService {
     private readonly users_repository: UsersRepository,
     @InjectRepository(PriceList)
     private readonly price_list_repository: Repository<PriceList>,
+    @InjectDataSource()
+    private readonly data_source: DataSource,
   ) {}
 
   async get_contact_branch_assignments(
@@ -101,32 +103,36 @@ export class ContactBranchAssignmentsService {
       dto.account_manager_user_id,
     );
 
-    await this.assert_exclusive_conflict(
-      business_id,
-      contact_id,
-      dto.is_active ?? true,
-      dto.is_exclusive ?? false,
+    const saved_assignment = await this.data_source.transaction(
+      'SERIALIZABLE',
+      async (manager) => {
+        await this.assert_exclusive_conflict(
+          business_id,
+          contact_id,
+          dto.is_active ?? true,
+          dto.is_exclusive ?? false,
+        );
+
+        const assignment = this.contact_branch_assignments_repository.create({
+          business_id,
+          contact_id,
+          branch_id: branch.id,
+          is_active: dto.is_active ?? true,
+          is_default: dto.is_default ?? false,
+          is_preferred: dto.is_preferred ?? false,
+          is_exclusive: dto.is_exclusive ?? false,
+          sales_enabled: dto.sales_enabled ?? true,
+          purchases_enabled: dto.purchases_enabled ?? true,
+          credit_enabled: dto.credit_enabled ?? false,
+          custom_credit_limit: dto.custom_credit_limit ?? null,
+          custom_price_list_id: custom_price_list?.id ?? null,
+          account_manager_user_id: account_manager?.id ?? null,
+          notes: this.normalize_optional_string(dto.notes),
+        });
+
+        return manager.save(assignment);
+      },
     );
-
-    const assignment = this.contact_branch_assignments_repository.create({
-      business_id,
-      contact_id,
-      branch_id: branch.id,
-      is_active: dto.is_active ?? true,
-      is_default: dto.is_default ?? false,
-      is_preferred: dto.is_preferred ?? false,
-      is_exclusive: dto.is_exclusive ?? false,
-      sales_enabled: dto.sales_enabled ?? true,
-      purchases_enabled: dto.purchases_enabled ?? true,
-      credit_enabled: dto.credit_enabled ?? false,
-      custom_credit_limit: dto.custom_credit_limit ?? null,
-      custom_price_list_id: custom_price_list?.id ?? null,
-      account_manager_user_id: account_manager?.id ?? null,
-      notes: this.normalize_optional_string(dto.notes),
-    });
-
-    const saved_assignment =
-      await this.contact_branch_assignments_repository.save(assignment);
     const hydrated_assignment =
       await this.contact_branch_assignments_repository.find_by_id_in_business(
         saved_assignment.id,
@@ -167,61 +173,66 @@ export class ContactBranchAssignmentsService {
 
     const next_is_active = dto.is_active ?? assignment.is_active;
     const next_is_exclusive = dto.is_exclusive ?? assignment.is_exclusive;
-    await this.assert_exclusive_conflict(
-      business_id,
-      contact_id,
-      next_is_active,
-      next_is_exclusive,
-      assignment.id,
+
+    const saved_assignment = await this.data_source.transaction(
+      'SERIALIZABLE',
+      async (manager) => {
+        await this.assert_exclusive_conflict(
+          business_id,
+          contact_id,
+          next_is_active,
+          next_is_exclusive,
+          assignment.id,
+        );
+
+        if (dto.custom_price_list_id !== undefined) {
+          const custom_price_list = await this.resolve_custom_price_list(
+            business_id,
+            dto.custom_price_list_id,
+          );
+          assignment.custom_price_list_id = custom_price_list?.id ?? null;
+        }
+
+        if (dto.account_manager_user_id !== undefined) {
+          const account_manager = await this.resolve_account_manager(
+            business_id,
+            assignment.branch_id,
+            dto.account_manager_user_id,
+          );
+          assignment.account_manager_user_id = account_manager?.id ?? null;
+        }
+
+        if (dto.is_active !== undefined) {
+          assignment.is_active = dto.is_active;
+        }
+        if (dto.is_default !== undefined) {
+          assignment.is_default = dto.is_default;
+        }
+        if (dto.is_preferred !== undefined) {
+          assignment.is_preferred = dto.is_preferred;
+        }
+        if (dto.is_exclusive !== undefined) {
+          assignment.is_exclusive = dto.is_exclusive;
+        }
+        if (dto.sales_enabled !== undefined) {
+          assignment.sales_enabled = dto.sales_enabled;
+        }
+        if (dto.purchases_enabled !== undefined) {
+          assignment.purchases_enabled = dto.purchases_enabled;
+        }
+        if (dto.credit_enabled !== undefined) {
+          assignment.credit_enabled = dto.credit_enabled;
+        }
+        if (dto.custom_credit_limit !== undefined) {
+          assignment.custom_credit_limit = dto.custom_credit_limit;
+        }
+        if (dto.notes !== undefined) {
+          assignment.notes = this.normalize_optional_string(dto.notes);
+        }
+
+        return manager.save(assignment);
+      },
     );
-
-    if (dto.custom_price_list_id !== undefined) {
-      const custom_price_list = await this.resolve_custom_price_list(
-        business_id,
-        dto.custom_price_list_id,
-      );
-      assignment.custom_price_list_id = custom_price_list?.id ?? null;
-    }
-
-    if (dto.account_manager_user_id !== undefined) {
-      const account_manager = await this.resolve_account_manager(
-        business_id,
-        assignment.branch_id,
-        dto.account_manager_user_id,
-      );
-      assignment.account_manager_user_id = account_manager?.id ?? null;
-    }
-
-    if (dto.is_active !== undefined) {
-      assignment.is_active = dto.is_active;
-    }
-    if (dto.is_default !== undefined) {
-      assignment.is_default = dto.is_default;
-    }
-    if (dto.is_preferred !== undefined) {
-      assignment.is_preferred = dto.is_preferred;
-    }
-    if (dto.is_exclusive !== undefined) {
-      assignment.is_exclusive = dto.is_exclusive;
-    }
-    if (dto.sales_enabled !== undefined) {
-      assignment.sales_enabled = dto.sales_enabled;
-    }
-    if (dto.purchases_enabled !== undefined) {
-      assignment.purchases_enabled = dto.purchases_enabled;
-    }
-    if (dto.credit_enabled !== undefined) {
-      assignment.credit_enabled = dto.credit_enabled;
-    }
-    if (dto.custom_credit_limit !== undefined) {
-      assignment.custom_credit_limit = dto.custom_credit_limit;
-    }
-    if (dto.notes !== undefined) {
-      assignment.notes = this.normalize_optional_string(dto.notes);
-    }
-
-    const saved_assignment =
-      await this.contact_branch_assignments_repository.save(assignment);
     const hydrated_assignment =
       await this.contact_branch_assignments_repository.find_by_id_in_business(
         saved_assignment.id,
