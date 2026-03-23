@@ -431,6 +431,162 @@ const inventory_permissions: PermissionSeed[] = [
     action: 'update',
     description: 'Can update product serial status and notes.',
   },
+  {
+    key: PermissionKey.ZONES_VIEW,
+    module: 'zones',
+    action: 'view',
+    description: 'Can view zones.',
+  },
+  {
+    key: PermissionKey.ZONES_CREATE,
+    module: 'zones',
+    action: 'create',
+    description: 'Can create zones.',
+  },
+  {
+    key: PermissionKey.ZONES_UPDATE,
+    module: 'zones',
+    action: 'update',
+    description: 'Can update zones.',
+  },
+  {
+    key: PermissionKey.ZONES_DELETE,
+    module: 'zones',
+    action: 'delete',
+    description: 'Can delete zones.',
+  },
+  {
+    key: PermissionKey.VEHICLES_VIEW,
+    module: 'vehicles',
+    action: 'view',
+    description: 'Can view vehicles.',
+  },
+  {
+    key: PermissionKey.VEHICLES_CREATE,
+    module: 'vehicles',
+    action: 'create',
+    description: 'Can create vehicles.',
+  },
+  {
+    key: PermissionKey.VEHICLES_UPDATE,
+    module: 'vehicles',
+    action: 'update',
+    description: 'Can update vehicles.',
+  },
+  {
+    key: PermissionKey.VEHICLES_DELETE,
+    module: 'vehicles',
+    action: 'delete',
+    description: 'Can delete vehicles.',
+  },
+  {
+    key: PermissionKey.ROUTES_VIEW,
+    module: 'routes',
+    action: 'view',
+    description: 'Can view routes.',
+  },
+  {
+    key: PermissionKey.ROUTES_CREATE,
+    module: 'routes',
+    action: 'create',
+    description: 'Can create routes.',
+  },
+  {
+    key: PermissionKey.ROUTES_UPDATE,
+    module: 'routes',
+    action: 'update',
+    description: 'Can update routes.',
+  },
+  {
+    key: PermissionKey.ROUTES_DELETE,
+    module: 'routes',
+    action: 'delete',
+    description: 'Can delete routes.',
+  },
+];
+
+const sales_permissions: PermissionSeed[] = [
+  {
+    key: PermissionKey.SALE_ORDERS_VIEW,
+    module: 'sale_orders',
+    action: 'view',
+    description: 'Can view sale orders.',
+  },
+  {
+    key: PermissionKey.SALE_ORDERS_CREATE,
+    module: 'sale_orders',
+    action: 'create',
+    description: 'Can create sale orders.',
+  },
+  {
+    key: PermissionKey.SALE_ORDERS_UPDATE,
+    module: 'sale_orders',
+    action: 'update',
+    description: 'Can update sale orders.',
+  },
+  {
+    key: PermissionKey.SALE_ORDERS_CONFIRM,
+    module: 'sale_orders',
+    action: 'confirm',
+    description: 'Can confirm sale orders.',
+  },
+  {
+    key: PermissionKey.SALE_ORDERS_CANCEL,
+    module: 'sale_orders',
+    action: 'cancel',
+    description: 'Can cancel sale orders.',
+  },
+  {
+    key: PermissionKey.ELECTRONIC_DOCUMENTS_VIEW,
+    module: 'electronic_documents',
+    action: 'view',
+    description: 'Can view electronic documents.',
+  },
+  {
+    key: PermissionKey.ELECTRONIC_DOCUMENTS_EMIT,
+    module: 'electronic_documents',
+    action: 'emit',
+    description: 'Can emit electronic documents.',
+  },
+];
+
+const dispatch_permissions: PermissionSeed[] = [
+  {
+    key: PermissionKey.DISPATCH_ORDERS_VIEW,
+    module: 'dispatch_orders',
+    action: 'view',
+    description: 'Can view dispatch orders.',
+  },
+  {
+    key: PermissionKey.DISPATCH_ORDERS_CREATE,
+    module: 'dispatch_orders',
+    action: 'create',
+    description: 'Can create dispatch orders.',
+  },
+  {
+    key: PermissionKey.DISPATCH_ORDERS_UPDATE,
+    module: 'dispatch_orders',
+    action: 'update',
+    description: 'Can update dispatch orders.',
+  },
+  {
+    key: PermissionKey.DISPATCH_ORDERS_CANCEL,
+    module: 'dispatch_orders',
+    action: 'cancel',
+    description: 'Can cancel dispatch orders.',
+  },
+  {
+    key: PermissionKey.DISPATCH_EXPENSES_CREATE,
+    module: 'dispatch_expenses',
+    action: 'create',
+    description: 'Can create dispatch expenses.',
+  },
+  {
+    key: PermissionKey.DISPATCH_EXPENSES_DELETE,
+    module: 'dispatch_expenses',
+    action: 'delete',
+    description: 'Can delete dispatch expenses.',
+  },
 ];
 
 const base_permissions: PermissionSeed[] = [
@@ -639,6 +795,8 @@ const base_permissions: PermissionSeed[] = [
     description: 'Can delete terminals.',
   },
   ...inventory_permissions,
+  ...sales_permissions,
+  ...dispatch_permissions,
 ];
 
 const suggested_role_permissions: Record<string, string[]> = {
@@ -758,6 +916,21 @@ const derived_inventory_permissions: Partial<
   [PermissionKey.INVENTORY_MOVEMENTS_ADJUST]: [
     PermissionKey.INVENTORY_MOVEMENTS_TRANSFER,
     PermissionKey.INVENTORY_MOVEMENTS_CANCEL,
+  ],
+  [PermissionKey.ZONES_UPDATE]: [PermissionKey.ZONES_DELETE],
+  [PermissionKey.VEHICLES_UPDATE]: [PermissionKey.VEHICLES_DELETE],
+  [PermissionKey.ROUTES_UPDATE]: [PermissionKey.ROUTES_DELETE],
+  [PermissionKey.SALE_ORDERS_UPDATE]: [
+    PermissionKey.SALE_ORDERS_CONFIRM,
+    PermissionKey.SALE_ORDERS_CANCEL,
+  ],
+  [PermissionKey.ELECTRONIC_DOCUMENTS_VIEW]: [
+    PermissionKey.ELECTRONIC_DOCUMENTS_EMIT,
+  ],
+  [PermissionKey.DISPATCH_ORDERS_UPDATE]: [
+    PermissionKey.DISPATCH_ORDERS_CANCEL,
+    PermissionKey.DISPATCH_EXPENSES_CREATE,
+    PermissionKey.DISPATCH_EXPENSES_DELETE,
   ],
 };
 
