@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SaleOrder } from '../sales/entities/sale-order.entity';
 import { BranchesModule } from '../branches/branches.module';
 import { ContactsModule } from '../contacts/contacts.module';
 import { BrandsController } from './controllers/brands.controller';
@@ -25,6 +26,7 @@ import { WarehouseStockController } from './controllers/warehouse-stock.controll
 import { RoutesController } from './controllers/routes.controller';
 import { VehiclesController } from './controllers/vehicles.controller';
 import { WarrantyProfilesController } from './controllers/warranty-profiles.controller';
+import { DispatchOrdersController } from './controllers/dispatch-orders.controller';
 import { ZonesController } from './controllers/zones.controller';
 import { Brand } from './entities/brand.entity';
 import { InventoryBalance } from './entities/inventory-balance.entity';
@@ -54,6 +56,9 @@ import { WarehouseLocation } from './entities/warehouse-location.entity';
 import { WarehouseStock } from './entities/warehouse-stock.entity';
 import { Warehouse } from './entities/warehouse.entity';
 import { WarrantyProfile } from './entities/warranty-profile.entity';
+import { DispatchOrder } from './entities/dispatch-order.entity';
+import { DispatchStop } from './entities/dispatch-stop.entity';
+import { DispatchExpense } from './entities/dispatch-expense.entity';
 import { Zone } from './entities/zone.entity';
 import { BrandsRepository } from './repositories/brands.repository';
 import { InventoryBalancesRepository } from './repositories/inventory-balances.repository';
@@ -79,6 +84,7 @@ import { VehiclesRepository } from './repositories/vehicles.repository';
 import { WarehousesRepository } from './repositories/warehouses.repository';
 import { WarehouseStockRepository } from './repositories/warehouse-stock.repository';
 import { WarrantyProfilesRepository } from './repositories/warranty-profiles.repository';
+import { DispatchOrdersRepository } from './repositories/dispatch-orders.repository';
 import { ZonesRepository } from './repositories/zones.repository';
 import { BrandsService } from './services/brands.service';
 import { InventoryAdjustmentsService } from './services/inventory-adjustments.service';
@@ -103,6 +109,7 @@ import { VehiclesService } from './services/vehicles.service';
 import { WarehousesService } from './services/warehouses.service';
 import { WarehouseStockService } from './services/warehouse-stock.service';
 import { WarrantyProfilesService } from './services/warranty-profiles.service';
+import { DispatchOrdersService } from './services/dispatch-orders.service';
 import { ZonesService } from './services/zones.service';
 
 @Module({
@@ -137,6 +144,10 @@ import { ZonesService } from './services/zones.service';
       Zone,
       Vehicle,
       Route,
+      DispatchOrder,
+      DispatchStop,
+      DispatchExpense,
+      SaleOrder,
     ]),
     BranchesModule,
     ContactsModule,
@@ -166,6 +177,7 @@ import { ZonesService } from './services/zones.service';
     ZonesController,
     VehiclesController,
     RoutesController,
+    DispatchOrdersController,
   ],
   providers: [
     ProductCategoriesRepository,
@@ -217,6 +229,8 @@ import { ZonesService } from './services/zones.service';
     VehiclesService,
     RoutesRepository,
     RoutesService,
+    DispatchOrdersRepository,
+    DispatchOrdersService,
   ],
   exports: [
     ProductsService,
