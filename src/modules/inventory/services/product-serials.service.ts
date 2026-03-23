@@ -53,10 +53,10 @@ export class ProductSerialsService {
       );
     }
     this.inventory_validation_service.assert_variant_is_active(variant);
-    if (!variant.track_serials) {
+    if (!variant.product?.track_serials) {
       throw new DomainBadRequestException({
-        code: 'VARIANT_SERIAL_TRACKING_DISABLED',
-        messageKey: 'inventory.variant_serial_tracking_disabled',
+        code: 'PRODUCT_SERIAL_TRACKING_DISABLED',
+        messageKey: 'inventory.product_serial_tracking_disabled',
         details: { product_variant_id },
       });
     }

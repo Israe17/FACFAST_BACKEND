@@ -308,7 +308,7 @@ export class ProductVariantsService {
       track_lots: dto.track_lots ?? false,
       track_expiration: dto.track_expiration ?? false,
       allow_negative_stock: dto.allow_negative_stock ?? false,
-      track_serials: dto.track_serials ?? false,
+      track_serials: product.track_serials,
       is_active: dto.is_active ?? true,
     });
 
@@ -428,9 +428,6 @@ export class ProductVariantsService {
     }
     if (dto.allow_negative_stock !== undefined) {
       variant.allow_negative_stock = dto.allow_negative_stock;
-    }
-    if (dto.track_serials !== undefined) {
-      variant.track_serials = dto.track_serials;
     }
     if (dto.is_active !== undefined) {
       variant.is_active = dto.is_active;
@@ -566,7 +563,6 @@ export class ProductVariantsService {
       track_lots: variant.track_lots,
       track_expiration: variant.track_expiration,
       allow_negative_stock: variant.allow_negative_stock,
-      track_serials: variant.track_serials,
       is_active: variant.is_active,
       lifecycle,
       created_at: variant.created_at,
@@ -709,17 +705,10 @@ export class ProductVariantsService {
         messageKey: 'inventory.variant_expiration_requires_lots',
       });
     }
-    if (variant.track_serials && !variant.track_inventory) {
-      throw new DomainBadRequestException({
-        code: 'VARIANT_SERIAL_TRACKING_REQUIRES_INVENTORY',
-        messageKey: 'inventory.variant_serial_tracking_requires_inventory',
-      });
-    }
     if (!variant.track_inventory) {
       variant.track_lots = false;
       variant.track_expiration = false;
       variant.allow_negative_stock = false;
-      variant.track_serials = false;
     }
   }
 

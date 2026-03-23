@@ -187,7 +187,7 @@ export class InventoryTransfersService {
       dto.quantity,
       dto.serial_ids ?? [],
     );
-    if (product_variant.track_serials && !serials.length) {
+    if (product.track_serials && !serials.length) {
       throw new DomainBadRequestException({
         code: 'SERIALS_REQUIRED_FOR_SERIAL_TRACKED_VARIANT',
         messageKey: 'inventory.serials_required_for_serial_tracked_variant',
@@ -196,10 +196,10 @@ export class InventoryTransfersService {
         },
       });
     }
-    if (!product_variant.track_serials && (dto.serial_ids?.length ?? 0) > 0) {
+    if (!product.track_serials && (dto.serial_ids?.length ?? 0) > 0) {
       throw new DomainBadRequestException({
-        code: 'VARIANT_SERIAL_TRACKING_DISABLED',
-        messageKey: 'inventory.variant_serial_tracking_disabled',
+        code: 'PRODUCT_SERIAL_TRACKING_DISABLED',
+        messageKey: 'inventory.product_serial_tracking_disabled',
         details: {
           product_variant_id: product_variant.id,
         },
