@@ -114,4 +114,9 @@ export enum PermissionKey {
   ROUTES_CREATE = 'routes.create',
   ROUTES_UPDATE = 'routes.update',
   ROUTES_DELETE = 'routes.delete',
+  SALE_ORDERS_VIEW = 'sale_orders.view',
+  SALE_ORDERS_CREATE = 'sale_orders.create',
+  SALE_ORDERS_UPDATE = 'sale_orders.update',
+  SALE_ORDERS_CONFIRM = 'sale_orders.confirm',
+  SALE_ORDERS_CANCEL = 'sale_orders.cancel',
 }
