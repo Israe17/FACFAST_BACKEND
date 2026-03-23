@@ -34,9 +34,13 @@ import { WarrantyProfile } from '../modules/inventory/entities/warranty-profile.
 import { Zone } from '../modules/inventory/entities/zone.entity';
 import { Vehicle } from '../modules/inventory/entities/vehicle.entity';
 import { Route } from '../modules/inventory/entities/route.entity';
+import { DispatchOrder } from '../modules/inventory/entities/dispatch-order.entity';
+import { DispatchStop } from '../modules/inventory/entities/dispatch-stop.entity';
+import { DispatchExpense } from '../modules/inventory/entities/dispatch-expense.entity';
 import { SaleOrder } from '../modules/sales/entities/sale-order.entity';
 import { SaleOrderLine } from '../modules/sales/entities/sale-order-line.entity';
 import { SaleOrderDeliveryCharge } from '../modules/sales/entities/sale-order-delivery-charge.entity';
+import { ElectronicDocument } from '../modules/sales/entities/electronic-document.entity';
 import { Permission } from '../modules/rbac/entities/permission.entity';
 import { RolePermission } from '../modules/rbac/entities/role-permission.entity';
 import { Role } from '../modules/rbac/entities/role.entity';
@@ -87,7 +91,11 @@ export const database_entities = [
   Zone,
   Vehicle,
   Route,
+  DispatchOrder,
+  DispatchStop,
+  DispatchExpense,
   SaleOrder,
   SaleOrderLine,
   SaleOrderDeliveryCharge,
+  ElectronicDocument,
 ];
