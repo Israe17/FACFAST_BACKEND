@@ -15,6 +15,7 @@ import { BranchesModule } from './modules/branches/branches.module';
 import { CommonModule } from './modules/common/common.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { SalesModule } from './modules/sales/sales.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { UsersModule } from './modules/users/users.module';
@@ -64,6 +65,7 @@ import { UsersModule } from './modules/users/users.module';
     BranchesModule,
     ContactsModule,
     InventoryModule,
+    SalesModule,
     PlatformModule,
     UsersModule,
     AuthModule,

@@ -31,6 +31,12 @@ import { WarehouseLocation } from '../modules/inventory/entities/warehouse-locat
 import { WarehouseStock } from '../modules/inventory/entities/warehouse-stock.entity';
 import { Warehouse } from '../modules/inventory/entities/warehouse.entity';
 import { WarrantyProfile } from '../modules/inventory/entities/warranty-profile.entity';
+import { Zone } from '../modules/inventory/entities/zone.entity';
+import { Vehicle } from '../modules/inventory/entities/vehicle.entity';
+import { Route } from '../modules/inventory/entities/route.entity';
+import { SaleOrder } from '../modules/sales/entities/sale-order.entity';
+import { SaleOrderLine } from '../modules/sales/entities/sale-order-line.entity';
+import { SaleOrderDeliveryCharge } from '../modules/sales/entities/sale-order-delivery-charge.entity';
 import { Permission } from '../modules/rbac/entities/permission.entity';
 import { RolePermission } from '../modules/rbac/entities/role-permission.entity';
 import { Role } from '../modules/rbac/entities/role.entity';
@@ -78,4 +84,10 @@ export const database_entities = [
   InventoryMovement,
   InventoryMovementHeader,
   InventoryMovementLine,
+  Zone,
+  Vehicle,
+  Route,
+  SaleOrder,
+  SaleOrderLine,
+  SaleOrderDeliveryCharge,
 ];
