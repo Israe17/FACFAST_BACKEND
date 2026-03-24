@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -29,6 +30,17 @@ export class SaleOrdersService {
     const orders =
       await this.sale_orders_repository.find_all_by_business(business_id);
     return orders.map((order) => this.serialize_order(order));
+  }
+
+  async get_sale_orders_paginated(
+    current_user: AuthenticatedUserContext,
+    query: PaginatedQueryDto,
+  ) {
+    return this.sale_orders_repository.find_paginated_by_business(
+      resolve_effective_business_id(current_user),
+      query,
+      (order) => this.serialize_order(order),
+    );
   }
 
   async get_sale_order(
