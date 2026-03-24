@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { CancelSaleOrderDto } from '../dto/cancel-sale-order.dto';
 import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
@@ -20,6 +21,7 @@ export class SaleOrdersService {
   constructor(
     private readonly sale_orders_repository: SaleOrdersRepository,
     private readonly data_source: DataSource,
+    private readonly entity_code_service: EntityCodeService,
   ) {}
 
   async get_sale_orders(current_user: AuthenticatedUserContext) {
@@ -75,8 +77,11 @@ export class SaleOrdersService {
         created_by_user_id: current_user.id,
       });
 
-      const saved_order = await this.sale_orders_repository.save(
-        await order_repo.save(order),
+      const saved_order = await order_repo.save(order);
+      await this.entity_code_service.ensure_code(
+        order_repo,
+        saved_order,
+        'SO',
       );
 
       if (dto.lines?.length) {
