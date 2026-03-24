@@ -322,10 +322,13 @@ export class SaleOrdersService {
     const business_id = resolve_effective_business_id(current_user);
     const order = await this.get_order_entity(business_id, order_id);
 
-    if (order.status !== SaleOrderStatus.DRAFT) {
+    if (
+      order.status !== SaleOrderStatus.DRAFT &&
+      order.status !== SaleOrderStatus.CANCELLED
+    ) {
       throw new DomainBadRequestException({
-        code: 'SALE_ORDER_DELETE_NOT_DRAFT',
-        messageKey: 'sales.order_delete_not_draft',
+        code: 'SALE_ORDER_DELETE_NOT_ALLOWED',
+        messageKey: 'sales.order_delete_not_allowed',
         details: { order_id, status: order.status },
       });
     }
@@ -452,7 +455,9 @@ export class SaleOrdersService {
         can_edit: order.status === SaleOrderStatus.DRAFT,
         can_confirm: order.status === SaleOrderStatus.DRAFT,
         can_cancel: order.status !== SaleOrderStatus.CANCELLED,
-        can_delete: order.status === SaleOrderStatus.DRAFT,
+        can_delete:
+          order.status === SaleOrderStatus.DRAFT ||
+          order.status === SaleOrderStatus.CANCELLED,
         reasons: [],
       },
       created_at: order.created_at,
