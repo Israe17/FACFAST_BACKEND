@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -14,7 +14,9 @@ import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchStop } from '../entities/dispatch-stop.entity';
 import { DispatchExpense } from '../entities/dispatch-expense.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
+import { InventoryLedgerService } from './inventory-ledger.service';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 
 @Injectable()
@@ -22,6 +24,8 @@ export class DispatchOrdersService {
   constructor(
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
     private readonly entity_code_service: EntityCodeService,
+    private readonly inventory_ledger_service: InventoryLedgerService,
+    private readonly data_source: DataSource,
     @InjectRepository(DispatchStop)
     private readonly dispatch_stop_repository: Repository<DispatchStop>,
     @InjectRepository(DispatchExpense)
@@ -275,9 +279,49 @@ export class DispatchOrdersService {
       });
     }
 
-    order.status = DispatchOrderStatus.DISPATCHED;
-    order.dispatched_at = new Date();
-    await this.dispatch_orders_repository.save(order);
+    await this.data_source.transaction(async (manager) => {
+      order.status = DispatchOrderStatus.DISPATCHED;
+      order.dispatched_at = new Date();
+      await manager.getRepository(DispatchOrder).save(order);
+
+      for (const stop of order.stops ?? []) {
+        const sale_order = await this.sale_order_repository.findOne({
+          where: { id: stop.sale_order_id, business_id },
+          relations: ['lines', 'lines.product_variant', 'warehouse'],
+        });
+
+        if (!sale_order || !sale_order.warehouse) continue;
+
+        const trackable_lines = (sale_order.lines ?? []).filter(
+          (line) => line.product_variant?.track_inventory !== false,
+        );
+
+        if (trackable_lines.length > 0) {
+          await this.inventory_ledger_service.post_posted_movement(
+            manager,
+            {
+              business_id,
+              branch_id: sale_order.branch_id,
+              performed_by_user_id: current_user.id,
+              occurred_at: new Date(),
+              movement_type: InventoryMovementHeaderType.SALES_DISPATCH,
+              source_document_type: 'DispatchOrder',
+              source_document_id: order.id,
+              source_document_number: order.code,
+              notes: `Despacho de stock para orden de venta ${sale_order.code}`,
+            },
+            trackable_lines.map((line) => ({
+              warehouse: sale_order.warehouse!,
+              product_variant: line.product_variant!,
+              quantity: Number(line.quantity),
+              on_hand_delta: -Number(line.quantity),
+              reserved_delta: -Number(line.quantity),
+            })),
+          );
+        }
+      }
+    });
+
     return this.get_dispatch_order(current_user, id);
   }
 

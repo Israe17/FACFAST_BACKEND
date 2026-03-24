@@ -240,6 +240,7 @@ import { ZonesService } from './services/zones.service';
     WarehouseStockService,
     InventoryLotsService,
     InventoryMovementsService,
+    InventoryLedgerService,
   ],
 })
 export class InventoryModule {}

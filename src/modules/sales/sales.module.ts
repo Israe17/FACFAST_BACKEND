@@ -10,6 +10,7 @@ import { SaleOrdersService } from './services/sale-orders.service';
 import { ElectronicDocumentsService } from './services/electronic-documents.service';
 import { SaleOrdersController } from './controllers/sale-orders.controller';
 import { ElectronicDocumentsController } from './controllers/electronic-documents.controller';
+import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ElectronicDocumentsController } from './controllers/electronic-document
       SaleOrderDeliveryCharge,
       ElectronicDocument,
     ]),
+    InventoryModule,
   ],
   controllers: [SaleOrdersController, ElectronicDocumentsController],
   providers: [
