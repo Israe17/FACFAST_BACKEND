@@ -27,6 +27,11 @@ import { ElectronicDocumentsController } from './controllers/electronic-document
     SaleOrdersService,
     ElectronicDocumentsService,
   ],
-  exports: [SaleOrdersService, ElectronicDocumentsService],
+  exports: [
+    SaleOrdersRepository,
+    ElectronicDocumentsRepository,
+    SaleOrdersService,
+    ElectronicDocumentsService,
+  ],
 })
 export class SalesModule {}

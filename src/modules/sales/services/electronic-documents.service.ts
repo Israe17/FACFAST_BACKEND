@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
@@ -22,6 +23,17 @@ export class ElectronicDocumentsService {
         business_id,
       );
     return documents.map((doc) => this.serialize_document(doc));
+  }
+
+  async get_documents_paginated(
+    current_user: AuthenticatedUserContext,
+    query: PaginatedQueryDto,
+  ) {
+    return this.electronic_documents_repository.find_paginated_by_business(
+      resolve_effective_business_id(current_user),
+      query,
+      (document) => this.serialize_document(document),
+    );
   }
 
   async get_document(

@@ -2,6 +2,7 @@ import {
   ApiBody,
   ApiCookieAuth,
   ApiForbiddenResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -14,6 +15,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -25,6 +27,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CreateElectronicDocumentDto } from '../dto/create-electronic-document.dto';
 import { ElectronicDocumentsService } from '../services/electronic-documents.service';
 
@@ -43,9 +46,18 @@ export class ElectronicDocumentsController {
 
   @Get()
   @RequirePermissions(PermissionKey.ELECTRONIC_DOCUMENTS_VIEW)
-  @ApiOperation({ summary: 'Listar documentos electronicos' })
-  get_documents(@CurrentUser() current_user: AuthenticatedUserContext) {
-    return this.electronic_documents_service.get_documents(current_user);
+  @ApiOperation({
+    summary: 'Listar documentos electronicos del negocio autenticado (paginado)',
+  })
+  @ApiOkResponse({ description: 'Lista paginada de documentos electronicos.' })
+  get_documents(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: PaginatedQueryDto,
+  ) {
+    return this.electronic_documents_service.get_documents_paginated(
+      current_user,
+      query,
+    );
   }
 
   @Get(':id')
