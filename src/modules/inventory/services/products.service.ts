@@ -620,6 +620,8 @@ export class ProductsService {
         is_default: variant.is_default,
         is_active: variant.is_active,
         track_serials: variant.track_serials,
+        track_inventory: variant.track_inventory,
+        allow_negative_stock: variant.allow_negative_stock,
       })),
       is_active: product.is_active,
       lifecycle: {
