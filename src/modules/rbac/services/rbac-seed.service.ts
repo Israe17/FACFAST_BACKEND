@@ -929,6 +929,7 @@ const derived_inventory_permissions: Partial<
   [PermissionKey.SALE_ORDERS_UPDATE]: [
     PermissionKey.SALE_ORDERS_CONFIRM,
     PermissionKey.SALE_ORDERS_CANCEL,
+    PermissionKey.SALE_ORDERS_DELETE,
   ],
   [PermissionKey.ELECTRONIC_DOCUMENTS_VIEW]: [
     PermissionKey.ELECTRONIC_DOCUMENTS_EMIT,
