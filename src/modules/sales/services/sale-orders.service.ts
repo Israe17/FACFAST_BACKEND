@@ -7,6 +7,8 @@ import { DomainNotFoundException } from '../../common/errors/exceptions/domain-n
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { InventoryLedgerService } from '../../inventory/services/inventory-ledger.service';
+import { InventoryMovementHeaderType } from '../../inventory/enums/inventory-movement-header-type.enum';
 import { CancelSaleOrderDto } from '../dto/cancel-sale-order.dto';
 import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
 import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
@@ -26,6 +28,7 @@ export class SaleOrdersService {
     private readonly electronic_documents_repository: ElectronicDocumentsRepository,
     private readonly data_source: DataSource,
     private readonly entity_code_service: EntityCodeService,
+    private readonly inventory_ledger_service: InventoryLedgerService,
   ) {}
 
   async get_sale_orders(current_user: AuthenticatedUserContext) {
@@ -274,14 +277,52 @@ export class SaleOrdersService {
       });
     }
 
-    order.status = SaleOrderStatus.CONFIRMED;
-    const saved = await this.sale_orders_repository.save(order);
-    const full_order =
-      await this.sale_orders_repository.find_by_id_in_business(
-        saved.id,
-        business_id,
+    if (!order.warehouse_id || !order.warehouse) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_WAREHOUSE_REQUIRED',
+        messageKey: 'sales.order_warehouse_required',
+        details: { order_id },
+      });
+    }
+
+    return this.data_source.transaction(async (manager) => {
+      order.status = SaleOrderStatus.CONFIRMED;
+      await manager.getRepository(SaleOrder).save(order);
+
+      const trackable_lines = (order.lines ?? []).filter(
+        (line) => line.product_variant?.track_inventory !== false,
       );
-    return this.serialize_order(full_order!);
+
+      if (trackable_lines.length > 0) {
+        await this.inventory_ledger_service.post_posted_movement(
+          manager,
+          {
+            business_id,
+            branch_id: order.branch_id,
+            performed_by_user_id: current_user.id,
+            occurred_at: new Date(),
+            movement_type: InventoryMovementHeaderType.SALES_ALLOCATED,
+            source_document_type: 'SaleOrder',
+            source_document_id: order.id,
+            source_document_number: order.code,
+            notes: `Reserva de stock para orden de venta ${order.code}`,
+          },
+          trackable_lines.map((line) => ({
+            warehouse: order.warehouse!,
+            product_variant: line.product_variant!,
+            quantity: Number(line.quantity),
+            reserved_delta: Number(line.quantity),
+          })),
+        );
+      }
+
+      const full_order =
+        await this.sale_orders_repository.find_by_id_in_business(
+          order.id,
+          business_id,
+        );
+      return this.serialize_order(full_order!);
+    });
   }
 
   async cancel_sale_order(
@@ -300,19 +341,53 @@ export class SaleOrdersService {
       });
     }
 
-    order.status = SaleOrderStatus.CANCELLED;
-    order.dispatch_status = SaleDispatchStatus.CANCELLED;
-    order.internal_notes = dto.reason
-      ? `${order.internal_notes ?? ''}\n[Cancelación] ${dto.reason}`.trim()
-      : order.internal_notes;
+    const was_confirmed = order.status === SaleOrderStatus.CONFIRMED;
 
-    const saved = await this.sale_orders_repository.save(order);
-    const full_order =
-      await this.sale_orders_repository.find_by_id_in_business(
-        saved.id,
-        business_id,
-      );
-    return this.serialize_order(full_order!);
+    return this.data_source.transaction(async (manager) => {
+      order.status = SaleOrderStatus.CANCELLED;
+      order.dispatch_status = SaleDispatchStatus.CANCELLED;
+      order.internal_notes = dto.reason
+        ? `${order.internal_notes ?? ''}\n[Cancelación] ${dto.reason}`.trim()
+        : order.internal_notes;
+
+      await manager.getRepository(SaleOrder).save(order);
+
+      if (was_confirmed && order.warehouse_id && order.warehouse) {
+        const trackable_lines = (order.lines ?? []).filter(
+          (line) => line.product_variant?.track_inventory !== false,
+        );
+
+        if (trackable_lines.length > 0) {
+          await this.inventory_ledger_service.post_posted_movement(
+            manager,
+            {
+              business_id,
+              branch_id: order.branch_id,
+              performed_by_user_id: current_user.id,
+              occurred_at: new Date(),
+              movement_type: InventoryMovementHeaderType.RELEASE,
+              source_document_type: 'SaleOrder',
+              source_document_id: order.id,
+              source_document_number: order.code,
+              notes: `Liberación de stock por cancelación de orden ${order.code}`,
+            },
+            trackable_lines.map((line) => ({
+              warehouse: order.warehouse!,
+              product_variant: line.product_variant!,
+              quantity: Number(line.quantity),
+              reserved_delta: -Number(line.quantity),
+            })),
+          );
+        }
+      }
+
+      const full_order =
+        await this.sale_orders_repository.find_by_id_in_business(
+          order.id,
+          business_id,
+        );
+      return this.serialize_order(full_order!);
+    });
   }
 
   async delete_sale_order(
