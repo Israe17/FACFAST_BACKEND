@@ -17,6 +17,7 @@ import { SaleOrderLine } from '../entities/sale-order-line.entity';
 import { SaleOrderDeliveryCharge } from '../entities/sale-order-delivery-charge.entity';
 import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
+import { SaleMode } from '../enums/sale-mode.enum';
 import { FulfillmentMode } from '../enums/fulfillment-mode.enum';
 import { ElectronicDocumentsRepository } from '../repositories/electronic-documents.repository';
 import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
@@ -63,6 +64,8 @@ export class SaleOrdersService {
     dto: CreateSaleOrderDto,
   ) {
     const business_id = resolve_effective_business_id(current_user);
+
+    this.validate_mode_coherence(dto);
 
     return this.data_source.transaction(async (manager) => {
       const order_repo = manager.getRepository(SaleOrder);
@@ -155,6 +158,16 @@ export class SaleOrdersService {
   ) {
     const business_id = resolve_effective_business_id(current_user);
     const order = await this.get_order_entity(business_id, order_id);
+
+    const effective_sale_mode = dto.sale_mode ?? order.sale_mode;
+    const effective_fulfillment_mode =
+      dto.fulfillment_mode ?? order.fulfillment_mode;
+    this.validate_mode_coherence({
+      sale_mode: effective_sale_mode,
+      fulfillment_mode: effective_fulfillment_mode,
+      seller_user_id: dto.seller_user_id !== undefined ? dto.seller_user_id : order.seller_user_id,
+      delivery_charges: dto.delivery_charges,
+    });
 
     if (order.status !== SaleOrderStatus.DRAFT) {
       throw new DomainConflictException({
@@ -426,6 +439,51 @@ export class SaleOrdersService {
 
     await this.sale_orders_repository.remove(order);
     return { id: order_id, deleted: true };
+  }
+
+  private validate_mode_coherence(input: {
+    sale_mode?: string;
+    fulfillment_mode?: string;
+    seller_user_id?: number | null;
+    delivery_charges?: unknown[] | null;
+  }): void {
+    const { sale_mode, fulfillment_mode, seller_user_id, delivery_charges } =
+      input;
+
+    if (
+      (sale_mode === SaleMode.SELLER_ATTRIBUTED ||
+        sale_mode === SaleMode.SELLER_ROUTE) &&
+      !seller_user_id
+    ) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_SELLER_REQUIRED',
+        messageKey: 'sales.order_seller_required',
+        details: { sale_mode },
+      });
+    }
+
+    if (
+      sale_mode === SaleMode.SELLER_ROUTE &&
+      fulfillment_mode !== FulfillmentMode.DELIVERY
+    ) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_ROUTE_REQUIRES_DELIVERY',
+        messageKey: 'sales.order_route_requires_delivery',
+        details: { sale_mode, fulfillment_mode },
+      });
+    }
+
+    if (
+      fulfillment_mode === FulfillmentMode.PICKUP &&
+      delivery_charges &&
+      delivery_charges.length > 0
+    ) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_PICKUP_NO_DELIVERY_CHARGES',
+        messageKey: 'sales.order_pickup_no_delivery_charges',
+        details: { fulfillment_mode },
+      });
+    }
   }
 
   private async get_order_entity(
