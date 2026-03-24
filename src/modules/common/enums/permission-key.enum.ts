@@ -119,6 +119,7 @@ export enum PermissionKey {
   SALE_ORDERS_UPDATE = 'sale_orders.update',
   SALE_ORDERS_CONFIRM = 'sale_orders.confirm',
   SALE_ORDERS_CANCEL = 'sale_orders.cancel',
+  SALE_ORDERS_DELETE = 'sale_orders.delete',
   ELECTRONIC_DOCUMENTS_VIEW = 'electronic_documents.view',
   ELECTRONIC_DOCUMENTS_EMIT = 'electronic_documents.emit',
   DISPATCH_ORDERS_VIEW = 'dispatch_orders.view',
