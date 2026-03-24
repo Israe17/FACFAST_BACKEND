@@ -11,6 +11,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -113,6 +114,18 @@ export class SaleOrdersController {
     @Param('id', ParseIntPipe) order_id: number,
   ) {
     return this.sale_orders_service.confirm_sale_order(current_user, order_id);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PermissionKey.SALE_ORDERS_DELETE)
+  @ApiOperation({ summary: 'Eliminar orden de venta (solo borradores)' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Orden de venta eliminada exitosamente.' })
+  delete_sale_order(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('id', ParseIntPipe) order_id: number,
+  ) {
+    return this.sale_orders_service.delete_sale_order(current_user, order_id);
   }
 
   @Post(':id/cancel')

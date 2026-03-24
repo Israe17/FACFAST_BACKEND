@@ -537,6 +537,12 @@ const sales_permissions: PermissionSeed[] = [
     description: 'Can cancel sale orders.',
   },
   {
+    key: PermissionKey.SALE_ORDERS_DELETE,
+    module: 'sale_orders',
+    action: 'delete',
+    description: 'Can delete draft sale orders.',
+  },
+  {
     key: PermissionKey.ELECTRONIC_DOCUMENTS_VIEW,
     module: 'electronic_documents',
     action: 'view',

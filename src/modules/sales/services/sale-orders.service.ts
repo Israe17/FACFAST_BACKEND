@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -15,12 +16,14 @@ import { SaleOrderDeliveryCharge } from '../entities/sale-order-delivery-charge.
 import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
 import { FulfillmentMode } from '../enums/fulfillment-mode.enum';
+import { ElectronicDocumentsRepository } from '../repositories/electronic-documents.repository';
 import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 
 @Injectable()
 export class SaleOrdersService {
   constructor(
     private readonly sale_orders_repository: SaleOrdersRepository,
+    private readonly electronic_documents_repository: ElectronicDocumentsRepository,
     private readonly data_source: DataSource,
     private readonly entity_code_service: EntityCodeService,
   ) {}
@@ -312,6 +315,41 @@ export class SaleOrdersService {
     return this.serialize_order(full_order!);
   }
 
+  async delete_sale_order(
+    current_user: AuthenticatedUserContext,
+    order_id: number,
+  ): Promise<{ id: number; deleted: true }> {
+    const business_id = resolve_effective_business_id(current_user);
+    const order = await this.get_order_entity(business_id, order_id);
+
+    if (order.status !== SaleOrderStatus.DRAFT) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_DELETE_NOT_DRAFT',
+        messageKey: 'sales.order_delete_not_draft',
+        details: { order_id, status: order.status },
+      });
+    }
+
+    const electronic_documents =
+      await this.electronic_documents_repository.find_by_sale_order_id(
+        order_id,
+        business_id,
+      );
+    if (electronic_documents.length > 0) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_DELETE_FORBIDDEN',
+        messageKey: 'sales.order_delete_forbidden',
+        details: {
+          order_id,
+          dependencies: { electronic_documents: electronic_documents.length },
+        },
+      });
+    }
+
+    await this.sale_orders_repository.remove(order);
+    return { id: order_id, deleted: true };
+  }
+
   private async get_order_entity(
     business_id: number,
     order_id: number,
@@ -414,6 +452,7 @@ export class SaleOrdersService {
         can_edit: order.status === SaleOrderStatus.DRAFT,
         can_confirm: order.status === SaleOrderStatus.DRAFT,
         can_cancel: order.status !== SaleOrderStatus.CANCELLED,
+        can_delete: order.status === SaleOrderStatus.DRAFT,
         reasons: [],
       },
       created_at: order.created_at,
