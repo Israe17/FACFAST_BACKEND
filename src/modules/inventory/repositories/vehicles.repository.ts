@@ -25,11 +25,35 @@ export class VehiclesRepository {
     );
   }
 
-  async find_all_by_business(business_id: number): Promise<Vehicle[]> {
-    return this.vehicle_repository.find({
-      where: { business_id },
-      order: { name: 'ASC' },
-    });
+  async find_all_by_business(
+    business_id: number,
+    branch_ids?: number[],
+  ): Promise<Vehicle[]> {
+    const qb = this.vehicle_repository
+      .createQueryBuilder('vehicle')
+      .leftJoinAndSelect(
+        'vehicle.branch_links',
+        'branch_link',
+        'branch_link.is_active = true',
+      )
+      .leftJoinAndSelect('branch_link.branch', 'branch')
+      .where('vehicle.business_id = :business_id', { business_id })
+      .orderBy('vehicle.name', 'ASC')
+      .addOrderBy('branch.name', 'ASC')
+      .distinct(true);
+
+    if (branch_ids !== undefined) {
+      if (branch_ids.length > 0) {
+        qb.andWhere(
+          '(vehicle.is_global = true OR branch_link.branch_id IN (:...branch_ids))',
+          { branch_ids },
+        );
+      } else {
+        qb.andWhere('vehicle.is_global = true');
+      }
+    }
+
+    return qb.getMany();
   }
 
   async find_by_id_in_business(
@@ -38,6 +62,7 @@ export class VehiclesRepository {
   ): Promise<Vehicle | null> {
     return this.vehicle_repository.findOne({
       where: { id, business_id },
+      relations: ['branch_links', 'branch_links.branch'],
     });
   }
 

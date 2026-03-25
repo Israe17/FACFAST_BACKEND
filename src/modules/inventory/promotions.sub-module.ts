@@ -8,10 +8,12 @@ import { PromotionsController } from './controllers/promotions.controller';
 import { PromotionBranchAssignment } from './entities/promotion-branch-assignment.entity';
 import { PromotionItem } from './entities/promotion-item.entity';
 import { Promotion } from './entities/promotion.entity';
+import { InventoryValidationSubModule } from './inventory-validation.sub-module';
 import { PromotionBranchAssignmentPolicy } from './policies/promotion-branch-assignment.policy';
 import { PromotionDefinitionPolicy } from './policies/promotion-definition.policy';
 import { PromotionBranchAssignmentsRepository } from './repositories/promotion-branch-assignments.repository';
 import { PromotionsRepository } from './repositories/promotions.repository';
+import { PricingValidationSubModule } from './pricing-validation.sub-module';
 import { PromotionBranchAssignmentSerializer } from './serializers/promotion-branch-assignment.serializer';
 import { PromotionSerializer } from './serializers/promotion.serializer';
 import { PromotionBranchAssignmentsService } from './services/promotion-branch-assignments.service';
@@ -37,6 +39,8 @@ import { UpdatePromotionUseCase } from './use-cases/update-promotion.use-case';
       PromotionBranchAssignment,
     ]),
     BranchesModule,
+    InventoryValidationSubModule,
+    PricingValidationSubModule,
     ProductsSubModule,
   ],
   controllers: [

@@ -16,6 +16,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -28,6 +29,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { CreateZoneDto } from '../dto/create-zone.dto';
+import { SetBranchAssignmentsDto } from '../dto/set-branch-assignments.dto';
 import { UpdateZoneDto } from '../dto/update-zone.dto';
 import { ZonesService } from '../services/zones.service';
 
@@ -71,6 +73,17 @@ export class ZonesController {
     return this.zones_service.get_zone(current_user, zone_id);
   }
 
+  @Get(':zone_id/branches')
+  @RequirePermissions(PermissionKey.ZONES_VIEW)
+  @ApiOperation({ summary: 'Obtener asignacion por sucursales de zona' })
+  @ApiParam({ name: 'zone_id', type: Number })
+  get_zone_branch_assignments(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('zone_id', ParseIntPipe) zone_id: number,
+  ) {
+    return this.zones_service.get_zone_branch_assignments(current_user, zone_id);
+  }
+
   @Patch(':zone_id')
   @RequirePermissions(PermissionKey.ZONES_UPDATE)
   @ApiOperation({ summary: 'Actualizar zona' })
@@ -82,6 +95,23 @@ export class ZonesController {
     @Body() dto: UpdateZoneDto,
   ) {
     return this.zones_service.update_zone(current_user, zone_id, dto);
+  }
+
+  @Put(':zone_id/branches')
+  @RequirePermissions(PermissionKey.ZONES_UPDATE)
+  @ApiOperation({ summary: 'Actualizar asignacion por sucursales de zona' })
+  @ApiParam({ name: 'zone_id', type: Number })
+  @ApiBody({ type: SetBranchAssignmentsDto })
+  set_zone_branch_assignments(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('zone_id', ParseIntPipe) zone_id: number,
+    @Body() dto: SetBranchAssignmentsDto,
+  ) {
+    return this.zones_service.set_zone_branch_assignments(
+      current_user,
+      zone_id,
+      dto,
+    );
   }
 
   @Delete(':zone_id')

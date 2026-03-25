@@ -4,9 +4,11 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
+import { VehicleBranchLink } from './vehicle-branch-link.entity';
 
 @Entity('vehicles')
 @Index(['business_id', 'plate_number'], { unique: true })
@@ -24,6 +26,12 @@ export class Vehicle extends AuditedCodeEntity {
     name: 'business_id',
   })
   business?: Business;
+
+  @Column({
+    type: 'boolean',
+    default: true,
+  })
+  is_global!: boolean;
 
   @Column({
     type: 'varchar',
@@ -71,4 +79,7 @@ export class Vehicle extends AuditedCodeEntity {
     nullable: true,
   })
   notes!: string | null;
+
+  @OneToMany(() => VehicleBranchLink, (branch_link) => branch_link.vehicle)
+  branch_links?: VehicleBranchLink[];
 }

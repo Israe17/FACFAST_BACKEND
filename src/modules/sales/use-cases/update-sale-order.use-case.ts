@@ -4,6 +4,7 @@ import { CommandUseCase } from '../../common/application/interfaces/command-use-
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { DispatchCatalogValidationService } from '../../inventory/services/dispatch-catalog-validation.service';
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
 import { SaleOrder } from '../entities/sale-order.entity';
@@ -31,6 +32,7 @@ export class UpdateSaleOrderUseCase
     private readonly sale_order_access_policy: SaleOrderAccessPolicy,
     private readonly sale_order_lifecycle_policy: SaleOrderLifecyclePolicy,
     private readonly sale_order_mode_policy: SaleOrderModePolicy,
+    private readonly dispatch_catalog_validation_service: DispatchCatalogValidationService,
     private readonly sale_order_serializer: SaleOrderSerializer,
   ) {}
 
@@ -72,6 +74,20 @@ export class UpdateSaleOrderUseCase
       this.sale_order_access_policy.assert_can_access_branch_id(
         current_user,
         dto.branch_id,
+      );
+    }
+
+    const effective_branch_id = dto.branch_id ?? order.branch_id;
+    const effective_delivery_zone_id =
+      dto.delivery_zone_id !== undefined
+        ? dto.delivery_zone_id
+        : order.delivery_zone_id;
+    if (effective_delivery_zone_id !== null && effective_delivery_zone_id !== undefined) {
+      await this.dispatch_catalog_validation_service.get_zone_for_branch_operation(
+        current_user,
+        effective_delivery_zone_id,
+        effective_branch_id,
+        { require_active: true },
       );
     }
 

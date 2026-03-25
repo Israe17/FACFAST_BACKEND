@@ -4,6 +4,7 @@ import { CommandUseCase } from '../../common/application/interfaces/command-use-
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { DispatchCatalogValidationService } from '../../inventory/services/dispatch-catalog-validation.service';
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
 import { SaleOrder } from '../entities/sale-order.entity';
@@ -31,6 +32,7 @@ export class CreateSaleOrderUseCase
     private readonly sale_orders_repository: SaleOrdersRepository,
     private readonly sale_order_access_policy: SaleOrderAccessPolicy,
     private readonly sale_order_mode_policy: SaleOrderModePolicy,
+    private readonly dispatch_catalog_validation_service: DispatchCatalogValidationService,
     private readonly sale_order_serializer: SaleOrderSerializer,
   ) {}
 
@@ -45,6 +47,14 @@ export class CreateSaleOrderUseCase
       dto.branch_id,
     );
     this.sale_order_mode_policy.assert_mode_coherence(dto);
+    if (dto.delivery_zone_id !== undefined && dto.delivery_zone_id !== null) {
+      await this.dispatch_catalog_validation_service.get_zone_for_branch_operation(
+        current_user,
+        dto.delivery_zone_id,
+        dto.branch_id,
+        { require_active: true },
+      );
+    }
 
     return this.data_source.transaction(async (manager) => {
       const order_repo = manager.getRepository(SaleOrder);

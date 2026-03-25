@@ -14,11 +14,14 @@ import { CreateDispatchOrderUseCase } from '../use-cases/create-dispatch-order.u
 import { GetDispatchOrderQueryUseCase } from '../use-cases/get-dispatch-order.query.use-case';
 import { GetDispatchOrdersCursorQueryUseCase } from '../use-cases/get-dispatch-orders-cursor.query.use-case';
 import { GetDispatchOrdersListQueryUseCase } from '../use-cases/get-dispatch-orders-list.query.use-case';
+import { MarkDispatchOrderReadyUseCase } from '../use-cases/mark-dispatch-order-ready.use-case';
 import { MarkDispatchOrderCompletedUseCase } from '../use-cases/mark-dispatch-order-completed.use-case';
 import { MarkDispatchOrderDispatchedUseCase } from '../use-cases/mark-dispatch-order-dispatched.use-case';
 import { RemoveDispatchExpenseUseCase } from '../use-cases/remove-dispatch-expense.use-case';
 import { RemoveDispatchStopUseCase } from '../use-cases/remove-dispatch-stop.use-case';
 import { UpdateDispatchOrderUseCase } from '../use-cases/update-dispatch-order.use-case';
+import { UpdateDispatchStopStatusUseCase } from '../use-cases/update-dispatch-stop-status.use-case';
+import { UpdateDispatchStopStatusDto } from '../dto/update-dispatch-stop-status.dto';
 
 @Injectable()
 export class DispatchOrdersService {
@@ -32,9 +35,11 @@ export class DispatchOrdersService {
     private readonly remove_dispatch_stop_use_case: RemoveDispatchStopUseCase,
     private readonly add_dispatch_expense_use_case: AddDispatchExpenseUseCase,
     private readonly remove_dispatch_expense_use_case: RemoveDispatchExpenseUseCase,
+    private readonly mark_dispatch_order_ready_use_case: MarkDispatchOrderReadyUseCase,
     private readonly mark_dispatch_order_dispatched_use_case: MarkDispatchOrderDispatchedUseCase,
     private readonly mark_dispatch_order_completed_use_case: MarkDispatchOrderCompletedUseCase,
     private readonly cancel_dispatch_order_use_case: CancelDispatchOrderUseCase,
+    private readonly update_dispatch_stop_status_use_case: UpdateDispatchStopStatusUseCase,
   ) {}
 
   async get_dispatch_orders(
@@ -115,6 +120,22 @@ export class DispatchOrdersService {
     });
   }
 
+  async update_stop_status(
+    current_user: AuthenticatedUserContext,
+    dispatch_order_id: number,
+    dispatch_stop_id: number,
+    dto: UpdateDispatchStopStatusDto,
+    idempotency_key?: string | null,
+  ): Promise<DispatchOrderView> {
+    return this.update_dispatch_stop_status_use_case.execute({
+      current_user,
+      dispatch_order_id,
+      dispatch_stop_id,
+      dto,
+      idempotency_key,
+    });
+  }
+
   async add_expense(
     current_user: AuthenticatedUserContext,
     dispatch_order_id: number,
@@ -139,6 +160,18 @@ export class DispatchOrdersService {
       current_user,
       dispatch_order_id,
       dispatch_expense_id,
+      idempotency_key,
+    });
+  }
+
+  async mark_ready(
+    current_user: AuthenticatedUserContext,
+    dispatch_order_id: number,
+    idempotency_key?: string | null,
+  ): Promise<DispatchOrderView> {
+    return this.mark_dispatch_order_ready_use_case.execute({
+      current_user,
+      dispatch_order_id,
       idempotency_key,
     });
   }

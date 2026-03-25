@@ -1,7 +1,8 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -10,10 +11,12 @@ import { CreateDispatchOrderDto } from '../dto/create-dispatch-order.dto';
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchStop } from '../entities/dispatch-stop.entity';
+import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
+import { DispatchCatalogValidationService } from '../services/dispatch-catalog-validation.service';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 
 export type CreateDispatchOrderCommand = {
@@ -31,13 +34,12 @@ export class CreateDispatchOrderUseCase
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
     private readonly dispatch_order_access_policy: DispatchOrderAccessPolicy,
     private readonly dispatch_sale_order_policy: DispatchSaleOrderPolicy,
+    private readonly dispatch_catalog_validation_service: DispatchCatalogValidationService,
     private readonly entity_code_service: EntityCodeService,
     private readonly dispatch_order_serializer: DispatchOrderSerializer,
     private readonly idempotency_service: IdempotencyService,
     @InjectRepository(DispatchStop)
     private readonly dispatch_stop_repository: Repository<DispatchStop>,
-    @InjectRepository(SaleOrder)
-    private readonly sale_order_repository: Repository<SaleOrder>,
   ) {}
 
   async execute({
@@ -53,6 +55,22 @@ export class CreateDispatchOrderUseCase
     );
     if (dto.code) {
       this.entity_code_service.validate_code('DO', dto.code);
+    }
+    if (dto.route_id !== undefined && dto.route_id !== null) {
+      await this.dispatch_catalog_validation_service.get_route_for_branch_operation(
+        current_user,
+        dto.route_id,
+        dto.branch_id,
+        { require_active: true },
+      );
+    }
+    if (dto.vehicle_id !== undefined && dto.vehicle_id !== null) {
+      await this.dispatch_catalog_validation_service.get_vehicle_for_branch_operation(
+        current_user,
+        dto.vehicle_id,
+        dto.branch_id,
+        { require_active: true },
+      );
     }
 
     return this.idempotency_service.execute(
@@ -101,6 +119,12 @@ export class CreateDispatchOrderUseCase
         if (dto.stop_sale_order_ids?.length) {
           for (let index = 0; index < dto.stop_sale_order_ids.length; index++) {
             const sale_order_id = dto.stop_sale_order_ids[index];
+            await this.assert_sale_order_not_assigned_to_active_dispatch(
+              manager,
+              business_id,
+              sale_order_id,
+            );
+
             const sale_order = await manager.getRepository(SaleOrder).findOne({
               where: { id: sale_order_id, business_id },
             });
@@ -142,5 +166,40 @@ export class CreateDispatchOrderUseCase
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private async assert_sale_order_not_assigned_to_active_dispatch(
+    manager: EntityManager,
+    business_id: number,
+    sale_order_id: number,
+  ): Promise<void> {
+    const existing_stop = await manager
+      .getRepository(DispatchStop)
+      .createQueryBuilder('dispatch_stop')
+      .innerJoinAndSelect('dispatch_stop.dispatch_order', 'dispatch_order')
+      .where('dispatch_stop.business_id = :business_id', { business_id })
+      .andWhere('dispatch_stop.sale_order_id = :sale_order_id', {
+        sale_order_id,
+      })
+      .andWhere('dispatch_order.status NOT IN (:...blocked_statuses)', {
+        blocked_statuses: [
+          DispatchOrderStatus.CANCELLED,
+          DispatchOrderStatus.COMPLETED,
+        ],
+      })
+      .getOne();
+
+    if (!existing_stop) {
+      return;
+    }
+
+    throw new DomainConflictException({
+      code: 'SALE_ORDER_ALREADY_ASSIGNED_TO_ACTIVE_DISPATCH',
+      messageKey: 'inventory.sale_order_already_assigned_to_active_dispatch',
+      details: {
+        sale_order_id,
+        dispatch_order_id: existing_stop.dispatch_order_id,
+      },
+    });
   }
 }

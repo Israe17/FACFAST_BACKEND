@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
 import { BranchPriceListsController } from './controllers/branch-price-lists.controller';
@@ -9,12 +9,14 @@ import { ProductPricesController } from './controllers/product-prices.controller
 import { PriceListBranchAssignment } from './entities/price-list-branch-assignment.entity';
 import { PriceList } from './entities/price-list.entity';
 import { ProductPrice } from './entities/product-price.entity';
+import { InventoryValidationSubModule } from './inventory-validation.sub-module';
 import { PriceListBranchAssignmentPolicy } from './policies/price-list-branch-assignment.policy';
 import { PriceListLifecyclePolicy } from './policies/price-list-lifecycle.policy';
 import { ProductPricePolicy } from './policies/product-price.policy';
 import { PriceListBranchAssignmentsRepository } from './repositories/price-list-branch-assignments.repository';
 import { PriceListsRepository } from './repositories/price-lists.repository';
 import { ProductPricesRepository } from './repositories/product-prices.repository';
+import { PricingValidationSubModule } from './pricing-validation.sub-module';
 import { PriceListBranchAssignmentSerializer } from './serializers/price-list-branch-assignment.serializer';
 import { PriceListSerializer } from './serializers/price-list.serializer';
 import { ProductPriceSerializer } from './serializers/product-price.serializer';
@@ -47,7 +49,9 @@ import { UpdateProductPriceUseCase } from './use-cases/update-product-price.use-
       ProductPrice,
     ]),
     BranchesModule,
-    ProductsSubModule,
+    InventoryValidationSubModule,
+    PricingValidationSubModule,
+    forwardRef(() => ProductsSubModule),
   ],
   controllers: [
     PriceListsController,
@@ -67,7 +71,6 @@ import { UpdateProductPriceUseCase } from './use-cases/update-product-price.use-
     PriceListBranchAssignmentSerializer,
     ProductPriceSerializer,
     PricingService,
-    PricingValidationService,
     PriceListBranchAssignmentsService,
     GetPriceListsListQueryUseCase,
     GetPriceListQueryUseCase,
@@ -88,7 +91,6 @@ import { UpdateProductPriceUseCase } from './use-cases/update-product-price.use-
   ],
   exports: [
     PricingService,
-    PricingValidationService,
     PriceListsRepository,
     PriceListBranchAssignmentsRepository,
     ProductPricesRepository,

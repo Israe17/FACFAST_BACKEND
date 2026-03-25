@@ -1,7 +1,8 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -10,6 +11,7 @@ import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { CreateDispatchStopDto } from '../dto/create-dispatch-stop.dto';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchStop } from '../entities/dispatch-stop.entity';
+import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
 import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
@@ -38,8 +40,6 @@ export class AddDispatchStopUseCase
     private readonly idempotency_service: IdempotencyService,
     @InjectRepository(DispatchStop)
     private readonly dispatch_stop_repository: Repository<DispatchStop>,
-    @InjectRepository(SaleOrder)
-    private readonly sale_order_repository: Repository<SaleOrder>,
   ) {}
 
   async execute({
@@ -94,6 +94,13 @@ export class AddDispatchStopUseCase
             details: { sale_order_id: dto.sale_order_id },
           });
         }
+
+        await this.assert_sale_order_not_assigned_to_active_dispatch(
+          manager,
+          business_id,
+          sale_order.id,
+        );
+
         this.dispatch_sale_order_policy.assert_dispatchable_sale_order(
           order.branch_id,
           sale_order,
@@ -128,5 +135,40 @@ export class AddDispatchStopUseCase
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private async assert_sale_order_not_assigned_to_active_dispatch(
+    manager: EntityManager,
+    business_id: number,
+    sale_order_id: number,
+  ): Promise<void> {
+    const existing_stop = await manager
+      .getRepository(DispatchStop)
+      .createQueryBuilder('dispatch_stop')
+      .innerJoinAndSelect('dispatch_stop.dispatch_order', 'dispatch_order')
+      .where('dispatch_stop.business_id = :business_id', { business_id })
+      .andWhere('dispatch_stop.sale_order_id = :sale_order_id', {
+        sale_order_id,
+      })
+      .andWhere('dispatch_order.status NOT IN (:...blocked_statuses)', {
+        blocked_statuses: [
+          DispatchOrderStatus.CANCELLED,
+          DispatchOrderStatus.COMPLETED,
+        ],
+      })
+      .getOne();
+
+    if (!existing_stop) {
+      return;
+    }
+
+    throw new DomainConflictException({
+      code: 'SALE_ORDER_ALREADY_ASSIGNED_TO_ACTIVE_DISPATCH',
+      messageKey: 'inventory.sale_order_already_assigned_to_active_dispatch',
+      details: {
+        sale_order_id,
+        dispatch_order_id: existing_stop.dispatch_order_id,
+      },
+    });
   }
 }

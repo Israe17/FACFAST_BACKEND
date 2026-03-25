@@ -29,11 +29,14 @@ import { PromotionItem } from '../modules/inventory/entities/promotion-item.enti
 import { PromotionBranchAssignment } from '../modules/inventory/entities/promotion-branch-assignment.entity';
 import { Promotion } from '../modules/inventory/entities/promotion.entity';
 import { TaxProfile } from '../modules/inventory/entities/tax-profile.entity';
+import { RouteBranchLink } from '../modules/inventory/entities/route-branch-link.entity';
+import { VehicleBranchLink } from '../modules/inventory/entities/vehicle-branch-link.entity';
 import { WarehouseBranchLink } from '../modules/inventory/entities/warehouse-branch-link.entity';
 import { WarehouseLocation } from '../modules/inventory/entities/warehouse-location.entity';
 import { WarehouseStock } from '../modules/inventory/entities/warehouse-stock.entity';
 import { Warehouse } from '../modules/inventory/entities/warehouse.entity';
 import { WarrantyProfile } from '../modules/inventory/entities/warranty-profile.entity';
+import { ZoneBranchLink } from '../modules/inventory/entities/zone-branch-link.entity';
 import { Zone } from '../modules/inventory/entities/zone.entity';
 import { Vehicle } from '../modules/inventory/entities/vehicle.entity';
 import { Route } from '../modules/inventory/entities/route.entity';
@@ -94,8 +97,11 @@ export const database_entities = [
   InventoryMovementHeader,
   InventoryMovementLine,
   InventoryReservation,
+  ZoneBranchLink,
   Zone,
+  VehicleBranchLink,
   Vehicle,
+  RouteBranchLink,
   Route,
   DispatchOrder,
   DispatchStop,

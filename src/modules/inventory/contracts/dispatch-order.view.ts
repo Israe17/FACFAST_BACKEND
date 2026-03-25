@@ -66,6 +66,7 @@ export interface DispatchOrderView {
     updated_at: Date;
   }>;
   lifecycle: {
+    can_ready: boolean;
     can_edit: boolean;
     can_dispatch: boolean;
     can_complete: boolean;

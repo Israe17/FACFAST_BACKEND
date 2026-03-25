@@ -3,23 +3,34 @@ import { DomainConflictException } from '../../common/errors/exceptions/domain-c
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
-import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import {
+  resolve_effective_branch_scope_ids,
+  resolve_effective_business_id,
+} from '../../common/utils/tenant-context.util';
+import { BranchAssignmentsView } from '../contracts/branch-assignments.view';
 import { CreateRouteDto } from '../dto/create-route.dto';
+import { SetBranchAssignmentsDto } from '../dto/set-branch-assignments.dto';
 import { UpdateRouteDto } from '../dto/update-route.dto';
 import { Route } from '../entities/route.entity';
+import { RouteBranchLinksRepository } from '../repositories/route-branch-links.repository';
 import { RoutesRepository } from '../repositories/routes.repository';
+import { DispatchCatalogValidationService } from './dispatch-catalog-validation.service';
 
 @Injectable()
 export class RoutesService {
   constructor(
     private readonly routes_repository: RoutesRepository,
+    private readonly route_branch_links_repository: RouteBranchLinksRepository,
+    private readonly dispatch_catalog_validation_service: DispatchCatalogValidationService,
     private readonly entity_code_service: EntityCodeService,
   ) {}
 
   async get_routes(current_user: AuthenticatedUserContext) {
     const business_id = resolve_effective_business_id(current_user);
-    const routes =
-      await this.routes_repository.find_all_by_business(business_id);
+    const routes = await this.routes_repository.find_all_by_business(
+      business_id,
+      resolve_effective_branch_scope_ids(current_user),
+    );
     return routes.map((route) => this.serialize_route(route));
   }
 
@@ -28,6 +39,24 @@ export class RoutesService {
     dto: CreateRouteDto,
   ) {
     const business_id = resolve_effective_business_id(current_user);
+    const assigned_branch_ids =
+      this.dispatch_catalog_validation_service.normalize_branch_ids(
+        dto.assigned_branch_ids,
+      );
+    const is_global = dto.is_global ?? assigned_branch_ids.length === 0;
+
+    this.dispatch_catalog_validation_service.assert_non_global_requires_assignments(
+      is_global,
+      assigned_branch_ids,
+      'ROUTE_BRANCH_ASSIGNMENTS_REQUIRED',
+      'inventory.route_branch_assignments_required',
+    );
+    await this.dispatch_catalog_validation_service.assert_manageable_branch_ids(
+      current_user,
+      business_id,
+      assigned_branch_ids,
+    );
+
     if (
       await this.routes_repository.exists_name_in_business(
         business_id,
@@ -47,31 +76,41 @@ export class RoutesService {
       this.entity_code_service.validate_code('RT', dto.code);
     }
 
-    return this.serialize_route(
-      await this.routes_repository.save(
-        this.routes_repository.create({
-          business_id,
-          code: dto.code?.trim() ?? null,
-          name: dto.name.trim(),
-          description: this.normalize_optional_string(dto.description),
-          zone_id: dto.zone_id ?? null,
-          default_driver_user_id: dto.default_driver_user_id ?? null,
-          default_vehicle_id: dto.default_vehicle_id ?? null,
-          estimated_cost: dto.estimated_cost ?? null,
-          frequency: this.normalize_optional_string(dto.frequency),
-          day_of_week: this.normalize_optional_string(dto.day_of_week),
-          is_active: dto.is_active ?? true,
-        }),
-      ),
+    const saved_route = await this.routes_repository.save(
+      this.routes_repository.create({
+        business_id,
+        code: dto.code?.trim() ?? null,
+        is_global,
+        name: dto.name.trim(),
+        description: this.normalize_optional_string(dto.description),
+        zone_id: dto.zone_id ?? null,
+        default_driver_user_id: dto.default_driver_user_id ?? null,
+        default_vehicle_id: dto.default_vehicle_id ?? null,
+        estimated_cost: dto.estimated_cost ?? null,
+        frequency: this.normalize_optional_string(dto.frequency),
+        day_of_week: this.normalize_optional_string(dto.day_of_week),
+        is_active: dto.is_active ?? true,
+      }),
     );
+    await this.sync_branch_assignments(saved_route, assigned_branch_ids);
+
+    const route = await this.routes_repository.find_by_id_in_business(
+      saved_route.id,
+      business_id,
+    );
+    return this.serialize_route(route!);
   }
 
   async get_route(current_user: AuthenticatedUserContext, route_id: number) {
-    return this.serialize_route(
-      await this.get_route_entity(
-        resolve_effective_business_id(current_user),
-        route_id,
-      ),
+    return this.serialize_route(await this.get_route_entity(current_user, route_id));
+  }
+
+  async get_route_branch_assignments(
+    current_user: AuthenticatedUserContext,
+    route_id: number,
+  ): Promise<BranchAssignmentsView> {
+    return this.serialize_branch_assignments_view(
+      await this.get_route(current_user, route_id),
     );
   }
 
@@ -81,8 +120,32 @@ export class RoutesService {
     dto: UpdateRouteDto,
   ) {
     const business_id = resolve_effective_business_id(current_user);
-    const route = await this.get_route_entity(business_id, route_id);
+    const route = await this.get_route_entity(current_user, route_id);
     const next_name = dto.name?.trim() ?? route.name;
+    const next_branch_ids =
+      dto.assigned_branch_ids !== undefined
+        ? this.dispatch_catalog_validation_service.normalize_branch_ids(
+            dto.assigned_branch_ids,
+          )
+        : this.dispatch_catalog_validation_service.get_active_branch_ids(route);
+    const next_is_global =
+      this.dispatch_catalog_validation_service.resolve_next_global_state(
+        route.is_global,
+        dto.is_global,
+        dto.assigned_branch_ids,
+      );
+
+    this.dispatch_catalog_validation_service.assert_non_global_requires_assignments(
+      next_is_global,
+      next_branch_ids,
+      'ROUTE_BRANCH_ASSIGNMENTS_REQUIRED',
+      'inventory.route_branch_assignments_required',
+    );
+    await this.dispatch_catalog_validation_service.assert_manageable_branch_ids(
+      current_user,
+      business_id,
+      next_branch_ids,
+    );
 
     if (
       await this.routes_repository.exists_name_in_business(
@@ -104,6 +167,7 @@ export class RoutesService {
       this.entity_code_service.validate_code('RT', dto.code.trim());
       route.code = dto.code.trim();
     }
+    route.is_global = next_is_global;
     if (dto.name) {
       route.name = dto.name.trim();
     }
@@ -120,7 +184,7 @@ export class RoutesService {
       route.default_vehicle_id = dto.default_vehicle_id;
     }
     if (dto.estimated_cost !== undefined) {
-      route.estimated_cost = dto.estimated_cost;
+      route.estimated_cost = dto.estimated_cost ?? null;
     }
     if (dto.frequency !== undefined) {
       route.frequency = this.normalize_optional_string(dto.frequency);
@@ -132,21 +196,39 @@ export class RoutesService {
       route.is_active = dto.is_active;
     }
 
-    return this.serialize_route(await this.routes_repository.save(route));
+    const saved_route = await this.routes_repository.save(route);
+    await this.sync_branch_assignments(saved_route, next_branch_ids);
+    const refreshed_route = await this.routes_repository.find_by_id_in_business(
+      saved_route.id,
+      business_id,
+    );
+    return this.serialize_route(refreshed_route!);
+  }
+
+  async set_route_branch_assignments(
+    current_user: AuthenticatedUserContext,
+    route_id: number,
+    dto: SetBranchAssignmentsDto,
+  ): Promise<BranchAssignmentsView> {
+    return this.serialize_branch_assignments_view(
+      await this.update_route(current_user, route_id, {
+        is_global: dto.is_global,
+        assigned_branch_ids: dto.assigned_branch_ids,
+      }),
+    );
   }
 
   async delete_route(current_user: AuthenticatedUserContext, route_id: number) {
-    const business_id = resolve_effective_business_id(current_user);
-    const route = await this.get_route_entity(business_id, route_id);
-
+    const route = await this.get_route_entity(current_user, route_id);
     await this.routes_repository.remove(route);
     return { id: route_id };
   }
 
   private async get_route_entity(
-    business_id: number,
+    current_user: AuthenticatedUserContext,
     route_id: number,
   ): Promise<Route> {
+    const business_id = resolve_effective_business_id(current_user);
     const route = await this.routes_repository.find_by_id_in_business(
       route_id,
       business_id,
@@ -161,7 +243,47 @@ export class RoutesService {
       });
     }
 
+    this.dispatch_catalog_validation_service.assert_catalog_access(
+      current_user,
+      route,
+    );
     return route;
+  }
+
+  private async sync_branch_assignments(
+    route: Route,
+    branch_ids: number[],
+  ): Promise<void> {
+    await this.route_branch_links_repository.deactivate_all_by_route(
+      route.business_id,
+      route.id,
+    );
+    if (route.is_global) {
+      return;
+    }
+
+    for (const branch_id of branch_ids) {
+      const existing_link =
+        await this.route_branch_links_repository.find_by_route_and_branch(
+          route.business_id,
+          route.id,
+          branch_id,
+        );
+      if (existing_link) {
+        existing_link.is_active = true;
+        await this.route_branch_links_repository.save(existing_link);
+        continue;
+      }
+
+      await this.route_branch_links_repository.save(
+        this.route_branch_links_repository.create({
+          business_id: route.business_id,
+          route_id: route.id,
+          branch_id,
+          is_active: true,
+        }),
+      );
+    }
   }
 
   private normalize_optional_string(value?: string | null): string | null {
@@ -169,11 +291,30 @@ export class RoutesService {
     return normalized ? normalized : null;
   }
 
+  private serialize_branch_assignments_view(view: {
+    id: number;
+    code: string | null;
+    name: string;
+    is_global: boolean;
+    assigned_branch_ids: number[];
+    assigned_branches: Array<{ id: number; name: string | null }>;
+  }): BranchAssignmentsView {
+    return {
+      id: view.id,
+      code: view.code,
+      name: view.name,
+      is_global: view.is_global,
+      assigned_branch_ids: view.assigned_branch_ids,
+      assigned_branches: view.assigned_branches,
+    };
+  }
+
   private serialize_route(route: Route) {
     return {
       id: route.id,
       code: route.code,
       business_id: route.business_id,
+      is_global: route.is_global,
       name: route.name,
       description: route.description,
       zone: route.zone
@@ -195,6 +336,14 @@ export class RoutesService {
       estimated_cost: route.estimated_cost,
       frequency: route.frequency,
       day_of_week: route.day_of_week,
+      assigned_branch_ids:
+        this.dispatch_catalog_validation_service.get_active_branch_ids(route),
+      assigned_branches: (route.branch_links ?? [])
+        .filter((branch_link) => branch_link.is_active)
+        .map((branch_link) => ({
+          id: branch_link.branch_id,
+          name: branch_link.branch?.name ?? null,
+        })),
       is_active: route.is_active,
       lifecycle: {
         can_delete: true,
