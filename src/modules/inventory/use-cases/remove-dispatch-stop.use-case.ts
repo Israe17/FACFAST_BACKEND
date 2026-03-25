@@ -13,6 +13,7 @@ import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecyc
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
+import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 import { get_dispatch_status_for_fulfillment_mode } from '../../sales/utils/sale-dispatch-status.util';
 
 export type RemoveDispatchStopCommand = {
@@ -106,6 +107,7 @@ export class RemoveDispatchStopUseCase
           );
           await manager.getRepository(SaleOrder).save(sale_order);
         }
+
         const full_order =
           await this.dispatch_orders_repository.find_by_id_in_business(
             dispatch_order_id,

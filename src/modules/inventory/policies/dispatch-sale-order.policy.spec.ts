@@ -29,7 +29,7 @@ describe('DispatchSaleOrderPolicy', () => {
       policy.assert_dispatchable_sale_order(10, {
         id: 1,
         branch_id: 10,
-        dispatch_status: SaleDispatchStatus.DISPATCHED,
+        dispatch_status: SaleDispatchStatus.ASSIGNED,
         fulfillment_mode: FulfillmentMode.DELIVERY,
         status: SaleOrderStatus.CONFIRMED,
         warehouse_id: 4,

@@ -10,6 +10,8 @@ import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
 import { SaleOrder } from '../entities/sale-order.entity';
 import { SaleOrderDeliveryCharge } from '../entities/sale-order-delivery-charge.entity';
 import { SaleOrderLine } from '../entities/sale-order-line.entity';
+import { FulfillmentMode } from '../enums/fulfillment-mode.enum';
+import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
 import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
 import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
