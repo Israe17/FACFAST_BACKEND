@@ -101,6 +101,7 @@ export class MarkDispatchOrderCompletedUseCase
           await this.dispatch_orders_repository.find_by_id_in_business(
             dispatch_order_id,
             business_id,
+            manager,
           );
         return this.dispatch_order_serializer.serialize(full_order!);
       },
