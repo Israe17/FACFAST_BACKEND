@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -91,19 +92,40 @@ export class EmitElectronicDocumentUseCase
           sale_order,
         );
 
-        const subtotal = (sale_order.lines ?? []).reduce(
-          (sum, line) => sum + Number(line.quantity) * Number(line.unit_price),
-          0,
+        const lines = sale_order.lines ?? [];
+        if (lines.length === 0) {
+          throw new DomainBadRequestException({
+            code: 'SALE_ORDER_NO_LINES',
+            messageKey: 'sales.order_has_no_lines',
+            details: { order_id: sale_order.id },
+          });
+        }
+
+        const round2 = (n: number) => Math.round(n * 100) / 100;
+
+        const subtotal = round2(
+          lines.reduce(
+            (sum, line) =>
+              sum + Number(line.quantity) * Number(line.unit_price),
+            0,
+          ),
         );
-        const tax_total = (sale_order.lines ?? []).reduce(
-          (sum, line) => sum + Number(line.tax_amount),
-          0,
+        const tax_total = round2(
+          lines.reduce(
+            (sum, line) => sum + Number(line.tax_amount),
+            0,
+          ),
         );
-        const discount_total = (sale_order.lines ?? []).reduce((sum, line) => {
-          const line_subtotal = Number(line.quantity) * Number(line.unit_price);
-          return sum + line_subtotal * (Number(line.discount_percent) / 100);
-        }, 0);
-        const total = subtotal - discount_total + tax_total;
+        const discount_total = round2(
+          lines.reduce((sum, line) => {
+            const line_subtotal =
+              Number(line.quantity) * Number(line.unit_price);
+            return (
+              sum + line_subtotal * (Number(line.discount_percent) / 100)
+            );
+          }, 0),
+        );
+        const total = round2(subtotal - discount_total + tax_total);
 
         const document = await manager.getRepository(ElectronicDocument).save(
           manager.getRepository(ElectronicDocument).create({
