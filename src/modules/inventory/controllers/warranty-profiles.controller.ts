@@ -65,13 +65,13 @@ export class WarrantyProfilesController {
     );
   }
 
-  @Get(':id')
+  @Get(':warranty_profile_id')
   @RequirePermissions(PermissionKey.WARRANTY_PROFILES_VIEW)
   @ApiOperation({ summary: 'Obtener perfil de garantia por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warranty_profile_id', type: Number })
   get_warranty_profile(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warranty_profile_id: number,
+    @Param('warranty_profile_id', ParseIntPipe) warranty_profile_id: number,
   ) {
     return this.warranty_profiles_service.get_warranty_profile(
       current_user,
@@ -79,14 +79,14 @@ export class WarrantyProfilesController {
     );
   }
 
-  @Patch(':id')
+  @Patch(':warranty_profile_id')
   @RequirePermissions(PermissionKey.WARRANTY_PROFILES_UPDATE)
   @ApiOperation({ summary: 'Actualizar perfil de garantia' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warranty_profile_id', type: Number })
   @ApiBody({ type: UpdateWarrantyProfileDto })
   update_warranty_profile(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warranty_profile_id: number,
+    @Param('warranty_profile_id', ParseIntPipe) warranty_profile_id: number,
     @Body() dto: UpdateWarrantyProfileDto,
   ) {
     return this.warranty_profiles_service.update_warranty_profile(
@@ -96,15 +96,15 @@ export class WarrantyProfilesController {
     );
   }
 
-  @Delete(':id')
+  @Delete(':warranty_profile_id')
   @RequirePermissions(PermissionKey.WARRANTY_PROFILES_DELETE)
   @ApiOperation({
     summary: 'Eliminar perfil de garantia (solo si no está en uso)',
   })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warranty_profile_id', type: Number })
   delete_warranty_profile(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warranty_profile_id: number,
+    @Param('warranty_profile_id', ParseIntPipe) warranty_profile_id: number,
   ) {
     return this.warranty_profiles_service.delete_warranty_profile(
       current_user,

@@ -60,25 +60,25 @@ export class PriceListsController {
     return this.pricing_service.create_price_list(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':price_list_id')
   @RequirePermissions(PermissionKey.PRICE_LISTS_VIEW)
   @ApiOperation({ summary: 'Obtener lista de precios por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'price_list_id', type: Number })
   get_price_list(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) price_list_id: number,
+    @Param('price_list_id', ParseIntPipe) price_list_id: number,
   ) {
     return this.pricing_service.get_price_list(current_user, price_list_id);
   }
 
-  @Patch(':id')
+  @Patch(':price_list_id')
   @RequirePermissions(PermissionKey.PRICE_LISTS_UPDATE)
   @ApiOperation({ summary: 'Actualizar lista de precios' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'price_list_id', type: Number })
   @ApiBody({ type: UpdatePriceListDto })
   update_price_list(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) price_list_id: number,
+    @Param('price_list_id', ParseIntPipe) price_list_id: number,
     @Body() dto: UpdatePriceListDto,
   ) {
     return this.pricing_service.update_price_list(
@@ -88,16 +88,16 @@ export class PriceListsController {
     );
   }
 
-  @Delete(':id')
+  @Delete(':price_list_id')
   @RequirePermissions(PermissionKey.PRICE_LISTS_DELETE)
   @ApiOperation({
     summary:
       'Eliminar lista de precios y todos sus precios (no aplica a la lista por defecto)',
   })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'price_list_id', type: Number })
   delete_price_list(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) price_list_id: number,
+    @Param('price_list_id', ParseIntPipe) price_list_id: number,
   ) {
     return this.pricing_service.delete_price_list(current_user, price_list_id);
   }

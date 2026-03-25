@@ -1,0 +1,32 @@
+import { Injectable } from '@nestjs/common';
+import { AccessPolicy } from '../../common/application/interfaces/access-policy.interface';
+import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy';
+
+@Injectable()
+export class InventoryMovementAccessPolicy
+  implements AccessPolicy<{ branch_id: number | null }>
+{
+  constructor(private readonly branch_access_policy: BranchAccessPolicy) {}
+
+  assert_can_access(
+    current_user: AuthenticatedUserContext,
+    subject: { branch_id: number | null },
+  ): void {
+    if (subject.branch_id === null) {
+      return;
+    }
+
+    this.branch_access_policy.assert_can_access_branch(
+      current_user,
+      subject.branch_id,
+    );
+  }
+
+  assert_can_access_header(
+    current_user: AuthenticatedUserContext,
+    header: { branch_id: number | null },
+  ): void {
+    this.assert_can_access(current_user, header);
+  }
+}

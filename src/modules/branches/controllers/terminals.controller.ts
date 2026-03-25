@@ -12,6 +12,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   ParseIntPipe,
   Patch,
@@ -27,7 +28,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { UpdateTerminalDto } from '../dto/update-terminal.dto';
-import { BranchesService } from '../services/branches.service';
+import { TerminalsService } from '../services/terminals.service';
 
 @ApiTags('branches')
 @ApiCookieAuth('access-cookie')
@@ -40,35 +41,47 @@ import { BranchesService } from '../services/branches.service';
 @AllowPlatformTenantContext()
 @UseGuards(JwtAuthGuard, TenantContextGuard, PermissionsGuard)
 export class TerminalsController {
-  constructor(private readonly branches_service: BranchesService) {}
+  constructor(private readonly terminals_service: TerminalsService) {}
 
-  @Patch(':id')
+  @Get(':terminal_id')
+  @RequirePermissions(PermissionKey.BRANCHES_VIEW)
+  @ApiOperation({ summary: 'Obtener terminal por id' })
+  @ApiParam({ name: 'terminal_id', type: Number })
+  @ApiOkResponse({ description: 'Detalle de la terminal.' })
+  get_terminal(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('terminal_id', ParseIntPipe) terminal_id: number,
+  ) {
+    return this.terminals_service.get_terminal(current_user, terminal_id);
+  }
+
+  @Patch(':terminal_id')
   @RequirePermissions(PermissionKey.BRANCHES_UPDATE_TERMINAL)
   @ApiOperation({ summary: 'Actualizar terminal' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'terminal_id', type: Number })
   @ApiBody({ type: UpdateTerminalDto })
   @ApiOkResponse({ description: 'Terminal actualizada exitosamente.' })
   update_terminal(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) terminal_id: number,
+    @Param('terminal_id', ParseIntPipe) terminal_id: number,
     @Body() dto: UpdateTerminalDto,
   ) {
-    return this.branches_service.update_terminal(
+    return this.terminals_service.update_terminal(
       current_user,
       terminal_id,
       dto,
     );
   }
 
-  @Delete(':id')
+  @Delete(':terminal_id')
   @RequirePermissions(PermissionKey.BRANCHES_DELETE_TERMINAL)
   @ApiOperation({ summary: 'Eliminar terminal' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'terminal_id', type: Number })
   @ApiOkResponse({ description: 'Terminal eliminada exitosamente.' })
   delete_terminal(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) terminal_id: number,
+    @Param('terminal_id', ParseIntPipe) terminal_id: number,
   ) {
-    return this.branches_service.delete_terminal(current_user, terminal_id);
+    return this.terminals_service.delete_terminal(current_user, terminal_id);
   }
 }

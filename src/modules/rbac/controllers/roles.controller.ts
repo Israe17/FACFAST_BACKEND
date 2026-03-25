@@ -65,41 +65,41 @@ export class RolesController {
     return this.rbac_service.create_role(current_user, dto);
   }
 
-  @Patch(':id')
+  @Patch(':role_id')
   @RequirePermissions(PermissionKey.ROLES_UPDATE)
   @ApiOperation({ summary: 'Actualizar rol' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'role_id', type: Number })
   @ApiBody({ type: UpdateRoleDto })
   @ApiOkResponse({ description: 'Rol actualizado exitosamente.' })
   update_role(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) role_id: number,
+    @Param('role_id', ParseIntPipe) role_id: number,
     @Body() dto: UpdateRoleDto,
   ) {
     return this.rbac_service.update_role(current_user, role_id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':role_id')
   @RequirePermissions(PermissionKey.ROLES_DELETE)
   @ApiOperation({ summary: 'Eliminar rol' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'role_id', type: Number })
   @ApiOkResponse({ description: 'Rol eliminado exitosamente.' })
   delete_role(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) role_id: number,
+    @Param('role_id', ParseIntPipe) role_id: number,
   ) {
     return this.rbac_service.delete_role(current_user, role_id);
   }
 
-  @Put(':id/permissions')
+  @Put(':role_id/permissions')
   @RequirePermissions(PermissionKey.ROLES_ASSIGN_PERMISSIONS)
   @ApiOperation({ summary: 'Asignar permisos a un rol' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'role_id', type: Number })
   @ApiBody({ type: AssignRolePermissionsDto })
   @ApiOkResponse({ description: 'Permisos del rol actualizados.' })
   assign_permissions(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) role_id: number,
+    @Param('role_id', ParseIntPipe) role_id: number,
     @Body() dto: AssignRolePermissionsDto,
   ) {
     return this.rbac_service.assign_permissions(current_user, role_id, dto);

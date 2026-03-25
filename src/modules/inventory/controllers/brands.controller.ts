@@ -60,37 +60,37 @@ export class BrandsController {
     return this.brands_service.create_brand(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':brand_id')
   @RequirePermissions(PermissionKey.BRANDS_VIEW)
   @ApiOperation({ summary: 'Obtener marca por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'brand_id', type: Number })
   get_brand(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) brand_id: number,
+    @Param('brand_id', ParseIntPipe) brand_id: number,
   ) {
     return this.brands_service.get_brand(current_user, brand_id);
   }
 
-  @Patch(':id')
+  @Patch(':brand_id')
   @RequirePermissions(PermissionKey.BRANDS_UPDATE)
   @ApiOperation({ summary: 'Actualizar marca' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'brand_id', type: Number })
   @ApiBody({ type: UpdateBrandDto })
   update_brand(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) brand_id: number,
+    @Param('brand_id', ParseIntPipe) brand_id: number,
     @Body() dto: UpdateBrandDto,
   ) {
     return this.brands_service.update_brand(current_user, brand_id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':brand_id')
   @RequirePermissions(PermissionKey.BRANDS_DELETE)
   @ApiOperation({ summary: 'Eliminar marca (solo si no está en uso)' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'brand_id', type: Number })
   delete_brand(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) brand_id: number,
+    @Param('brand_id', ParseIntPipe) brand_id: number,
   ) {
     return this.brands_service.delete_brand(current_user, brand_id);
   }

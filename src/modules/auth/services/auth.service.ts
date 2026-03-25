@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Request, Response } from 'express';
 import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
 import { DomainUnauthorizedException } from '../../common/errors/exceptions/domain-unauthorized.exception';
+import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { JwtAccessPayload } from '../../common/interfaces/jwt-access-payload.interface';
@@ -69,7 +70,7 @@ export class AuthService {
       });
     }
 
-    if (!authenticated_user.permissions.includes('auth.login')) {
+    if (!authenticated_user.permissions.includes(PermissionKey.AUTH_LOGIN)) {
       throw new DomainForbiddenException({
         code: 'AUTH_LOGIN_PERMISSION_DENIED',
         messageKey: 'auth.login_permission_denied',
@@ -91,7 +92,7 @@ export class AuthService {
     request: Request,
     response: Response,
   ) {
-    if (!refresh_user.permissions.includes('auth.refresh')) {
+    if (!refresh_user.permissions.includes(PermissionKey.AUTH_REFRESH)) {
       throw new DomainForbiddenException({
         code: 'AUTH_REFRESH_PERMISSION_DENIED',
         messageKey: 'auth.refresh_permission_denied',

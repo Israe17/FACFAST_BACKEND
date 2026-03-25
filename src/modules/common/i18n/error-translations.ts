@@ -72,6 +72,10 @@ export const error_translations = {
       'La configuracion de cifrado de campos no esta disponible.',
     'common.encrypted_payload_invalid_format':
       'El valor cifrado no tiene un formato valido.',
+    'common.idempotency_key_in_progress':
+      'Ya existe una solicitud en proceso con la misma llave de idempotencia.',
+    'common.idempotency_key_payload_mismatch':
+      'La llave de idempotencia ya fue utilizada con un payload distinto.',
     'businesses.not_found': 'La empresa no existe.',
     'businesses.identification_duplicate':
       'La identificacion de empresa ya existe.',
@@ -263,6 +267,18 @@ export const error_translations = {
       'La conversion de unidades distinta entre venta y stock aun no esta soportada.',
     'inventory.product_variant_delete_forbidden':
       'La variante no puede eliminarse permanentemente porque aun tiene restricciones o dependencias.',
+    'sales.order_reservations_already_exist':
+      'La orden ya tiene reservas de inventario registradas.',
+    'sales.order_line_variant_required':
+      'Una linea de la orden no tiene su variante de producto cargada.',
+    'sales.order_reservation_required':
+      'La orden requiere una reserva activa antes de despacharse.',
+    'sales.order_reservation_insufficient':
+      'La reserva activa no cubre la cantidad que se intenta despachar.',
+    'sales.order_dispatch_requires_confirmation':
+      'Solo las ordenes confirmadas pueden programarse para despacho.',
+    'sales.order_dispatch_branch_mismatch':
+      'La orden de venta pertenece a una sucursal distinta a la del despacho.',
     'rbac.role_not_found': 'El rol no existe.',
     'rbac.role_key_duplicate':
       'Ya existe un rol con esa clave en la empresa activa.',
@@ -362,6 +378,10 @@ export const error_translations = {
       'Field encryption configuration is unavailable.',
     'common.encrypted_payload_invalid_format':
       'The encrypted value does not have a valid format.',
+    'common.idempotency_key_in_progress':
+      'A request with the same idempotency key is already being processed.',
+    'common.idempotency_key_payload_mismatch':
+      'The idempotency key was already used with a different payload.',
     'businesses.not_found': 'The business does not exist.',
     'businesses.identification_duplicate':
       'The business identification already exists.',
@@ -556,6 +576,18 @@ export const error_translations = {
       'Different sale and stock unit conversion is not supported yet.',
     'inventory.product_variant_delete_forbidden':
       'The variant cannot be permanently deleted because it still has restrictions or dependencies.',
+    'sales.order_reservations_already_exist':
+      'The sale order already has inventory reservations registered.',
+    'sales.order_line_variant_required':
+      'A sale order line is missing its loaded product variant.',
+    'sales.order_reservation_required':
+      'The sale order requires an active reservation before it can be dispatched.',
+    'sales.order_reservation_insufficient':
+      'The active reservation does not cover the quantity being dispatched.',
+    'sales.order_dispatch_requires_confirmation':
+      'Only confirmed sale orders can be scheduled for dispatch.',
+    'sales.order_dispatch_branch_mismatch':
+      'The sale order belongs to a different branch than the dispatch order.',
     'rbac.role_not_found': 'The role does not exist.',
     'rbac.role_key_duplicate':
       'A role with that business key already exists in the active business.',

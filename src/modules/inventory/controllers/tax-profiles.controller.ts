@@ -59,13 +59,13 @@ export class TaxProfilesController {
     return this.tax_profiles_service.create_tax_profile(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':tax_profile_id')
   @RequirePermissions(PermissionKey.TAX_PROFILES_VIEW)
   @ApiOperation({ summary: 'Obtener perfil fiscal por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'tax_profile_id', type: Number })
   get_tax_profile(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) tax_profile_id: number,
+    @Param('tax_profile_id', ParseIntPipe) tax_profile_id: number,
   ) {
     return this.tax_profiles_service.get_tax_profile(
       current_user,
@@ -73,14 +73,14 @@ export class TaxProfilesController {
     );
   }
 
-  @Patch(':id')
+  @Patch(':tax_profile_id')
   @RequirePermissions(PermissionKey.TAX_PROFILES_UPDATE)
   @ApiOperation({ summary: 'Actualizar perfil fiscal' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'tax_profile_id', type: Number })
   @ApiBody({ type: UpdateTaxProfileDto })
   update_tax_profile(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) tax_profile_id: number,
+    @Param('tax_profile_id', ParseIntPipe) tax_profile_id: number,
     @Body() dto: UpdateTaxProfileDto,
   ) {
     return this.tax_profiles_service.update_tax_profile(

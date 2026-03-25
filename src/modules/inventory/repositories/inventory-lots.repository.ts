@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import {
+  apply_cursor,
   apply_pagination,
   apply_search,
   apply_sorting,
@@ -77,12 +80,12 @@ export class InventoryLotsRepository {
     });
   }
 
-  async find_paginated_by_business(
+  async find_paginated_by_business<R>(
     business_id: number,
     branch_ids: number[] | undefined,
     query: PaginatedQueryDto,
-    mapper: (lot: InventoryLot) => unknown,
-  ): Promise<PaginatedResponseDto<unknown>> {
+    mapper: (lot: InventoryLot) => R,
+  ): Promise<PaginatedResponseDto<R>> {
     if (branch_ids && branch_ids.length === 0) {
       return new PaginatedResponseDto(
         [],
@@ -116,6 +119,35 @@ export class InventoryLotsRepository {
     );
 
     return apply_pagination(qb, query, mapper);
+  }
+
+  async find_cursor_by_business<R>(
+    business_id: number,
+    branch_ids: number[] | undefined,
+    query: CursorQueryDto,
+    mapper: (lot: InventoryLot) => R,
+  ): Promise<CursorResponseDto<R>> {
+    if (branch_ids && branch_ids.length === 0) {
+      return new CursorResponseDto([], null, false);
+    }
+
+    const qb = this.inventory_lot_repository
+      .createQueryBuilder('lot')
+      .leftJoinAndSelect('lot.warehouse', 'warehouse')
+      .leftJoinAndSelect('lot.location', 'location')
+      .leftJoinAndSelect('lot.product', 'product')
+      .leftJoinAndSelect('lot.product_variant', 'product_variant')
+      .leftJoinAndSelect('lot.supplier_contact', 'supplier_contact')
+      .where('lot.business_id = :business_id', { business_id });
+
+    if (branch_ids?.length) {
+      qb.andWhere('lot.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    apply_search(qb, query.search, LOT_SEARCH_COLUMNS);
+    qb.orderBy('lot.id', query.sort_order ?? 'DESC');
+
+    return apply_cursor(qb, query, 'lot.id', mapper);
   }
 
   async find_by_id_in_business(

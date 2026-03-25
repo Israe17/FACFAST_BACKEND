@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import {
+  apply_cursor,
   apply_pagination,
   apply_search,
   apply_sorting,
@@ -67,18 +70,33 @@ export class SaleOrdersRepository {
   }
 
   async find_all_by_business(business_id: number): Promise<SaleOrder[]> {
+    return this.find_all_by_business_in_scope(business_id);
+  }
+
+  async find_all_by_business_in_scope(
+    business_id: number,
+    branch_ids?: number[],
+  ): Promise<SaleOrder[]> {
+    if (branch_ids && branch_ids.length === 0) {
+      return [];
+    }
+
     return this.sale_order_repository.find({
-      where: { business_id },
+      where: {
+        business_id,
+        ...(branch_ids?.length ? { branch_id: In(branch_ids) } : {}),
+      },
       relations: SALE_ORDER_LIST_RELATIONS,
       order: { order_date: 'DESC' },
     });
   }
 
-  async find_paginated_by_business(
+  async find_paginated_by_business<R>(
     business_id: number,
     query: PaginatedQueryDto,
-    mapper: (order: SaleOrder) => unknown,
-  ): Promise<PaginatedResponseDto<unknown>> {
+    mapper: (order: SaleOrder) => R,
+    branch_ids?: number[],
+  ): Promise<PaginatedResponseDto<R>> {
     const qb = this.sale_order_repository
       .createQueryBuilder('sale_order')
       .leftJoinAndSelect('sale_order.customer_contact', 'customer_contact')
@@ -88,6 +106,12 @@ export class SaleOrdersRepository {
       .leftJoinAndSelect('sale_order.warehouse', 'warehouse')
       .leftJoinAndSelect('sale_order.created_by_user', 'created_by_user')
       .where('sale_order.business_id = :business_id', { business_id });
+
+    if (branch_ids && branch_ids.length === 0) {
+      qb.andWhere('1 = 0');
+    } else if (branch_ids?.length) {
+      qb.andWhere('sale_order.branch_id IN (:...branch_ids)', { branch_ids });
+    }
 
     apply_search(qb, query.search, SALE_ORDER_SEARCH_COLUMNS);
     apply_sorting(
@@ -102,6 +126,34 @@ export class SaleOrdersRepository {
     return apply_pagination(qb, query, mapper);
   }
 
+  async find_cursor_by_business<R>(
+    business_id: number,
+    query: CursorQueryDto,
+    mapper: (order: SaleOrder) => R,
+    branch_ids?: number[],
+  ): Promise<CursorResponseDto<R>> {
+    const qb = this.sale_order_repository
+      .createQueryBuilder('sale_order')
+      .leftJoinAndSelect('sale_order.customer_contact', 'customer_contact')
+      .leftJoinAndSelect('sale_order.seller', 'seller')
+      .leftJoinAndSelect('sale_order.branch', 'branch')
+      .leftJoinAndSelect('sale_order.delivery_zone', 'delivery_zone')
+      .leftJoinAndSelect('sale_order.warehouse', 'warehouse')
+      .leftJoinAndSelect('sale_order.created_by_user', 'created_by_user')
+      .where('sale_order.business_id = :business_id', { business_id });
+
+    if (branch_ids && branch_ids.length === 0) {
+      qb.andWhere('1 = 0');
+    } else if (branch_ids?.length) {
+      qb.andWhere('sale_order.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    apply_search(qb, query.search, SALE_ORDER_SEARCH_COLUMNS);
+    qb.orderBy('sale_order.id', query.sort_order ?? 'DESC');
+
+    return apply_cursor(qb, query, 'sale_order.id', mapper);
+  }
+
   async find_by_id_in_business(
     id: number,
     business_id: number,
@@ -110,6 +162,32 @@ export class SaleOrdersRepository {
       where: { id, business_id },
       relations: SALE_ORDER_DETAIL_RELATIONS,
     });
+  }
+
+  async find_by_id_in_business_for_update(
+    manager: EntityManager,
+    id: number,
+    business_id: number,
+  ): Promise<SaleOrder | null> {
+    return manager
+      .getRepository(SaleOrder)
+      .createQueryBuilder('sale_order')
+      .setLock('pessimistic_write')
+      .leftJoinAndSelect('sale_order.customer_contact', 'customer_contact')
+      .leftJoinAndSelect('sale_order.seller', 'seller')
+      .leftJoinAndSelect('sale_order.branch', 'branch')
+      .leftJoinAndSelect('sale_order.delivery_zone', 'delivery_zone')
+      .leftJoinAndSelect('sale_order.warehouse', 'warehouse')
+      .leftJoinAndSelect('sale_order.created_by_user', 'created_by_user')
+      .leftJoinAndSelect('sale_order.lines', 'line')
+      .leftJoinAndSelect('line.product_variant', 'product_variant')
+      .leftJoinAndSelect('product_variant.product', 'product')
+      .leftJoinAndSelect('sale_order.delivery_charges', 'delivery_charge')
+      .where('sale_order.id = :id', { id })
+      .andWhere('sale_order.business_id = :business_id', { business_id })
+      .orderBy('line.line_no', 'ASC')
+      .addOrderBy('delivery_charge.id', 'ASC')
+      .getOne();
   }
 
   async exists_code(

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { Brackets, EntityManager } from 'typeorm';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { BusinessSequenceService } from '../../common/services/business-sequence.service';
@@ -42,6 +42,16 @@ type LedgerHeaderInput = {
   source_document_number?: string | null;
   status?: InventoryMovementStatus;
   notes?: string | null;
+};
+
+type AggregatedBalanceDelta = {
+  warehouse_id: number;
+  product_variant_id: number;
+  product_variant: ProductVariant;
+  on_hand_delta: number;
+  reserved_delta: number;
+  incoming_delta: number;
+  outgoing_delta: number;
 };
 
 @Injectable()
@@ -200,61 +210,57 @@ export class InventoryLedgerService {
     });
     header = await inventory_movement_header_repository.save(header);
 
-    const persisted_lines: InventoryMovementLine[] = [];
-    for (let index = 0; index < line_inputs.length; index += 1) {
-      const line_input = line_inputs[index];
-      const quantity = Number(line_input.quantity);
-      if (quantity <= 0) {
-        throw new DomainBadRequestException({
-          code: 'INVENTORY_MOVEMENT_QUANTITY_INVALID',
-          messageKey: 'inventory.movement_quantity_invalid',
-        });
-      }
+    const aggregated_balance_deltas =
+      this.aggregate_balance_deltas(line_inputs);
+    const locked_balances = await this.load_balances_for_update(
+      manager,
+      header_input.business_id,
+      aggregated_balance_deltas,
+    );
+    const balance_by_key = new Map(
+      locked_balances.map((balance) => [
+        this.build_balance_key(balance.warehouse_id, balance.product_variant_id),
+        balance,
+      ]),
+    );
+    const balances_to_save: InventoryBalance[] = [];
 
-      const on_hand_delta = Number(line_input.on_hand_delta ?? 0);
-      const reserved_delta = Number(line_input.reserved_delta ?? 0);
-      const incoming_delta = Number(line_input.incoming_delta ?? 0);
-      const outgoing_delta = Number(line_input.outgoing_delta ?? 0);
-
-      let balance = await inventory_balance_repository.findOne({
-        where: {
+    for (const aggregated_delta of aggregated_balance_deltas) {
+      const balance_key = this.build_balance_key(
+        aggregated_delta.warehouse_id,
+        aggregated_delta.product_variant_id,
+      );
+      const balance =
+        balance_by_key.get(balance_key) ??
+        inventory_balance_repository.create({
           business_id: header_input.business_id,
-          warehouse_id: line_input.warehouse.id,
-          product_variant_id: line_input.product_variant.id,
-        },
-      });
-
-      if (!balance) {
-        balance = inventory_balance_repository.create({
-          business_id: header_input.business_id,
-          warehouse_id: line_input.warehouse.id,
-          product_variant_id: line_input.product_variant.id,
+          warehouse_id: aggregated_delta.warehouse_id,
+          product_variant_id: aggregated_delta.product_variant_id,
           on_hand_quantity: 0,
           reserved_quantity: 0,
           incoming_quantity: 0,
           outgoing_quantity: 0,
         });
-      }
 
       const next_on_hand_quantity =
-        Number(balance.on_hand_quantity ?? 0) + on_hand_delta;
+        Number(balance.on_hand_quantity ?? 0) + aggregated_delta.on_hand_delta;
       const next_reserved_quantity =
-        Number(balance.reserved_quantity ?? 0) + reserved_delta;
+        Number(balance.reserved_quantity ?? 0) + aggregated_delta.reserved_delta;
       const next_incoming_quantity =
-        Number(balance.incoming_quantity ?? 0) + incoming_delta;
+        Number(balance.incoming_quantity ?? 0) + aggregated_delta.incoming_delta;
       const next_outgoing_quantity =
-        Number(balance.outgoing_quantity ?? 0) + outgoing_delta;
+        Number(balance.outgoing_quantity ?? 0) + aggregated_delta.outgoing_delta;
 
       if (
         next_on_hand_quantity < 0 &&
-        line_input.product_variant.allow_negative_stock === false
+        aggregated_delta.product_variant.allow_negative_stock === false
       ) {
         throw new DomainBadRequestException({
           code: 'INSUFFICIENT_STOCK',
           messageKey: 'inventory.insufficient_stock',
           details: {
-            warehouse_id: line_input.warehouse.id,
-            product_variant_id: line_input.product_variant.id,
+            warehouse_id: aggregated_delta.warehouse_id,
+            product_variant_id: aggregated_delta.product_variant_id,
           },
         });
       }
@@ -274,7 +280,29 @@ export class InventoryLedgerService {
       balance.reserved_quantity = next_reserved_quantity;
       balance.incoming_quantity = next_incoming_quantity;
       balance.outgoing_quantity = next_outgoing_quantity;
-      await inventory_balance_repository.save(balance);
+      balance_by_key.set(balance_key, balance);
+      balances_to_save.push(balance);
+    }
+
+    if (balances_to_save.length > 0) {
+      await inventory_balance_repository.save(balances_to_save);
+    }
+
+    const line_entities: InventoryMovementLine[] = [];
+    for (let index = 0; index < line_inputs.length; index += 1) {
+      const line_input = line_inputs[index];
+      const quantity = Number(line_input.quantity);
+      if (quantity <= 0) {
+        throw new DomainBadRequestException({
+          code: 'INVENTORY_MOVEMENT_QUANTITY_INVALID',
+          messageKey: 'inventory.movement_quantity_invalid',
+        });
+      }
+
+      const on_hand_delta = Number(line_input.on_hand_delta ?? 0);
+      const reserved_delta = Number(line_input.reserved_delta ?? 0);
+      const incoming_delta = Number(line_input.incoming_delta ?? 0);
+      const outgoing_delta = Number(line_input.outgoing_delta ?? 0);
 
       const unit_cost =
         line_input.unit_cost !== undefined && line_input.unit_cost !== null
@@ -282,7 +310,7 @@ export class InventoryLedgerService {
           : null;
       const total_cost = unit_cost !== null ? quantity * unit_cost : null;
 
-      const line = await inventory_movement_line_repository.save(
+      line_entities.push(
         inventory_movement_line_repository.create({
           business_id: header_input.business_id,
           header_id: header.id,
@@ -301,13 +329,19 @@ export class InventoryLedgerService {
           linked_line_id: null,
         }),
       );
+    }
+
+    const persisted_lines = await inventory_movement_line_repository.save(
+      line_entities,
+    );
+    persisted_lines.forEach((line, index) => {
+      const line_input = line_inputs[index];
       line.header = header;
       line.warehouse = line_input.warehouse;
       line.location = line_input.location ?? null;
       line.inventory_lot = line_input.inventory_lot ?? null;
       line.product_variant = line_input.product_variant;
-      persisted_lines.push(line);
-    }
+    });
 
     if (
       header_input.movement_type === InventoryMovementHeaderType.TRANSFER &&
@@ -315,8 +349,7 @@ export class InventoryLedgerService {
     ) {
       persisted_lines[0].linked_line_id = persisted_lines[1].id;
       persisted_lines[1].linked_line_id = persisted_lines[0].id;
-      await inventory_movement_line_repository.save(persisted_lines[0]);
-      await inventory_movement_line_repository.save(persisted_lines[1]);
+      await inventory_movement_line_repository.save(persisted_lines);
     }
 
     return {
@@ -434,44 +467,138 @@ export class InventoryLedgerService {
       },
     });
 
+    const balance_rows = new Map<
+      string,
+      {
+        warehouse_id: number;
+        product_variant_id: number;
+        on_hand_quantity: number;
+        reserved_quantity: number;
+        incoming_quantity: number;
+        outgoing_quantity: number;
+      }
+    >();
+
     for (const movement_line of movement_lines) {
       if (movement_line.header?.status !== InventoryMovementStatus.POSTED) {
         continue;
       }
 
-      let balance = await inventory_balance_repository.findOne({
-        where: {
-          business_id,
-          warehouse_id: movement_line.warehouse_id,
-          product_variant_id: movement_line.product_variant_id,
-        },
-      });
-
-      if (!balance) {
-        balance = inventory_balance_repository.create({
-          business_id,
+      const balance_key = this.build_balance_key(
+        movement_line.warehouse_id,
+        movement_line.product_variant_id,
+      );
+      const balance =
+        balance_rows.get(balance_key) ?? {
           warehouse_id: movement_line.warehouse_id,
           product_variant_id: movement_line.product_variant_id,
           on_hand_quantity: 0,
           reserved_quantity: 0,
           incoming_quantity: 0,
           outgoing_quantity: 0,
-        });
+        };
+
+      balance.on_hand_quantity += Number(movement_line.on_hand_delta);
+      balance.reserved_quantity += Number(movement_line.reserved_delta);
+      balance.incoming_quantity += Number(movement_line.incoming_delta);
+      balance.outgoing_quantity += Number(movement_line.outgoing_delta);
+      balance_rows.set(balance_key, balance);
+    }
+
+    if (balance_rows.size > 0) {
+      await inventory_balance_repository.save(
+        [...balance_rows.values()].map((balance) =>
+          inventory_balance_repository.create({
+            business_id,
+            warehouse_id: balance.warehouse_id,
+            product_variant_id: balance.product_variant_id,
+            on_hand_quantity: balance.on_hand_quantity,
+            reserved_quantity: balance.reserved_quantity,
+            incoming_quantity: balance.incoming_quantity,
+            outgoing_quantity: balance.outgoing_quantity,
+          }),
+        ),
+      );
+    }
+  }
+
+  private aggregate_balance_deltas(
+    line_inputs: LedgerLineInput[],
+  ): AggregatedBalanceDelta[] {
+    const deltas_by_key = new Map<string, AggregatedBalanceDelta>();
+
+    for (const line_input of line_inputs) {
+      const balance_key = this.build_balance_key(
+        line_input.warehouse.id,
+        line_input.product_variant.id,
+      );
+      const existing_delta = deltas_by_key.get(balance_key);
+      if (existing_delta) {
+        existing_delta.on_hand_delta += Number(line_input.on_hand_delta ?? 0);
+        existing_delta.reserved_delta += Number(
+          line_input.reserved_delta ?? 0,
+        );
+        existing_delta.incoming_delta += Number(
+          line_input.incoming_delta ?? 0,
+        );
+        existing_delta.outgoing_delta += Number(
+          line_input.outgoing_delta ?? 0,
+        );
+        continue;
       }
 
-      balance.on_hand_quantity =
-        Number(balance.on_hand_quantity) + Number(movement_line.on_hand_delta);
-      balance.reserved_quantity =
-        Number(balance.reserved_quantity) +
-        Number(movement_line.reserved_delta);
-      balance.incoming_quantity =
-        Number(balance.incoming_quantity) +
-        Number(movement_line.incoming_delta);
-      balance.outgoing_quantity =
-        Number(balance.outgoing_quantity) +
-        Number(movement_line.outgoing_delta);
-      await inventory_balance_repository.save(balance);
+      deltas_by_key.set(balance_key, {
+        warehouse_id: line_input.warehouse.id,
+        product_variant_id: line_input.product_variant.id,
+        product_variant: line_input.product_variant,
+        on_hand_delta: Number(line_input.on_hand_delta ?? 0),
+        reserved_delta: Number(line_input.reserved_delta ?? 0),
+        incoming_delta: Number(line_input.incoming_delta ?? 0),
+        outgoing_delta: Number(line_input.outgoing_delta ?? 0),
+      });
     }
+
+    return [...deltas_by_key.values()];
+  }
+
+  private async load_balances_for_update(
+    manager: EntityManager,
+    business_id: number,
+    deltas: AggregatedBalanceDelta[],
+  ): Promise<InventoryBalance[]> {
+    if (!deltas.length) {
+      return [];
+    }
+
+    const qb = manager
+      .getRepository(InventoryBalance)
+      .createQueryBuilder('inventory_balance')
+      .setLock('pessimistic_write')
+      .where('inventory_balance.business_id = :business_id', {
+        business_id,
+      })
+      .andWhere(
+        new Brackets((sub_query) => {
+          deltas.forEach((delta, index) => {
+            sub_query.orWhere(
+              `(inventory_balance.warehouse_id = :warehouse_id_${index} AND inventory_balance.product_variant_id = :product_variant_id_${index})`,
+              {
+                [`warehouse_id_${index}`]: delta.warehouse_id,
+                [`product_variant_id_${index}`]: delta.product_variant_id,
+              },
+            );
+          });
+        }),
+      );
+
+    return qb.getMany();
+  }
+
+  private build_balance_key(
+    warehouse_id: number,
+    product_variant_id: number,
+  ): string {
+    return `${warehouse_id}:${product_variant_id}`;
   }
 
   private assert_transfer_consistency(

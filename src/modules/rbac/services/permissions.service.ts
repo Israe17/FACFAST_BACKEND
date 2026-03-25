@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { PermissionsRepository } from '../repositories/permissions.repository';
-import { serialize_permission } from '../utils/serialize-permission.util';
+import { PermissionView } from '../contracts/permission.view';
+import { GetPermissionsListQueryUseCase } from '../use-cases/get-permissions-list.query.use-case';
 
 @Injectable()
 export class PermissionsService {
-  constructor(private readonly permissions_repository: PermissionsRepository) {}
+  constructor(
+    private readonly get_permissions_list_query_use_case: GetPermissionsListQueryUseCase,
+  ) {}
 
-  async find_all() {
-    const permissions = await this.permissions_repository.find_all();
-    return permissions.map((permission) => serialize_permission(permission));
+  async find_all(): Promise<PermissionView[]> {
+    return this.get_permissions_list_query_use_case.execute();
   }
 }

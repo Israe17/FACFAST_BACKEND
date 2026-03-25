@@ -60,37 +60,37 @@ export class RoutesController {
     return this.routes_service.create_route(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':route_id')
   @RequirePermissions(PermissionKey.ROUTES_VIEW)
   @ApiOperation({ summary: 'Obtener ruta por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'route_id', type: Number })
   get_route(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) route_id: number,
+    @Param('route_id', ParseIntPipe) route_id: number,
   ) {
     return this.routes_service.get_route(current_user, route_id);
   }
 
-  @Patch(':id')
+  @Patch(':route_id')
   @RequirePermissions(PermissionKey.ROUTES_UPDATE)
   @ApiOperation({ summary: 'Actualizar ruta' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'route_id', type: Number })
   @ApiBody({ type: UpdateRouteDto })
   update_route(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) route_id: number,
+    @Param('route_id', ParseIntPipe) route_id: number,
     @Body() dto: UpdateRouteDto,
   ) {
     return this.routes_service.update_route(current_user, route_id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':route_id')
   @RequirePermissions(PermissionKey.ROUTES_DELETE)
   @ApiOperation({ summary: 'Eliminar ruta' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'route_id', type: Number })
   delete_route(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) route_id: number,
+    @Param('route_id', ParseIntPipe) route_id: number,
   ) {
     return this.routes_service.delete_route(current_user, route_id);
   }

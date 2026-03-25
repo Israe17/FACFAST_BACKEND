@@ -60,37 +60,37 @@ export class VehiclesController {
     return this.vehicles_service.create_vehicle(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':vehicle_id')
   @RequirePermissions(PermissionKey.VEHICLES_VIEW)
   @ApiOperation({ summary: 'Obtener vehículo por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'vehicle_id', type: Number })
   get_vehicle(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) vehicle_id: number,
+    @Param('vehicle_id', ParseIntPipe) vehicle_id: number,
   ) {
     return this.vehicles_service.get_vehicle(current_user, vehicle_id);
   }
 
-  @Patch(':id')
+  @Patch(':vehicle_id')
   @RequirePermissions(PermissionKey.VEHICLES_UPDATE)
   @ApiOperation({ summary: 'Actualizar vehículo' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'vehicle_id', type: Number })
   @ApiBody({ type: UpdateVehicleDto })
   update_vehicle(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) vehicle_id: number,
+    @Param('vehicle_id', ParseIntPipe) vehicle_id: number,
     @Body() dto: UpdateVehicleDto,
   ) {
     return this.vehicles_service.update_vehicle(current_user, vehicle_id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':vehicle_id')
   @RequirePermissions(PermissionKey.VEHICLES_DELETE)
   @ApiOperation({ summary: 'Eliminar vehículo' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'vehicle_id', type: Number })
   delete_vehicle(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) vehicle_id: number,
+    @Param('vehicle_id', ParseIntPipe) vehicle_id: number,
   ) {
     return this.vehicles_service.delete_vehicle(current_user, vehicle_id);
   }

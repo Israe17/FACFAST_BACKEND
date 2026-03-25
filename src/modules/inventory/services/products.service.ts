@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
@@ -6,6 +8,7 @@ import { DomainNotFoundException } from '../../common/errors/exceptions/domain-n
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { ProductView } from '../contracts/product.view';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { Product } from '../entities/product.entity';
@@ -13,8 +16,10 @@ import { ProductType } from '../enums/product-type.enum';
 import { ProductSerialsRepository } from '../repositories/product-serials.repository';
 import { ProductVariantsRepository } from '../repositories/product-variants.repository';
 import { ProductsRepository } from '../repositories/products.repository';
+import { ProductSerializer } from '../serializers/product.serializer';
 import { InventoryValidationService } from './inventory-validation.service';
 import { ProductVariantsService } from './product-variants.service';
+import { GetProductsCursorQueryUseCase } from '../use-cases/get-products-cursor.query.use-case';
 
 @Injectable()
 export class ProductsService {
@@ -25,6 +30,8 @@ export class ProductsService {
     private readonly product_variants_service: ProductVariantsService,
     private readonly product_variants_repository: ProductVariantsRepository,
     private readonly product_serials_repository: ProductSerialsRepository,
+    private readonly product_serializer: ProductSerializer,
+    private readonly get_products_cursor_query_use_case: GetProductsCursorQueryUseCase,
   ) {}
 
   async get_products(current_user: AuthenticatedUserContext) {
@@ -44,6 +51,16 @@ export class ProductsService {
       query,
       (product) => this.serialize_product(product),
     );
+  }
+
+  async get_products_cursor(
+    current_user: AuthenticatedUserContext,
+    query: CursorQueryDto,
+  ): Promise<CursorResponseDto<ProductView>> {
+    return this.get_products_cursor_query_use_case.execute({
+      current_user,
+      query,
+    }) as Promise<CursorResponseDto<ProductView>>;
   }
 
   async create_product(
@@ -548,90 +565,11 @@ export class ProductsService {
     return normalized ? normalized : null;
   }
 
-  private serialize_product(product: Product) {
-    return {
-      id: product.id,
-      code: product.code,
-      business_id: product.business_id,
-      type: product.type,
-      name: product.name,
-      description: product.description,
-      category: product.category
-        ? {
-            id: product.category.id,
-            code: product.category.code,
-            name: product.category.name,
-          }
-        : null,
-      brand: product.brand
-        ? {
-            id: product.brand.id,
-            code: product.brand.code,
-            name: product.brand.name,
-          }
-        : null,
-      sku: product.sku,
-      barcode: product.barcode,
-      stock_unit: product.stock_unit
-        ? {
-            id: product.stock_unit.id,
-            code: product.stock_unit.code,
-            name: product.stock_unit.name,
-            symbol: product.stock_unit.symbol,
-          }
-        : null,
-      sale_unit: product.sale_unit
-        ? {
-            id: product.sale_unit.id,
-            code: product.sale_unit.code,
-            name: product.sale_unit.name,
-            symbol: product.sale_unit.symbol,
-          }
-        : null,
-      tax_profile: product.tax_profile
-        ? {
-            id: product.tax_profile.id,
-            code: product.tax_profile.code,
-            name: product.tax_profile.name,
-            item_kind: product.tax_profile.item_kind,
-            tax_type: product.tax_profile.tax_type,
-            cabys_code: product.tax_profile.cabys_code,
-          }
-        : null,
-      track_inventory: product.track_inventory,
-      track_lots: product.track_lots,
-      track_expiration: product.track_expiration,
-      track_serials: product.track_serials,
-      allow_negative_stock: product.allow_negative_stock,
-      has_variants: product.has_variants,
-      has_warranty: product.has_warranty,
-      warranty_profile: product.warranty_profile
-        ? {
-            id: product.warranty_profile.id,
-            code: product.warranty_profile.code,
-            name: product.warranty_profile.name,
-          }
-        : null,
-      variants: (product.variants ?? []).map((variant) => ({
-        id: variant.id,
-        sku: variant.sku,
-        barcode: variant.barcode,
-        variant_name: variant.variant_name,
-        is_default: variant.is_default,
-        is_active: variant.is_active,
-        track_serials: variant.track_serials,
-        track_inventory: variant.track_inventory,
-        allow_negative_stock: variant.allow_negative_stock,
-      })),
-      is_active: product.is_active,
-      lifecycle: {
-        can_delete: false,
-        can_deactivate: product.is_active,
-        can_reactivate: !product.is_active,
-        reasons: ['hard_delete_not_supported'],
-      },
-      created_at: product.created_at,
-      updated_at: product.updated_at,
-    };
+  serialize_product_view(product: Product): ProductView {
+    return this.product_serializer.serialize(product);
+  }
+
+  private serialize_product(product: Product): ProductView {
+    return this.serialize_product_view(product);
   }
 }

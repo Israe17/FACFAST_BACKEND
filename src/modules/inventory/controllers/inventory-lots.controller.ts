@@ -23,6 +23,7 @@ import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-p
 import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -54,6 +55,16 @@ export class InventoryLotsController {
     return this.inventory_lots_service.get_lots_paginated(current_user, query);
   }
 
+  @Get('cursor')
+  @RequirePermissions(PermissionKey.INVENTORY_LOTS_VIEW)
+  @ApiOperation({ summary: 'Listar lotes de inventario (cursor)' })
+  get_lots_cursor(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.inventory_lots_service.get_lots_cursor(current_user, query);
+  }
+
   @Post()
   @RequirePermissions(PermissionKey.INVENTORY_LOTS_CREATE)
   @ApiOperation({ summary: 'Crear lote de inventario' })
@@ -65,37 +76,37 @@ export class InventoryLotsController {
     return this.inventory_lots_service.create_lot(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':inventory_lot_id')
   @RequirePermissions(PermissionKey.INVENTORY_LOTS_VIEW)
   @ApiOperation({ summary: 'Obtener lote por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'inventory_lot_id', type: Number })
   get_lot(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) lot_id: number,
+    @Param('inventory_lot_id', ParseIntPipe) lot_id: number,
   ) {
     return this.inventory_lots_service.get_lot(current_user, lot_id);
   }
 
-  @Patch(':id')
+  @Patch(':inventory_lot_id')
   @RequirePermissions(PermissionKey.INVENTORY_LOTS_UPDATE)
   @ApiOperation({ summary: 'Actualizar lote de inventario' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'inventory_lot_id', type: Number })
   @ApiBody({ type: UpdateInventoryLotDto })
   update_lot(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) lot_id: number,
+    @Param('inventory_lot_id', ParseIntPipe) lot_id: number,
     @Body() dto: UpdateInventoryLotDto,
   ) {
     return this.inventory_lots_service.update_lot(current_user, lot_id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':inventory_lot_id')
   @RequirePermissions(PermissionKey.INVENTORY_LOTS_DELETE)
   @ApiOperation({ summary: 'Desactivar lote de inventario (soft delete)' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'inventory_lot_id', type: Number })
   deactivate_lot(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) lot_id: number,
+    @Param('inventory_lot_id', ParseIntPipe) lot_id: number,
   ) {
     return this.inventory_lots_service.deactivate_lot(current_user, lot_id);
   }

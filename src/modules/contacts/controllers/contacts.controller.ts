@@ -24,6 +24,7 @@ import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-p
 import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
@@ -45,7 +46,7 @@ export class ContactsController {
   constructor(private readonly contacts_service: ContactsService) {}
 
   @Get()
-  @RequirePermissions('contacts.view')
+  @RequirePermissions(PermissionKey.CONTACTS_VIEW)
   @ApiOperation({
     summary: 'Listar contactos del negocio autenticado (paginado)',
   })
@@ -58,7 +59,7 @@ export class ContactsController {
   }
 
   @Post()
-  @RequirePermissions('contacts.create')
+  @RequirePermissions(PermissionKey.CONTACTS_CREATE)
   @ApiOperation({ summary: 'Crear contacto' })
   @ApiBody({ type: CreateContactDto })
   @ApiOkResponse({ description: 'Contacto creado exitosamente.' })
@@ -70,7 +71,7 @@ export class ContactsController {
   }
 
   @Get('lookup/:identification')
-  @RequirePermissions('contacts.view')
+  @RequirePermissions(PermissionKey.CONTACTS_VIEW)
   @ApiOperation({
     summary: 'Buscar contacto por numero de identificacion dentro del negocio',
   })
@@ -90,40 +91,40 @@ export class ContactsController {
     );
   }
 
-  @Get(':id')
-  @RequirePermissions('contacts.view')
+  @Get(':contact_id')
+  @RequirePermissions(PermissionKey.CONTACTS_VIEW)
   @ApiOperation({ summary: 'Obtener contacto por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'contact_id', type: Number })
   @ApiOkResponse({ description: 'Detalle del contacto.' })
   get_contact(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) contact_id: number,
+    @Param('contact_id', ParseIntPipe) contact_id: number,
   ) {
     return this.contacts_service.get_contact(current_user, contact_id);
   }
 
-  @Patch(':id')
-  @RequirePermissions('contacts.update')
+  @Patch(':contact_id')
+  @RequirePermissions(PermissionKey.CONTACTS_UPDATE)
   @ApiOperation({ summary: 'Actualizar contacto' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'contact_id', type: Number })
   @ApiBody({ type: UpdateContactDto })
   @ApiOkResponse({ description: 'Contacto actualizado exitosamente.' })
   update_contact(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) contact_id: number,
+    @Param('contact_id', ParseIntPipe) contact_id: number,
     @Body() dto: UpdateContactDto,
   ) {
     return this.contacts_service.update_contact(current_user, contact_id, dto);
   }
 
-  @Delete(':id')
-  @RequirePermissions('contacts.delete')
+  @Delete(':contact_id')
+  @RequirePermissions(PermissionKey.CONTACTS_DELETE)
   @ApiOperation({ summary: 'Eliminar contacto' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'contact_id', type: Number })
   @ApiOkResponse({ description: 'Contacto eliminado exitosamente.' })
   delete_contact(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) contact_id: number,
+    @Param('contact_id', ParseIntPipe) contact_id: number,
   ) {
     return this.contacts_service.delete_contact(current_user, contact_id);
   }

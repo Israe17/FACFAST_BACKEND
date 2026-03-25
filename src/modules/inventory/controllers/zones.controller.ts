@@ -60,37 +60,37 @@ export class ZonesController {
     return this.zones_service.create_zone(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':zone_id')
   @RequirePermissions(PermissionKey.ZONES_VIEW)
   @ApiOperation({ summary: 'Obtener zona por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'zone_id', type: Number })
   get_zone(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) zone_id: number,
+    @Param('zone_id', ParseIntPipe) zone_id: number,
   ) {
     return this.zones_service.get_zone(current_user, zone_id);
   }
 
-  @Patch(':id')
+  @Patch(':zone_id')
   @RequirePermissions(PermissionKey.ZONES_UPDATE)
   @ApiOperation({ summary: 'Actualizar zona' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'zone_id', type: Number })
   @ApiBody({ type: UpdateZoneDto })
   update_zone(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) zone_id: number,
+    @Param('zone_id', ParseIntPipe) zone_id: number,
     @Body() dto: UpdateZoneDto,
   ) {
     return this.zones_service.update_zone(current_user, zone_id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':zone_id')
   @RequirePermissions(PermissionKey.ZONES_DELETE)
   @ApiOperation({ summary: 'Eliminar zona' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'zone_id', type: Number })
   delete_zone(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) zone_id: number,
+    @Param('zone_id', ParseIntPipe) zone_id: number,
   ) {
     return this.zones_service.delete_zone(current_user, zone_id);
   }

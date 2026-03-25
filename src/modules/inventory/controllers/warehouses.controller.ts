@@ -61,25 +61,25 @@ export class WarehousesController {
     return this.warehouses_service.create_warehouse(current_user, dto);
   }
 
-  @Get(':id/locations')
+  @Get(':warehouse_id/locations')
   @RequirePermissions(PermissionKey.WAREHOUSE_LOCATIONS_VIEW)
   @ApiOperation({ summary: 'Listar ubicaciones de una bodega' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warehouse_id', type: Number })
   get_locations(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warehouse_id: number,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
   ) {
     return this.warehouses_service.get_locations(current_user, warehouse_id);
   }
 
-  @Post(':id/locations')
+  @Post(':warehouse_id/locations')
   @RequirePermissions(PermissionKey.WAREHOUSE_LOCATIONS_CREATE)
   @ApiOperation({ summary: 'Crear ubicacion dentro de una bodega' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warehouse_id', type: Number })
   @ApiBody({ type: CreateWarehouseLocationDto })
   create_location(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warehouse_id: number,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
     @Body() dto: CreateWarehouseLocationDto,
   ) {
     return this.warehouses_service.create_location(
@@ -89,25 +89,25 @@ export class WarehousesController {
     );
   }
 
-  @Get(':id')
+  @Get(':warehouse_id')
   @RequirePermissions(PermissionKey.WAREHOUSES_VIEW)
   @ApiOperation({ summary: 'Obtener bodega por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warehouse_id', type: Number })
   get_warehouse(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warehouse_id: number,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
   ) {
     return this.warehouses_service.get_warehouse(current_user, warehouse_id);
   }
 
-  @Patch(':id')
+  @Patch(':warehouse_id')
   @RequirePermissions(PermissionKey.WAREHOUSES_UPDATE)
   @ApiOperation({ summary: 'Actualizar bodega' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warehouse_id', type: Number })
   @ApiBody({ type: UpdateWarehouseDto })
   update_warehouse(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warehouse_id: number,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
     @Body() dto: UpdateWarehouseDto,
   ) {
     return this.warehouses_service.update_warehouse(
@@ -117,13 +117,13 @@ export class WarehousesController {
     );
   }
 
-  @Delete(':id')
+  @Delete(':warehouse_id')
   @RequirePermissions(PermissionKey.WAREHOUSES_DELETE)
   @ApiOperation({ summary: 'Desactivar bodega (soft delete)' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warehouse_id', type: Number })
   deactivate_warehouse(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) warehouse_id: number,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
   ) {
     return this.warehouses_service.deactivate_warehouse(
       current_user,

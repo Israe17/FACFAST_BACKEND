@@ -1,0 +1,42 @@
+import { Injectable } from '@nestjs/common';
+import { EntitySerializer } from '../../common/application/interfaces/entity-serializer.interface';
+import { ContactView } from '../contracts/contact.view';
+import { Contact } from '../entities/contact.entity';
+
+@Injectable()
+export class ContactSerializer implements EntitySerializer<Contact, ContactView> {
+  serialize(contact: Contact): ContactView {
+    return {
+      id: contact.id,
+      code: contact.code,
+      business_id: contact.business_id,
+      type: contact.type,
+      name: contact.name,
+      commercial_name: contact.commercial_name,
+      identification_type: contact.identification_type,
+      identification_number: contact.identification_number,
+      email: contact.email,
+      phone: contact.phone,
+      address: contact.address,
+      province: contact.province,
+      canton: contact.canton,
+      district: contact.district,
+      tax_condition: contact.tax_condition,
+      economic_activity_code: contact.economic_activity_code,
+      is_active: contact.is_active,
+      exoneration_type: contact.exoneration_type,
+      exoneration_document_number: contact.exoneration_document_number,
+      exoneration_institution: contact.exoneration_institution,
+      exoneration_issue_date: contact.exoneration_issue_date,
+      exoneration_percentage: contact.exoneration_percentage,
+      lifecycle: {
+        can_delete: true,
+        can_deactivate: contact.is_active,
+        can_reactivate: !contact.is_active,
+        reasons: [],
+      },
+      created_at: contact.created_at,
+      updated_at: contact.updated_at,
+    };
+  }
+}

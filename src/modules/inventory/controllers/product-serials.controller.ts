@@ -2,6 +2,7 @@ import {
   ApiBody,
   ApiCookieAuth,
   ApiForbiddenResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -15,7 +16,6 @@ import {
   Param,
   ParseIntPipe,
   Patch,
-  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -28,114 +28,25 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
-import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
-import { SerialStatus } from '../enums/serial-status.enum';
-import { InventoryValidationService } from '../services/inventory-validation.service';
-import { ProductVariantsService } from '../services/product-variants.service';
+import { UpdateProductSerialStatusDto } from '../dto/update-product-serial-status.dto';
 import { ProductSerialsService } from '../services/product-serials.service';
 
 @ApiTags('product-serials')
 @ApiCookieAuth('access-cookie')
 @ApiUnauthorizedResponse({ description: 'Access token invalido o ausente.' })
 @ApiForbiddenResponse({ description: 'Permisos insuficientes.' })
-@Controller()
+@Controller('product-serials')
 @AllowPlatformPermissionOverride()
 @AllowPlatformTenantContext()
 @UseGuards(JwtAuthGuard, TenantContextGuard, PermissionsGuard)
 export class ProductSerialsController {
-  constructor(
-    private readonly product_serials_service: ProductSerialsService,
-    private readonly product_variants_service: ProductVariantsService,
-    private readonly inventory_validation_service: InventoryValidationService,
-  ) {}
+  constructor(private readonly product_serials_service: ProductSerialsService) {}
 
-  @Post('products/:id/variants/:variantId/serials')
-  @RequirePermissions(PermissionKey.PRODUCT_SERIALS_CREATE)
-  @ApiOperation({ summary: 'Registrar seriales en lote' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiParam({ name: 'variantId', type: Number })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        serial_numbers: { type: 'array', items: { type: 'string' } },
-        warehouse_id: { type: 'number' },
-      },
-    },
-  })
-  async register_serials(
-    @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) product_id: number,
-    @Param('variantId', ParseIntPipe) variant_id: number,
-    @Body() body: { serial_numbers: string[]; warehouse_id: number },
-  ) {
-    const business_id = resolve_effective_business_id(current_user);
-    const product =
-      await this.inventory_validation_service.get_product_in_business(
-        business_id,
-        product_id,
-      );
-    const variant = await this.product_variants_service.get_variant(
-      business_id,
-      variant_id,
-    );
-    this.inventory_validation_service.assert_variant_belongs_to_product(
-      product,
-      variant,
-    );
-    const serials = await this.product_serials_service.register_serials(
-      current_user,
-      variant_id,
-      body.serial_numbers,
-      body.warehouse_id,
-      current_user.id,
-    );
-    return serials.map((s) => this.product_serials_service.serialize_serial(s));
-  }
-
-  @Get('products/:id/variants/:variantId/serials')
+  @Get('lookup')
   @RequirePermissions(PermissionKey.PRODUCT_SERIALS_VIEW)
-  @ApiOperation({ summary: 'Listar seriales de una variante' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiParam({ name: 'variantId', type: Number })
-  @ApiQuery({ name: 'status', required: false, enum: SerialStatus })
-  @ApiQuery({ name: 'warehouse_id', required: false, type: Number })
-  async list_serials(
-    @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) product_id: number,
-    @Param('variantId', ParseIntPipe) variant_id: number,
-    @Query('status') status?: SerialStatus,
-    @Query('warehouse_id') warehouse_id?: string,
-  ) {
-    const business_id = resolve_effective_business_id(current_user);
-    const product =
-      await this.inventory_validation_service.get_product_in_business(
-        business_id,
-        product_id,
-      );
-    const variant = await this.product_variants_service.get_variant(
-      business_id,
-      variant_id,
-    );
-    this.inventory_validation_service.assert_variant_belongs_to_product(
-      product,
-      variant,
-    );
-    const serials = await this.product_serials_service.list_serials(
-      current_user,
-      variant_id,
-      {
-        status,
-        warehouse_id: warehouse_id ? Number(warehouse_id) : undefined,
-      },
-    );
-    return serials.map((s) => this.product_serials_service.serialize_serial(s));
-  }
-
-  @Get('product-serials/lookup')
-  @RequirePermissions(PermissionKey.PRODUCT_SERIALS_VIEW)
-  @ApiOperation({ summary: 'Buscar serial por número (scan)' })
+  @ApiOperation({ summary: 'Buscar serial por numero (scan)' })
   @ApiQuery({ name: 'serial_number', type: String })
+  @ApiOkResponse({ description: 'Detalle del serial encontrado.' })
   async lookup_serial(
     @CurrentUser() current_user: AuthenticatedUserContext,
     @Query('serial_number') serial_number: string,
@@ -147,50 +58,60 @@ export class ProductSerialsController {
     return this.product_serials_service.serialize_serial(serial);
   }
 
-  @Get('product-serials/:id/history')
+  @Get(':product_serial_id')
+  @RequirePermissions(PermissionKey.PRODUCT_SERIALS_VIEW)
+  @ApiOperation({ summary: 'Obtener serial por id' })
+  @ApiParam({ name: 'product_serial_id', type: Number })
+  @ApiOkResponse({ description: 'Detalle del serial.' })
+  async get_serial(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('product_serial_id', ParseIntPipe) product_serial_id: number,
+  ) {
+    const serial = await this.product_serials_service.get_serial(
+      current_user,
+      product_serial_id,
+    );
+    return this.product_serials_service.serialize_serial(serial);
+  }
+
+  @Get(':product_serial_id/history')
   @RequirePermissions(PermissionKey.PRODUCT_SERIALS_VIEW)
   @ApiOperation({ summary: 'Historial de eventos de un serial' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_serial_id', type: Number })
+  @ApiOkResponse({ description: 'Historial del serial solicitado.' })
   async get_serial_history(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) serial_id: number,
+    @Param('product_serial_id', ParseIntPipe) product_serial_id: number,
   ) {
     const { serial, events } =
       await this.product_serials_service.get_serial_history(
         current_user,
-        serial_id,
+        product_serial_id,
       );
     return {
       serial: this.product_serials_service.serialize_serial(serial),
-      events: events.map((e) =>
-        this.product_serials_service.serialize_event(e),
+      events: events.map((event) =>
+        this.product_serials_service.serialize_event(event),
       ),
     };
   }
 
-  @Patch('product-serials/:id')
+  @Patch(':product_serial_id')
   @RequirePermissions(PermissionKey.PRODUCT_SERIALS_UPDATE)
   @ApiOperation({ summary: 'Actualizar estado de un serial' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        status: { type: 'string', enum: Object.values(SerialStatus) },
-        notes: { type: 'string', nullable: true },
-      },
-    },
-  })
+  @ApiParam({ name: 'product_serial_id', type: Number })
+  @ApiBody({ type: UpdateProductSerialStatusDto })
+  @ApiOkResponse({ description: 'Serial actualizado exitosamente.' })
   async update_serial_status(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) serial_id: number,
-    @Body() body: { status: SerialStatus; notes?: string },
+    @Param('product_serial_id', ParseIntPipe) product_serial_id: number,
+    @Body() dto: UpdateProductSerialStatusDto,
   ) {
     const serial = await this.product_serials_service.update_serial_status(
       current_user,
-      serial_id,
-      body.status,
-      body.notes ?? null,
+      product_serial_id,
+      dto.status,
+      dto.notes ?? null,
       current_user.id,
     );
     return this.product_serials_service.serialize_serial(serial);

@@ -1,0 +1,188 @@
+import { Injectable } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
+import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { SaleOrderView } from '../contracts/sale-order.view';
+import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
+import { SaleOrder } from '../entities/sale-order.entity';
+import { SaleOrderDeliveryCharge } from '../entities/sale-order-delivery-charge.entity';
+import { SaleOrderLine } from '../entities/sale-order-line.entity';
+import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
+import { SaleOrderLifecyclePolicy } from '../policies/sale-order-lifecycle.policy';
+import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
+import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
+import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
+
+export type UpdateSaleOrderCommand = {
+  current_user: AuthenticatedUserContext;
+  order_id: number;
+  dto: UpdateSaleOrderDto;
+};
+
+@Injectable()
+export class UpdateSaleOrderUseCase
+  implements CommandUseCase<UpdateSaleOrderCommand, SaleOrderView>
+{
+  constructor(
+    private readonly data_source: DataSource,
+    private readonly sale_orders_repository: SaleOrdersRepository,
+    private readonly sale_order_access_policy: SaleOrderAccessPolicy,
+    private readonly sale_order_lifecycle_policy: SaleOrderLifecyclePolicy,
+    private readonly sale_order_mode_policy: SaleOrderModePolicy,
+    private readonly sale_order_serializer: SaleOrderSerializer,
+  ) {}
+
+  async execute({
+    current_user,
+    order_id,
+    dto,
+  }: UpdateSaleOrderCommand): Promise<SaleOrderView> {
+    const business_id = resolve_effective_business_id(current_user);
+    const order = await this.sale_orders_repository.find_by_id_in_business(
+      order_id,
+      business_id,
+    );
+    if (!order) {
+      throw new DomainNotFoundException({
+        code: 'SALE_ORDER_NOT_FOUND',
+        messageKey: 'sales.order_not_found',
+        details: { order_id },
+      });
+    }
+
+    this.sale_order_access_policy.assert_can_access_order(current_user, order);
+    this.sale_order_lifecycle_policy.assert_editable(order);
+
+    const effective_sale_mode = dto.sale_mode ?? order.sale_mode;
+    const effective_fulfillment_mode =
+      dto.fulfillment_mode ?? order.fulfillment_mode;
+    this.sale_order_mode_policy.assert_mode_coherence({
+      sale_mode: effective_sale_mode,
+      fulfillment_mode: effective_fulfillment_mode,
+      seller_user_id:
+        dto.seller_user_id !== undefined
+          ? dto.seller_user_id
+          : order.seller_user_id,
+      delivery_charges: dto.delivery_charges,
+    });
+
+    if (dto.branch_id !== undefined) {
+      this.sale_order_access_policy.assert_can_access_branch_id(
+        current_user,
+        dto.branch_id,
+      );
+    }
+
+    return this.data_source.transaction(async (manager) => {
+      const order_repo = manager.getRepository(SaleOrder);
+      const line_repo = manager.getRepository(SaleOrderLine);
+      const charge_repo = manager.getRepository(SaleOrderDeliveryCharge);
+
+      if (dto.branch_id !== undefined) order.branch_id = dto.branch_id;
+      if (dto.customer_contact_id !== undefined) {
+        order.customer_contact_id = dto.customer_contact_id;
+      }
+      if (dto.seller_user_id !== undefined) {
+        order.seller_user_id = dto.seller_user_id ?? null;
+      }
+      if (dto.sale_mode !== undefined) order.sale_mode = dto.sale_mode;
+      if (dto.fulfillment_mode !== undefined) {
+        order.fulfillment_mode = dto.fulfillment_mode;
+      }
+      if (dto.order_date !== undefined) order.order_date = new Date(dto.order_date);
+      if (dto.delivery_address !== undefined) {
+        order.delivery_address = this.normalize_optional_string(
+          dto.delivery_address,
+        );
+      }
+      if (dto.delivery_province !== undefined) {
+        order.delivery_province = this.normalize_optional_string(
+          dto.delivery_province,
+        );
+      }
+      if (dto.delivery_canton !== undefined) {
+        order.delivery_canton = this.normalize_optional_string(
+          dto.delivery_canton,
+        );
+      }
+      if (dto.delivery_district !== undefined) {
+        order.delivery_district = this.normalize_optional_string(
+          dto.delivery_district,
+        );
+      }
+      if (dto.delivery_zone_id !== undefined) {
+        order.delivery_zone_id = dto.delivery_zone_id ?? null;
+      }
+      if (dto.delivery_requested_date !== undefined) {
+        order.delivery_requested_date = dto.delivery_requested_date ?? null;
+      }
+      if (dto.warehouse_id !== undefined) {
+        order.warehouse_id = dto.warehouse_id ?? null;
+      }
+      if (dto.notes !== undefined) {
+        order.notes = this.normalize_optional_string(dto.notes);
+      }
+      if (dto.internal_notes !== undefined) {
+        order.internal_notes = this.normalize_optional_string(dto.internal_notes);
+      }
+
+      await order_repo.save(order);
+
+      if (dto.lines !== undefined) {
+        await line_repo.delete({ sale_order_id: order.id });
+        if (dto.lines.length) {
+          const lines = dto.lines.map((line_dto, index) => {
+            const discount = line_dto.discount_percent ?? 0;
+            const subtotal = line_dto.quantity * line_dto.unit_price;
+            const discounted = subtotal * (1 - discount / 100);
+            const tax = line_dto.tax_amount ?? 0;
+            const total = line_dto.line_total ?? discounted + tax;
+
+            return line_repo.create({
+              business_id,
+              sale_order_id: order.id,
+              line_no: index + 1,
+              product_variant_id: line_dto.product_variant_id,
+              quantity: line_dto.quantity,
+              unit_price: line_dto.unit_price,
+              discount_percent: discount,
+              tax_amount: tax,
+              line_total: total,
+              notes: this.normalize_optional_string(line_dto.notes),
+            });
+          });
+          await line_repo.save(lines);
+        }
+      }
+
+      if (dto.delivery_charges !== undefined) {
+        await charge_repo.delete({ sale_order_id: order.id });
+        if (dto.delivery_charges.length) {
+          const charges = dto.delivery_charges.map((charge_dto) =>
+            charge_repo.create({
+              business_id,
+              sale_order_id: order.id,
+              charge_type: charge_dto.charge_type,
+              amount: charge_dto.amount,
+              notes: this.normalize_optional_string(charge_dto.notes),
+            }),
+          );
+          await charge_repo.save(charges);
+        }
+      }
+
+      const full_order = await this.sale_orders_repository.find_by_id_in_business(
+        order.id,
+        business_id,
+      );
+      return this.sale_order_serializer.serialize(full_order!);
+    });
+  }
+
+  private normalize_optional_string(value?: string | null): string | null {
+    const normalized = value?.trim();
+    return normalized ? normalized : null;
+  }
+}

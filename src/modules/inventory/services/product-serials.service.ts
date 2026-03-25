@@ -174,6 +174,27 @@ export class ProductSerialsService {
     return serial;
   }
 
+  async get_serial(
+    current_user: AuthenticatedUserContext,
+    serial_id: number,
+  ): Promise<ProductSerial> {
+    const business_id = resolve_effective_business_id(current_user);
+    const serial = await this.product_serials_repository.find_by_id_in_business(
+      serial_id,
+      business_id,
+    );
+    if (!serial) {
+      throw new DomainNotFoundException({
+        code: 'SERIAL_NOT_FOUND',
+        messageKey: 'inventory.serial_not_found',
+        details: { serial_id },
+      });
+    }
+
+    this.assert_can_access_serial(current_user, serial);
+    return serial;
+  }
+
   async get_serial_history(
     current_user: AuthenticatedUserContext,
     serial_id: number,

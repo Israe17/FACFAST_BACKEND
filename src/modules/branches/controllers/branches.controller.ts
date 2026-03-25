@@ -32,6 +32,7 @@ import { CreateBranchDto } from '../dto/create-branch.dto';
 import { CreateTerminalDto } from '../dto/create-terminal.dto';
 import { UpdateBranchDto } from '../dto/update-branch.dto';
 import { BranchesService } from '../services/branches.service';
+import { TerminalsService } from '../services/terminals.service';
 
 @ApiTags('branches')
 @ApiCookieAuth('access-cookie')
@@ -44,7 +45,10 @@ import { BranchesService } from '../services/branches.service';
 @AllowPlatformTenantContext()
 @UseGuards(JwtAuthGuard, TenantContextGuard, PermissionsGuard)
 export class BranchesController {
-  constructor(private readonly branches_service: BranchesService) {}
+  constructor(
+    private readonly branches_service: BranchesService,
+    private readonly terminals_service: TerminalsService,
+  ) {}
 
   @Get()
   @RequirePermissions(PermissionKey.BRANCHES_VIEW)
@@ -68,54 +72,58 @@ export class BranchesController {
     return this.branches_service.create_branch(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':branch_id')
   @RequirePermissions(PermissionKey.BRANCHES_VIEW)
   @ApiOperation({ summary: 'Obtener sucursal por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'branch_id', type: Number })
   @ApiOkResponse({ description: 'Detalle de la sucursal.' })
   get_branch(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) branch_id: number,
+    @Param('branch_id', ParseIntPipe) branch_id: number,
   ) {
     return this.branches_service.get_branch(current_user, branch_id);
   }
 
-  @Patch(':id')
+  @Patch(':branch_id')
   @RequirePermissions(PermissionKey.BRANCHES_UPDATE)
   @ApiOperation({ summary: 'Actualizar sucursal' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'branch_id', type: Number })
   @ApiBody({ type: UpdateBranchDto })
   @ApiOkResponse({ description: 'Sucursal actualizada exitosamente.' })
   update_branch(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) branch_id: number,
+    @Param('branch_id', ParseIntPipe) branch_id: number,
     @Body() dto: UpdateBranchDto,
   ) {
     return this.branches_service.update_branch(current_user, branch_id, dto);
   }
 
-  @Post(':id/terminals')
+  @Post(':branch_id/terminals')
   @RequirePermissions(PermissionKey.BRANCHES_CREATE_TERMINAL)
   @ApiOperation({ summary: 'Crear terminal de sucursal' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID de la sucursal' })
+  @ApiParam({
+    name: 'branch_id',
+    type: Number,
+    description: 'ID de la sucursal',
+  })
   @ApiBody({ type: CreateTerminalDto })
   @ApiOkResponse({ description: 'Terminal creada exitosamente.' })
   create_terminal(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) branch_id: number,
+    @Param('branch_id', ParseIntPipe) branch_id: number,
     @Body() dto: CreateTerminalDto,
   ) {
-    return this.branches_service.create_terminal(current_user, branch_id, dto);
+    return this.terminals_service.create_terminal(current_user, branch_id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':branch_id')
   @RequirePermissions(PermissionKey.BRANCHES_DELETE)
   @ApiOperation({ summary: 'Eliminar sucursal' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'branch_id', type: Number })
   @ApiOkResponse({ description: 'Sucursal eliminada exitosamente.' })
   delete_branch(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) branch_id: number,
+    @Param('branch_id', ParseIntPipe) branch_id: number,
   ) {
     return this.branches_service.delete_branch(current_user, branch_id);
   }

@@ -11,6 +11,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   ParseIntPipe,
   Patch,
@@ -39,14 +40,28 @@ import { PricingService } from '../services/pricing.service';
 export class ProductPricesController {
   constructor(private readonly pricing_service: PricingService) {}
 
-  @Patch(':id')
+  @Get(':product_price_id')
+  @RequirePermissions(PermissionKey.PRODUCT_PRICES_VIEW)
+  @ApiOperation({ summary: 'Obtener precio de producto por id' })
+  @ApiParam({ name: 'product_price_id', type: Number })
+  get_product_price(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('product_price_id', ParseIntPipe) product_price_id: number,
+  ) {
+    return this.pricing_service.get_product_price(
+      current_user,
+      product_price_id,
+    );
+  }
+
+  @Patch(':product_price_id')
   @RequirePermissions(PermissionKey.PRODUCT_PRICES_UPDATE)
   @ApiOperation({ summary: 'Actualizar precio de producto' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_price_id', type: Number })
   @ApiBody({ type: UpdateProductPriceDto })
   update_product_price(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) product_price_id: number,
+    @Param('product_price_id', ParseIntPipe) product_price_id: number,
     @Body() dto: UpdateProductPriceDto,
   ) {
     return this.pricing_service.update_product_price(
@@ -56,13 +71,13 @@ export class ProductPricesController {
     );
   }
 
-  @Delete(':id')
+  @Delete(':product_price_id')
   @RequirePermissions(PermissionKey.PRODUCT_PRICES_DELETE)
   @ApiOperation({ summary: 'Eliminar precio de producto' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_price_id', type: Number })
   delete_product_price(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) product_price_id: number,
+    @Param('product_price_id', ParseIntPipe) product_price_id: number,
   ) {
     return this.pricing_service.delete_product_price(
       current_user,

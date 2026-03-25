@@ -43,23 +43,25 @@ export class PlatformBusinessesController {
     return this.platform_businesses_service.get_businesses();
   }
 
-  @Get(':id')
+  @Get(':business_id')
   @ApiOperation({ summary: 'Obtener detalle de una empresa de la plataforma' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'business_id', type: Number })
   @ApiOkResponse({ description: 'Detalle de la empresa seleccionada.' })
-  get_business(@Param('id', ParseIntPipe) business_id: number) {
+  get_business(@Param('business_id', ParseIntPipe) business_id: number) {
     return this.platform_businesses_service.get_business(business_id);
   }
 
-  @Get(':id/branches')
+  @Get(':business_id/branches')
   @ApiOperation({
     summary: 'Obtener las sucursales de una empresa seleccionada',
   })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'business_id', type: Number })
   @ApiOkResponse({
     description: 'Listado de sucursales de la empresa seleccionada.',
   })
-  get_business_branches(@Param('id', ParseIntPipe) business_id: number) {
+  get_business_branches(
+    @Param('business_id', ParseIntPipe) business_id: number,
+  ) {
     return this.platform_businesses_service.get_business_branches(business_id);
   }
 

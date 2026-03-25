@@ -11,12 +11,14 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
 import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -44,13 +46,39 @@ export class WarehouseStockController {
     return this.warehouse_stock_service.get_stock(current_user);
   }
 
-  @Get(':warehouseId/products')
+  @Get('cursor')
+  @RequirePermissions(PermissionKey.WAREHOUSE_STOCK_VIEW)
+  @ApiOperation({ summary: 'Listar stock por bodega accesible (cursor)' })
+  get_stock_cursor(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.warehouse_stock_service.get_stock_cursor(current_user, query);
+  }
+
+  @Get(':warehouse_id/products/cursor')
+  @RequirePermissions(PermissionKey.WAREHOUSE_STOCK_VIEW)
+  @ApiOperation({ summary: 'Listar stock de productos por bodega (cursor)' })
+  @ApiParam({ name: 'warehouse_id', type: Number })
+  get_stock_by_warehouse_cursor(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.warehouse_stock_service.get_stock_by_warehouse_cursor(
+      current_user,
+      warehouse_id,
+      query,
+    );
+  }
+
+  @Get(':warehouse_id/products')
   @RequirePermissions(PermissionKey.WAREHOUSE_STOCK_VIEW)
   @ApiOperation({ summary: 'Listar stock de productos por bodega' })
-  @ApiParam({ name: 'warehouseId', type: Number })
+  @ApiParam({ name: 'warehouse_id', type: Number })
   get_stock_by_warehouse(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('warehouseId', ParseIntPipe) warehouse_id: number,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
   ) {
     return this.warehouse_stock_service.get_stock_by_warehouse(
       current_user,

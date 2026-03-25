@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import {
+  apply_cursor,
   apply_pagination,
   apply_search,
   apply_sorting,
@@ -121,6 +124,28 @@ export class ProductsRepository {
     );
 
     return apply_pagination(qb, query, mapper);
+  }
+
+  async find_cursor_by_business<T>(
+    business_id: number,
+    query: CursorQueryDto,
+    mapper: (product: Product) => T,
+  ): Promise<CursorResponseDto<T>> {
+    const qb = this.product_repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.stock_unit', 'stock_unit')
+      .leftJoinAndSelect('product.sale_unit', 'sale_unit')
+      .leftJoinAndSelect('product.tax_profile', 'tax_profile')
+      .leftJoinAndSelect('product.warranty_profile', 'warranty_profile')
+      .leftJoinAndSelect('product.variants', 'variants')
+      .where('product.business_id = :business_id', { business_id });
+
+    apply_search(qb, query.search, PRODUCT_SEARCH_COLUMNS);
+    qb.orderBy('product.id', query.sort_order ?? 'DESC');
+
+    return apply_cursor(qb, query, 'product.id', mapper);
   }
 
   async exists_sku_in_business(

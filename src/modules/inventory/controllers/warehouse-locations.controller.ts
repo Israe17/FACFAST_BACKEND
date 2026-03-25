@@ -39,25 +39,25 @@ import { WarehousesService } from '../services/warehouses.service';
 export class WarehouseLocationsController {
   constructor(private readonly warehouses_service: WarehousesService) {}
 
-  @Get(':id')
+  @Get(':warehouse_location_id')
   @RequirePermissions(PermissionKey.WAREHOUSE_LOCATIONS_VIEW)
   @ApiOperation({ summary: 'Obtener ubicacion por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warehouse_location_id', type: Number })
   get_location(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) location_id: number,
+    @Param('warehouse_location_id', ParseIntPipe) location_id: number,
   ) {
     return this.warehouses_service.get_location(current_user, location_id);
   }
 
-  @Patch(':id')
+  @Patch(':warehouse_location_id')
   @RequirePermissions(PermissionKey.WAREHOUSE_LOCATIONS_UPDATE)
   @ApiOperation({ summary: 'Actualizar ubicacion de bodega' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'warehouse_location_id', type: Number })
   @ApiBody({ type: UpdateWarehouseLocationDto })
   update_location(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) location_id: number,
+    @Param('warehouse_location_id', ParseIntPipe) location_id: number,
     @Body() dto: UpdateWarehouseLocationDto,
   ) {
     return this.warehouses_service.update_location(

@@ -1,4 +1,5 @@
 import {
+  ApiExcludeEndpoint,
   ApiBody,
   ApiCookieAuth,
   ApiForbiddenResponse,
@@ -85,6 +86,7 @@ export class ContactBranchAssignmentsController {
   }
 
   @Patch(':assignment_id')
+  @ApiExcludeEndpoint()
   @RequirePermissions(PermissionKey.CONTACTS_UPDATE_BRANCH_ASSIGNMENT)
   @ApiOperation({
     summary: 'Actualizar assignment comercial de contacto por sucursal',
@@ -107,6 +109,7 @@ export class ContactBranchAssignmentsController {
   }
 
   @Delete(':assignment_id')
+  @ApiExcludeEndpoint()
   @RequirePermissions(PermissionKey.CONTACTS_DELETE_BRANCH_ASSIGNMENT)
   @ApiOperation({
     summary: 'Eliminar assignment comercial de contacto por sucursal',

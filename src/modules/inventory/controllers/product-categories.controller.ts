@@ -71,13 +71,13 @@ export class ProductCategoriesController {
     return this.product_categories_service.get_tree(current_user);
   }
 
-  @Get(':id')
+  @Get(':product_category_id')
   @RequirePermissions(PermissionKey.CATEGORIES_VIEW)
   @ApiOperation({ summary: 'Obtener categoria por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_category_id', type: Number })
   get_category(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) category_id: number,
+    @Param('product_category_id', ParseIntPipe) category_id: number,
   ) {
     return this.product_categories_service.get_category(
       current_user,
@@ -85,14 +85,14 @@ export class ProductCategoriesController {
     );
   }
 
-  @Patch(':id')
+  @Patch(':product_category_id')
   @RequirePermissions(PermissionKey.CATEGORIES_UPDATE)
   @ApiOperation({ summary: 'Actualizar categoria' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_category_id', type: Number })
   @ApiBody({ type: UpdateProductCategoryDto })
   update_category(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) category_id: number,
+    @Param('product_category_id', ParseIntPipe) category_id: number,
     @Body() dto: UpdateProductCategoryDto,
   ) {
     return this.product_categories_service.update_category(
@@ -102,13 +102,13 @@ export class ProductCategoriesController {
     );
   }
 
-  @Delete(':id')
+  @Delete(':product_category_id')
   @RequirePermissions(PermissionKey.CATEGORIES_DELETE)
   @ApiOperation({ summary: 'Eliminar categoría (solo si no está en uso)' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_category_id', type: Number })
   delete_category(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) category_id: number,
+    @Param('product_category_id', ParseIntPipe) category_id: number,
   ) {
     return this.product_categories_service.delete_category(
       current_user,

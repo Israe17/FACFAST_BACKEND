@@ -1,4 +1,5 @@
 import {
+  ApiExcludeEndpoint,
   ApiBody,
   ApiCookieAuth,
   ApiForbiddenResponse,
@@ -78,6 +79,7 @@ export class PriceListBranchAssignmentsController {
   }
 
   @Patch(':assignment_id')
+  @ApiExcludeEndpoint()
   @RequirePermissions(PermissionKey.PRICE_LISTS_UPDATE_BRANCH_ASSIGNMENT)
   @ApiOperation({
     summary: 'Actualizar assignment de lista de precios por sucursal',
@@ -100,6 +102,7 @@ export class PriceListBranchAssignmentsController {
   }
 
   @Delete(':assignment_id')
+  @ApiExcludeEndpoint()
   @RequirePermissions(PermissionKey.PRICE_LISTS_DELETE_BRANCH_ASSIGNMENT)
   @ApiOperation({
     summary: 'Eliminar assignment de lista de precios por sucursal',

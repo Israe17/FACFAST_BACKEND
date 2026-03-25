@@ -65,13 +65,13 @@ export class MeasurementUnitsController {
     );
   }
 
-  @Get(':id')
+  @Get(':measurement_unit_id')
   @RequirePermissions(PermissionKey.MEASUREMENT_UNITS_VIEW)
   @ApiOperation({ summary: 'Obtener unidad por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'measurement_unit_id', type: Number })
   get_measurement_unit(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) measurement_unit_id: number,
+    @Param('measurement_unit_id', ParseIntPipe) measurement_unit_id: number,
   ) {
     return this.measurement_units_service.get_measurement_unit(
       current_user,
@@ -79,14 +79,14 @@ export class MeasurementUnitsController {
     );
   }
 
-  @Patch(':id')
+  @Patch(':measurement_unit_id')
   @RequirePermissions(PermissionKey.MEASUREMENT_UNITS_UPDATE)
   @ApiOperation({ summary: 'Actualizar unidad de medida' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'measurement_unit_id', type: Number })
   @ApiBody({ type: UpdateMeasurementUnitDto })
   update_measurement_unit(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) measurement_unit_id: number,
+    @Param('measurement_unit_id', ParseIntPipe) measurement_unit_id: number,
     @Body() dto: UpdateMeasurementUnitDto,
   ) {
     return this.measurement_units_service.update_measurement_unit(
@@ -96,15 +96,15 @@ export class MeasurementUnitsController {
     );
   }
 
-  @Delete(':id')
+  @Delete(':measurement_unit_id')
   @RequirePermissions(PermissionKey.MEASUREMENT_UNITS_DELETE)
   @ApiOperation({
     summary: 'Eliminar unidad de medida (solo si no está en uso)',
   })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'measurement_unit_id', type: Number })
   delete_measurement_unit(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) measurement_unit_id: number,
+    @Param('measurement_unit_id', ParseIntPipe) measurement_unit_id: number,
   ) {
     return this.measurement_units_service.delete_measurement_unit(
       current_user,

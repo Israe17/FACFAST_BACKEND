@@ -3,6 +3,8 @@ import { Branch } from '../modules/branches/entities/branch.entity';
 import { Terminal } from '../modules/branches/entities/terminal.entity';
 import { Business } from '../modules/common/entities/business.entity';
 import { BusinessSequence } from '../modules/common/entities/business-sequence.entity';
+import { IdempotencyKey } from '../modules/common/entities/idempotency-key.entity';
+import { OutboxEvent } from '../modules/common/entities/outbox-event.entity';
 import { Contact } from '../modules/contacts/entities/contact.entity';
 import { ContactBranchAssignment } from '../modules/contacts/entities/contact-branch-assignment.entity';
 import { Brand } from '../modules/inventory/entities/brand.entity';
@@ -11,6 +13,7 @@ import { InventoryLot } from '../modules/inventory/entities/inventory-lot.entity
 import { InventoryMovement } from '../modules/inventory/entities/inventory-movement.entity';
 import { InventoryMovementHeader } from '../modules/inventory/entities/inventory-movement-header.entity';
 import { InventoryMovementLine } from '../modules/inventory/entities/inventory-movement-line.entity';
+import { InventoryReservation } from '../modules/inventory/entities/inventory-reservation.entity';
 import { MeasurementUnit } from '../modules/inventory/entities/measurement-unit.entity';
 import { PriceList } from '../modules/inventory/entities/price-list.entity';
 import { PriceListBranchAssignment } from '../modules/inventory/entities/price-list-branch-assignment.entity';
@@ -60,6 +63,8 @@ export const database_entities = [
   Branch,
   Terminal,
   BusinessSequence,
+  IdempotencyKey,
+  OutboxEvent,
   Contact,
   ContactBranchAssignment,
   ProductCategory,
@@ -88,6 +93,7 @@ export const database_entities = [
   InventoryMovement,
   InventoryMovementHeader,
   InventoryMovementLine,
+  InventoryReservation,
   Zone,
   Vehicle,
   Route,

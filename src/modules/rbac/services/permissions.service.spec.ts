@@ -1,19 +1,19 @@
-import { PermissionsRepository } from '../repositories/permissions.repository';
+import { GetPermissionsListQueryUseCase } from '../use-cases/get-permissions-list.query.use-case';
 import { PermissionsService } from './permissions.service';
 
 describe('PermissionsService', () => {
   let service: PermissionsService;
-  const permissions_repository = {
-    find_all: jest.fn(),
-  } as unknown as jest.Mocked<PermissionsRepository>;
+  const get_permissions_list_query_use_case = {
+    execute: jest.fn(),
+  } as unknown as jest.Mocked<GetPermissionsListQueryUseCase>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new PermissionsService(permissions_repository);
+    service = new PermissionsService(get_permissions_list_query_use_case);
   });
 
   it('serializes the permission catalog to a stable response shape', async () => {
-    permissions_repository.find_all.mockResolvedValue([
+    get_permissions_list_query_use_case.execute.mockResolvedValue([
       {
         id: 1,
         code: 'PM-0001',
@@ -22,7 +22,7 @@ describe('PermissionsService', () => {
         action: 'view',
         description: 'Ver usuarios',
       },
-    ] as never);
+    ]);
 
     await expect(service.find_all()).resolves.toEqual([
       {

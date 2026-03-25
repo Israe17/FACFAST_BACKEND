@@ -1,4 +1,5 @@
 import {
+  ApiExcludeEndpoint,
   ApiBody,
   ApiCookieAuth,
   ApiForbiddenResponse,
@@ -76,6 +77,7 @@ export class PromotionBranchAssignmentsController {
   }
 
   @Patch(':assignment_id')
+  @ApiExcludeEndpoint()
   @RequirePermissions(PermissionKey.PROMOTIONS_UPDATE_BRANCH_ASSIGNMENT)
   @ApiOperation({ summary: 'Actualizar assignment de promocion por sucursal' })
   @ApiParam({ name: 'promotion_id', type: Number })
@@ -96,6 +98,7 @@ export class PromotionBranchAssignmentsController {
   }
 
   @Delete(':assignment_id')
+  @ApiExcludeEndpoint()
   @RequirePermissions(PermissionKey.PROMOTIONS_DELETE_BRANCH_ASSIGNMENT)
   @ApiOperation({ summary: 'Eliminar assignment de promocion por sucursal' })
   @ApiParam({ name: 'promotion_id', type: Number })

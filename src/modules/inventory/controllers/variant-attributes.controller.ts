@@ -46,10 +46,10 @@ export class VariantAttributesController {
     private readonly product_variants_service: ProductVariantsService,
   ) {}
 
-  @Put(':id/attributes')
+  @Put(':product_id/attributes')
   @RequirePermissions(PermissionKey.VARIANT_ATTRIBUTES_CONFIGURE)
   @ApiOperation({ summary: 'Definir atributos de variantes' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_id', type: Number })
   @ApiBody({
     schema: {
       type: 'object',
@@ -79,7 +79,7 @@ export class VariantAttributesController {
   })
   async set_attributes(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) product_id: number,
+    @Param('product_id', ParseIntPipe) product_id: number,
     @Body()
     body: {
       attributes: {
@@ -102,13 +102,13 @@ export class VariantAttributesController {
     );
   }
 
-  @Post(':id/attributes/generate-variants')
+  @Post(':product_id/attributes/generate-variants')
   @RequirePermissions(PermissionKey.VARIANT_ATTRIBUTES_GENERATE)
   @ApiOperation({ summary: 'Generar variantes a partir de atributos' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_id', type: Number })
   async generate_variants(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) product_id: number,
+    @Param('product_id', ParseIntPipe) product_id: number,
   ) {
     const business_id = resolve_effective_business_id(current_user);
     const product =
@@ -125,13 +125,13 @@ export class VariantAttributesController {
     );
   }
 
-  @Get(':id/attributes')
+  @Get(':product_id/attributes')
   @RequirePermissions(PermissionKey.VARIANT_ATTRIBUTES_VIEW)
   @ApiOperation({ summary: 'Listar atributos de variantes' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'product_id', type: Number })
   async get_attributes(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) product_id: number,
+    @Param('product_id', ParseIntPipe) product_id: number,
   ) {
     const business_id = resolve_effective_business_id(current_user);
     await this.inventory_validation_service.get_product_in_business(

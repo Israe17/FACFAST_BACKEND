@@ -1,61 +1,38 @@
 import { Injectable } from '@nestjs/common';
-import { BranchesRepository } from '../../branches/repositories/branches.repository';
-import { serialize_branch } from '../../branches/utils/serialize-branch.util';
 import { CreateBusinessOnboardingDto } from '../../businesses/dto/create-business-onboarding.dto';
-import { BusinessesRepository } from '../../businesses/repositories/businesses.repository';
-import { BusinessOnboardingService } from '../../businesses/services/business-onboarding.service';
-import { serialize_business } from '../../businesses/utils/serialize-business.util';
-import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
+import { PlatformBranchView } from '../contracts/platform-branch.view';
+import { PlatformBusinessView } from '../contracts/platform-business.view';
+import { GetPlatformBusinessBranchesQueryUseCase } from '../use-cases/get-platform-business-branches.query.use-case';
+import { GetPlatformBusinessQueryUseCase } from '../use-cases/get-platform-business.query.use-case';
+import { GetPlatformBusinessesListQueryUseCase } from '../use-cases/get-platform-businesses-list.query.use-case';
+import { OnboardPlatformBusinessUseCase } from '../use-cases/onboard-platform-business.use-case';
 
 @Injectable()
 export class PlatformBusinessesService {
   constructor(
-    private readonly businesses_repository: BusinessesRepository,
-    private readonly branches_repository: BranchesRepository,
-    private readonly business_onboarding_service: BusinessOnboardingService,
+    private readonly get_platform_businesses_list_query_use_case: GetPlatformBusinessesListQueryUseCase,
+    private readonly get_platform_business_query_use_case: GetPlatformBusinessQueryUseCase,
+    private readonly get_platform_business_branches_query_use_case: GetPlatformBusinessBranchesQueryUseCase,
+    private readonly onboard_platform_business_use_case: OnboardPlatformBusinessUseCase,
   ) {}
 
-  async get_businesses() {
-    const businesses = await this.businesses_repository.find_all();
-    return businesses.map((business) => serialize_business(business));
+  async get_businesses(): Promise<PlatformBusinessView[]> {
+    return this.get_platform_businesses_list_query_use_case.execute();
   }
 
-  async get_business(business_id: number) {
-    const business = await this.businesses_repository.find_by_id(business_id);
-    if (!business) {
-      throw new DomainNotFoundException({
-        code: 'PLATFORM_BUSINESS_NOT_FOUND',
-        messageKey: 'platform.business_not_found',
-        details: {
-          business_id,
-        },
-      });
-    }
-
-    return serialize_business(business);
+  async get_business(business_id: number): Promise<PlatformBusinessView> {
+    return this.get_platform_business_query_use_case.execute({ business_id });
   }
 
-  async get_business_branches(business_id: number) {
-    await this.assert_business_exists(business_id);
-    const branches =
-      await this.branches_repository.find_all_by_business(business_id);
-    return branches.map((branch) => serialize_branch(branch));
+  async get_business_branches(
+    business_id: number,
+  ): Promise<PlatformBranchView[]> {
+    return this.get_platform_business_branches_query_use_case.execute({
+      business_id,
+    });
   }
 
-  async onboard_business(dto: CreateBusinessOnboardingDto) {
-    return this.business_onboarding_service.onboard_business(dto);
-  }
-
-  private async assert_business_exists(business_id: number): Promise<void> {
-    const business = await this.businesses_repository.find_by_id(business_id);
-    if (!business) {
-      throw new DomainNotFoundException({
-        code: 'PLATFORM_BUSINESS_NOT_FOUND',
-        messageKey: 'platform.business_not_found',
-        details: {
-          business_id,
-        },
-      });
-    }
+  async onboard_business(dto: CreateBusinessOnboardingDto): Promise<unknown> {
+    return this.onboard_platform_business_use_case.execute({ dto });
   }
 }

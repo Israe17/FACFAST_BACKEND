@@ -60,25 +60,25 @@ export class PromotionsController {
     return this.promotions_service.create_promotion(current_user, dto);
   }
 
-  @Get(':id')
+  @Get(':promotion_id')
   @RequirePermissions(PermissionKey.PROMOTIONS_VIEW)
   @ApiOperation({ summary: 'Obtener promocion por id' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'promotion_id', type: Number })
   get_promotion(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) promotion_id: number,
+    @Param('promotion_id', ParseIntPipe) promotion_id: number,
   ) {
     return this.promotions_service.get_promotion(current_user, promotion_id);
   }
 
-  @Patch(':id')
+  @Patch(':promotion_id')
   @RequirePermissions(PermissionKey.PROMOTIONS_UPDATE)
   @ApiOperation({ summary: 'Actualizar promocion' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'promotion_id', type: Number })
   @ApiBody({ type: UpdatePromotionDto })
   update_promotion(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) promotion_id: number,
+    @Param('promotion_id', ParseIntPipe) promotion_id: number,
     @Body() dto: UpdatePromotionDto,
   ) {
     return this.promotions_service.update_promotion(
@@ -88,13 +88,13 @@ export class PromotionsController {
     );
   }
 
-  @Delete(':id')
+  @Delete(':promotion_id')
   @RequirePermissions(PermissionKey.PROMOTIONS_DELETE)
   @ApiOperation({ summary: 'Eliminar promocion' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'promotion_id', type: Number })
   delete_promotion(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Param('id', ParseIntPipe) promotion_id: number,
+    @Param('promotion_id', ParseIntPipe) promotion_id: number,
   ) {
     return this.promotions_service.delete_promotion(current_user, promotion_id);
   }
