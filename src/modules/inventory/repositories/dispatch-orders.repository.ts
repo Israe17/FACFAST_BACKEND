@@ -109,8 +109,12 @@ export class DispatchOrdersRepository {
   async find_by_id_in_business(
     id: number,
     business_id: number,
+    manager?: EntityManager,
   ): Promise<DispatchOrder | null> {
-    return this.dispatch_order_repository.findOne({
+    const repo = manager
+      ? manager.getRepository(DispatchOrder)
+      : this.dispatch_order_repository;
+    return repo.findOne({
       where: { id, business_id },
       relations: DISPATCH_ORDER_DETAIL_RELATIONS,
     });

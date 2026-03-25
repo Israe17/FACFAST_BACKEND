@@ -192,6 +192,7 @@ export class UpdateSaleOrderUseCase
       const full_order = await this.sale_orders_repository.find_by_id_in_business(
         order.id,
         business_id,
+        manager,
       );
       return this.sale_order_serializer.serialize(full_order!);
     });

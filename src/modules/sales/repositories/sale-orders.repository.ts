@@ -157,8 +157,12 @@ export class SaleOrdersRepository {
   async find_by_id_in_business(
     id: number,
     business_id: number,
+    manager?: EntityManager,
   ): Promise<SaleOrder | null> {
-    return this.sale_order_repository.findOne({
+    const repo = manager
+      ? manager.getRepository(SaleOrder)
+      : this.sale_order_repository;
+    return repo.findOne({
       where: { id, business_id },
       relations: SALE_ORDER_DETAIL_RELATIONS,
     });
