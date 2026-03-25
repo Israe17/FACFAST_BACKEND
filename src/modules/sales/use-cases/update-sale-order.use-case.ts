@@ -15,6 +15,7 @@ import { SaleOrderLifecyclePolicy } from '../policies/sale-order-lifecycle.polic
 import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
 import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
+import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 
 export type UpdateSaleOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -67,7 +68,7 @@ export class UpdateSaleOrderUseCase
         dto.seller_user_id !== undefined
           ? dto.seller_user_id
           : order.seller_user_id,
-      delivery_charges: dto.delivery_charges,
+      delivery_charges: dto.delivery_charges ?? order.delivery_charges,
     });
 
     if (dto.branch_id !== undefined) {
@@ -106,6 +107,9 @@ export class UpdateSaleOrderUseCase
       if (dto.sale_mode !== undefined) order.sale_mode = dto.sale_mode;
       if (dto.fulfillment_mode !== undefined) {
         order.fulfillment_mode = dto.fulfillment_mode;
+        order.dispatch_status = get_dispatch_status_for_fulfillment_mode(
+          dto.fulfillment_mode,
+        );
       }
       if (dto.order_date !== undefined) order.order_date = new Date(dto.order_date);
       if (dto.delivery_address !== undefined) {

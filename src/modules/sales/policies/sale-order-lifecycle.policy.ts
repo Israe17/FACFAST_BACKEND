@@ -3,16 +3,22 @@ import { TransitionPolicy } from '../../common/application/interfaces/transition
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { SaleOrder } from '../entities/sale-order.entity';
+import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
+import { can_cancel_sale_order_with_dispatch_status } from '../utils/sale-dispatch-status.util';
 
 export type SaleOrderTransition = 'confirm' | 'edit' | 'cancel' | 'delete';
 
 @Injectable()
 export class SaleOrderLifecyclePolicy
-  implements TransitionPolicy<Pick<SaleOrder, 'status'>, SaleOrderTransition>
+  implements
+    TransitionPolicy<
+      Pick<SaleOrder, 'status' | 'dispatch_status'>,
+      SaleOrderTransition
+    >
 {
   assert_transition_allowed(
-    order: Pick<SaleOrder, 'status'>,
+    order: Pick<SaleOrder, 'status' | 'dispatch_status'>,
     transition: SaleOrderTransition,
   ): void {
     switch (transition) {
@@ -42,6 +48,21 @@ export class SaleOrderLifecyclePolicy
             details: { status: order.status },
           });
         }
+
+        if (
+          !can_cancel_sale_order_with_dispatch_status(
+            order.dispatch_status ?? SaleDispatchStatus.PENDING,
+          )
+        ) {
+          throw new DomainConflictException({
+            code: 'SALE_ORDER_CANNOT_CANCEL_AFTER_LOGISTICS',
+            messageKey: 'sales.order_cannot_cancel_after_logistics',
+            details: {
+              status: order.status,
+              dispatch_status: order.dispatch_status,
+            },
+          });
+        }
         return;
       case 'delete':
         if (
@@ -58,19 +79,22 @@ export class SaleOrderLifecyclePolicy
     }
   }
 
-  assert_confirmable(order: Pick<SaleOrder, 'status'>): void {
+  assert_confirmable(order: Pick<SaleOrder, 'status' | 'dispatch_status'>): void {
     this.assert_transition_allowed(order, 'confirm');
   }
 
-  assert_editable(order: Pick<SaleOrder, 'status'>): void {
+  assert_editable(order: Pick<SaleOrder, 'status' | 'dispatch_status'>): void {
     this.assert_transition_allowed(order, 'edit');
   }
 
-  assert_cancellable(order: Pick<SaleOrder, 'status'>): void {
+  assert_cancellable(order: Pick<SaleOrder, 'status' | 'dispatch_status'>): void {
     this.assert_transition_allowed(order, 'cancel');
   }
 
-  assert_deletable(order: Pick<SaleOrder, 'status'>, order_id: number): void {
+  assert_deletable(
+    order: Pick<SaleOrder, 'status' | 'dispatch_status'>,
+    order_id: number,
+  ): void {
     try {
       this.assert_transition_allowed(order, 'delete');
     } catch (error) {

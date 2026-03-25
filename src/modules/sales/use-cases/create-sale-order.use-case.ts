@@ -10,12 +10,12 @@ import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
 import { SaleOrder } from '../entities/sale-order.entity';
 import { SaleOrderDeliveryCharge } from '../entities/sale-order-delivery-charge.entity';
 import { SaleOrderLine } from '../entities/sale-order-line.entity';
-import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
 import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
 import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
 import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
+import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 
 export type CreateSaleOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -69,7 +69,9 @@ export class CreateSaleOrderUseCase
         sale_mode: dto.sale_mode,
         fulfillment_mode: dto.fulfillment_mode,
         status: SaleOrderStatus.DRAFT,
-        dispatch_status: SaleDispatchStatus.PENDING,
+        dispatch_status: get_dispatch_status_for_fulfillment_mode(
+          dto.fulfillment_mode,
+        ),
         order_date: new Date(dto.order_date),
         delivery_address: this.normalize_optional_string(dto.delivery_address),
         delivery_province: this.normalize_optional_string(dto.delivery_province),

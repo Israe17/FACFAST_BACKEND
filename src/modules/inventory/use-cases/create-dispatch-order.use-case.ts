@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -12,12 +13,14 @@ import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchStop } from '../entities/dispatch-stop.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { DispatchType } from '../enums/dispatch-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { DispatchCatalogValidationService } from '../services/dispatch-catalog-validation.service';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
+import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 
 export type CreateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -94,6 +97,11 @@ export class CreateDispatchOrderUseCase
         },
       },
       async (manager) => {
+        this.assert_dispatch_type_allows_stop_count(
+          dto.dispatch_type,
+          dto.stop_sale_order_ids?.length ?? 0,
+        );
+
         const dispatch_order_repository = manager.getRepository(DispatchOrder);
         const order = await dispatch_order_repository.save(
           this.dispatch_orders_repository.create({
@@ -129,12 +137,17 @@ export class CreateDispatchOrderUseCase
               where: { id: sale_order_id, business_id },
             });
             if (!sale_order) {
-              continue;
+              throw new DomainNotFoundException({
+                code: 'SALE_ORDER_NOT_FOUND',
+                messageKey: 'inventory.sale_order_not_found',
+                details: { sale_order_id },
+              });
             }
 
             this.dispatch_sale_order_policy.assert_dispatchable_sale_order(
               order.branch_id,
               sale_order,
+              order.origin_warehouse_id,
             );
 
             await manager.getRepository(DispatchStop).save(
@@ -150,6 +163,9 @@ export class CreateDispatchOrderUseCase
                 delivery_district: sale_order.delivery_district,
               }),
             );
+
+            sale_order.dispatch_status = SaleDispatchStatus.ASSIGNED;
+            await manager.getRepository(SaleOrder).save(sale_order);
           }
         }
 
@@ -167,6 +183,23 @@ export class CreateDispatchOrderUseCase
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private assert_dispatch_type_allows_stop_count(
+    dispatch_type: DispatchType,
+    stop_count: number,
+  ): void {
+    if (dispatch_type === DispatchType.INDIVIDUAL && stop_count > 1) {
+      throw new DomainConflictException({
+        code: 'DISPATCH_ORDER_INDIVIDUAL_REQUIRES_SINGLE_SALE_ORDER',
+        messageKey:
+          'inventory.dispatch_order_individual_requires_single_sale_order',
+        details: {
+          dispatch_type,
+          stop_count,
+        },
+      });
+    }
   }
 
   private async assert_sale_order_not_assigned_to_active_dispatch(

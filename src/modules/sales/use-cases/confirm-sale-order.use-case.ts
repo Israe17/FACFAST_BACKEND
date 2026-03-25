@@ -16,6 +16,7 @@ import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
 import { SaleOrderInventoryPolicy } from '../policies/sale-order-inventory.policy';
 import { SaleOrderLifecyclePolicy } from '../policies/sale-order-lifecycle.policy';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
+import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 
 export type ConfirmSaleOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -90,6 +91,9 @@ export class ConfirmSaleOrderUseCase
           );
 
         order.status = SaleOrderStatus.CONFIRMED;
+        order.dispatch_status = get_dispatch_status_for_fulfillment_mode(
+          order.fulfillment_mode,
+        );
         await manager.getRepository(SaleOrder).save(order);
 
         if (reservation_deltas.length > 0) {

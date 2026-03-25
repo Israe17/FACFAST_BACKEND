@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { EntitySerializer } from '../../common/application/interfaces/entity-serializer.interface';
 import { SaleOrder } from '../entities/sale-order.entity';
+import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
 import { SaleOrderView } from '../contracts/sale-order.view';
+import { can_cancel_sale_order_with_dispatch_status } from '../utils/sale-dispatch-status.util';
 
 @Injectable()
 export class SaleOrderSerializer
@@ -86,7 +88,11 @@ export class SaleOrderSerializer
       lifecycle: {
         can_edit: order.status === SaleOrderStatus.DRAFT,
         can_confirm: order.status === SaleOrderStatus.DRAFT,
-        can_cancel: order.status !== SaleOrderStatus.CANCELLED,
+        can_cancel:
+          order.status !== SaleOrderStatus.CANCELLED &&
+          can_cancel_sale_order_with_dispatch_status(
+            order.dispatch_status ?? SaleDispatchStatus.PENDING,
+          ),
         can_delete:
           order.status === SaleOrderStatus.DRAFT ||
           order.status === SaleOrderStatus.CANCELLED,

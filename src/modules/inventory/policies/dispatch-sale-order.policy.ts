@@ -18,6 +18,50 @@ export class DispatchSaleOrderPolicy {
       | 'status'
       | 'warehouse_id'
     >,
+    origin_warehouse_id?: number | null,
+  ): void {
+    this.assert_sale_order_for_dispatch_context(
+      dispatch_branch_id,
+      sale_order,
+      [SaleDispatchStatus.PENDING],
+      origin_warehouse_id,
+    );
+  }
+
+  assert_dispatch_order_sale_order(
+    dispatch_branch_id: number,
+    sale_order: Pick<
+      SaleOrder,
+      | 'id'
+      | 'branch_id'
+      | 'dispatch_status'
+      | 'fulfillment_mode'
+      | 'status'
+      | 'warehouse_id'
+    >,
+    origin_warehouse_id?: number | null,
+  ): void {
+    this.assert_sale_order_for_dispatch_context(
+      dispatch_branch_id,
+      sale_order,
+      [SaleDispatchStatus.PENDING, SaleDispatchStatus.ASSIGNED],
+      origin_warehouse_id,
+    );
+  }
+
+  private assert_sale_order_for_dispatch_context(
+    dispatch_branch_id: number,
+    sale_order: Pick<
+      SaleOrder,
+      | 'id'
+      | 'branch_id'
+      | 'dispatch_status'
+      | 'fulfillment_mode'
+      | 'status'
+      | 'warehouse_id'
+    >,
+    allowed_dispatch_statuses: SaleDispatchStatus[],
+    origin_warehouse_id?: number | null,
   ): void {
     if (sale_order.status !== SaleOrderStatus.CONFIRMED) {
       throw new DomainBadRequestException({
@@ -41,7 +85,7 @@ export class DispatchSaleOrderPolicy {
       });
     }
 
-    if (sale_order.dispatch_status !== SaleDispatchStatus.PENDING) {
+    if (!allowed_dispatch_statuses.includes(sale_order.dispatch_status)) {
       throw new DomainBadRequestException({
         code: 'SALE_ORDER_ALREADY_ASSIGNED_OR_DISPATCHED',
         messageKey: 'sales.order_already_assigned_or_dispatched',
@@ -70,6 +114,22 @@ export class DispatchSaleOrderPolicy {
           sale_order_id: sale_order.id,
           sale_order_branch_id: sale_order.branch_id,
           dispatch_branch_id,
+        },
+      });
+    }
+
+    if (
+      origin_warehouse_id !== undefined &&
+      origin_warehouse_id !== null &&
+      sale_order.warehouse_id !== origin_warehouse_id
+    ) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_DISPATCH_WAREHOUSE_MISMATCH',
+        messageKey: 'sales.order_dispatch_warehouse_mismatch',
+        details: {
+          sale_order_id: sale_order.id,
+          sale_order_warehouse_id: sale_order.warehouse_id,
+          origin_warehouse_id,
         },
       });
     }

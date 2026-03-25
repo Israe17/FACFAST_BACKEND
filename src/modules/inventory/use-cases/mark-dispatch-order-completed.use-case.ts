@@ -15,7 +15,7 @@ import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecyc
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
-import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
+import { get_dispatch_status_for_resolved_stop } from '../../sales/utils/sale-dispatch-status.util';
 
 export type MarkDispatchOrderCompletedCommand = {
   current_user: AuthenticatedUserContext;
@@ -82,7 +82,12 @@ export class MarkDispatchOrderCompletedUseCase
         await manager.getRepository(DispatchOrder).save(order);
 
         for (const stop of order.stops ?? []) {
-          if (stop.status !== DispatchStopStatus.DELIVERED) {
+          if (
+            stop.status !== DispatchStopStatus.DELIVERED &&
+            stop.status !== DispatchStopStatus.FAILED &&
+            stop.status !== DispatchStopStatus.PARTIAL &&
+            stop.status !== DispatchStopStatus.SKIPPED
+          ) {
             continue;
           }
 
@@ -92,7 +97,9 @@ export class MarkDispatchOrderCompletedUseCase
               business_id,
             },
             {
-              dispatch_status: SaleDispatchStatus.DELIVERED,
+              dispatch_status: get_dispatch_status_for_resolved_stop(
+                stop.status,
+              ),
             },
           );
         }
