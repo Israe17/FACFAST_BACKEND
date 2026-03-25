@@ -1,8 +1,9 @@
-import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
+import { UserStatus } from '../../common/enums/user-status.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
@@ -81,6 +82,7 @@ export class MarkDispatchOrderDispatchedUseCase
           order,
         );
         this.dispatch_order_lifecycle_policy.assert_dispatchable(order);
+        this.assert_order_can_be_dispatched(order);
 
         order.status = DispatchOrderStatus.DISPATCHED;
         order.dispatched_at = new Date();
@@ -149,5 +151,72 @@ export class MarkDispatchOrderDispatchedUseCase
         return this.dispatch_order_serializer.serialize(full_order!);
       },
     );
+  }
+
+  private assert_order_can_be_dispatched(order: DispatchOrder): void {
+    if (!order.scheduled_date) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_SCHEDULED_DATE_REQUIRED',
+        messageKey: 'inventory.dispatch_order_scheduled_date_required',
+        details: { dispatch_order_id: order.id },
+      });
+    }
+
+    if (!order.vehicle_id || !order.vehicle) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_VEHICLE_REQUIRED',
+        messageKey: 'inventory.dispatch_order_vehicle_required',
+        details: { dispatch_order_id: order.id },
+      });
+    }
+
+    if (!order.vehicle.is_active) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_VEHICLE_INACTIVE',
+        messageKey: 'inventory.dispatch_order_vehicle_inactive',
+        details: {
+          dispatch_order_id: order.id,
+          vehicle_id: order.vehicle_id,
+        },
+      });
+    }
+
+    if (!order.driver_user_id || !order.driver_user) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_DRIVER_REQUIRED',
+        messageKey: 'inventory.dispatch_order_driver_required',
+        details: { dispatch_order_id: order.id },
+      });
+    }
+
+    if (order.driver_user.status !== UserStatus.ACTIVE) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_DRIVER_INACTIVE',
+        messageKey: 'inventory.dispatch_order_driver_inactive',
+        details: {
+          dispatch_order_id: order.id,
+          driver_user_id: order.driver_user_id,
+        },
+      });
+    }
+
+    if (order.route_id && (!order.route || order.route.is_active === false)) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_ROUTE_INACTIVE',
+        messageKey: 'inventory.dispatch_order_route_inactive',
+        details: {
+          dispatch_order_id: order.id,
+          route_id: order.route_id,
+        },
+      });
+    }
+
+    if (!order.stops?.length) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_STOPS_REQUIRED',
+        messageKey: 'inventory.dispatch_order_stops_required',
+        details: { dispatch_order_id: order.id },
+      });
+    }
   }
 }

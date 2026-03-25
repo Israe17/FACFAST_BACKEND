@@ -34,6 +34,7 @@ import { CreateDispatchOrderDto } from '../dto/create-dispatch-order.dto';
 import { UpdateDispatchOrderDto } from '../dto/update-dispatch-order.dto';
 import { CreateDispatchStopDto } from '../dto/create-dispatch-stop.dto';
 import { CreateDispatchExpenseDto } from '../dto/create-dispatch-expense.dto';
+import { UpdateDispatchStopStatusDto } from '../dto/update-dispatch-stop-status.dto';
 import { DispatchOrdersService } from '../services/dispatch-orders.service';
 
 @ApiTags('dispatch-orders')
@@ -156,6 +157,28 @@ export class DispatchOrdersController {
     );
   }
 
+  @Patch(':dispatch_order_id/stops/:dispatch_stop_id/status')
+  @RequirePermissions(PermissionKey.DISPATCH_ORDERS_UPDATE)
+  @ApiOperation({ summary: 'Actualizar estado de parada de despacho' })
+  @ApiParam({ name: 'dispatch_order_id', type: Number })
+  @ApiParam({ name: 'dispatch_stop_id', type: Number })
+  @ApiBody({ type: UpdateDispatchStopStatusDto })
+  update_stop_status(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('dispatch_order_id', ParseIntPipe) dispatch_order_id: number,
+    @Param('dispatch_stop_id', ParseIntPipe) dispatch_stop_id: number,
+    @Body() dto: UpdateDispatchStopStatusDto,
+    @IdempotencyKey() idempotency_key?: string | null,
+  ) {
+    return this.dispatch_orders_service.update_stop_status(
+      current_user,
+      dispatch_order_id,
+      dispatch_stop_id,
+      dto,
+      idempotency_key,
+    );
+  }
+
   @Post(':dispatch_order_id/expenses')
   @RequirePermissions(PermissionKey.DISPATCH_EXPENSES_CREATE)
   @ApiOperation({ summary: 'Agregar gasto a orden de despacho' })
@@ -190,6 +213,22 @@ export class DispatchOrdersController {
       current_user,
       dispatch_order_id,
       expense_id,
+      idempotency_key,
+    );
+  }
+
+  @Post(':dispatch_order_id/ready')
+  @RequirePermissions(PermissionKey.DISPATCH_ORDERS_UPDATE)
+  @ApiOperation({ summary: 'Marcar orden como lista para despacho' })
+  @ApiParam({ name: 'dispatch_order_id', type: Number })
+  mark_ready(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('dispatch_order_id', ParseIntPipe) dispatch_order_id: number,
+    @IdempotencyKey() idempotency_key?: string | null,
+  ) {
+    return this.dispatch_orders_service.mark_ready(
+      current_user,
+      dispatch_order_id,
       idempotency_key,
     );
   }

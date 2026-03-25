@@ -16,6 +16,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -28,6 +29,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { CreateRouteDto } from '../dto/create-route.dto';
+import { SetBranchAssignmentsDto } from '../dto/set-branch-assignments.dto';
 import { UpdateRouteDto } from '../dto/update-route.dto';
 import { RoutesService } from '../services/routes.service';
 
@@ -71,6 +73,20 @@ export class RoutesController {
     return this.routes_service.get_route(current_user, route_id);
   }
 
+  @Get(':route_id/branches')
+  @RequirePermissions(PermissionKey.ROUTES_VIEW)
+  @ApiOperation({ summary: 'Obtener asignacion por sucursales de ruta' })
+  @ApiParam({ name: 'route_id', type: Number })
+  get_route_branch_assignments(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('route_id', ParseIntPipe) route_id: number,
+  ) {
+    return this.routes_service.get_route_branch_assignments(
+      current_user,
+      route_id,
+    );
+  }
+
   @Patch(':route_id')
   @RequirePermissions(PermissionKey.ROUTES_UPDATE)
   @ApiOperation({ summary: 'Actualizar ruta' })
@@ -82,6 +98,23 @@ export class RoutesController {
     @Body() dto: UpdateRouteDto,
   ) {
     return this.routes_service.update_route(current_user, route_id, dto);
+  }
+
+  @Put(':route_id/branches')
+  @RequirePermissions(PermissionKey.ROUTES_UPDATE)
+  @ApiOperation({ summary: 'Actualizar asignacion por sucursales de ruta' })
+  @ApiParam({ name: 'route_id', type: Number })
+  @ApiBody({ type: SetBranchAssignmentsDto })
+  set_route_branch_assignments(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('route_id', ParseIntPipe) route_id: number,
+    @Body() dto: SetBranchAssignmentsDto,
+  ) {
+    return this.routes_service.set_route_branch_assignments(
+      current_user,
+      route_id,
+      dto,
+    );
   }
 
   @Delete(':route_id')

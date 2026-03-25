@@ -4,12 +4,14 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
 import { Zone } from '../entities/zone.entity';
 import { User } from '../../users/entities/user.entity';
 import { Vehicle } from '../entities/vehicle.entity';
+import { RouteBranchLink } from './route-branch-link.entity';
 
 @Entity('routes')
 @Index(['business_id', 'name'], { unique: true })
@@ -27,6 +29,12 @@ export class Route extends AuditedCodeEntity {
     name: 'business_id',
   })
   business?: Business;
+
+  @Column({
+    type: 'boolean',
+    default: true,
+  })
+  is_global!: boolean;
 
   @Column({
     type: 'int',
@@ -113,4 +121,7 @@ export class Route extends AuditedCodeEntity {
     default: true,
   })
   is_active!: boolean;
+
+  @OneToMany(() => RouteBranchLink, (branch_link) => branch_link.route)
+  branch_links?: RouteBranchLink[];
 }

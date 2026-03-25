@@ -12,6 +12,7 @@ import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.pol
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
+import { DispatchCatalogValidationService } from '../services/dispatch-catalog-validation.service';
 
 export type UpdateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -28,6 +29,7 @@ export class UpdateDispatchOrderUseCase
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
     private readonly dispatch_order_access_policy: DispatchOrderAccessPolicy,
     private readonly dispatch_order_lifecycle_policy: DispatchOrderLifecyclePolicy,
+    private readonly dispatch_catalog_validation_service: DispatchCatalogValidationService,
     private readonly entity_code_service: EntityCodeService,
     private readonly dispatch_order_serializer: DispatchOrderSerializer,
   ) {}
@@ -62,6 +64,30 @@ export class UpdateDispatchOrderUseCase
 
     if (dto.code) {
       this.entity_code_service.validate_code('DO', dto.code.trim());
+    }
+
+    const effective_branch_id = dto.branch_id ?? order.branch_id;
+    const effective_route_id =
+      dto.route_id !== undefined ? dto.route_id : order.route_id;
+    const effective_vehicle_id =
+      dto.vehicle_id !== undefined ? dto.vehicle_id : order.vehicle_id;
+
+    if (effective_route_id !== null && effective_route_id !== undefined) {
+      await this.dispatch_catalog_validation_service.get_route_for_branch_operation(
+        current_user,
+        effective_route_id,
+        effective_branch_id,
+        { require_active: true },
+      );
+    }
+
+    if (effective_vehicle_id !== null && effective_vehicle_id !== undefined) {
+      await this.dispatch_catalog_validation_service.get_vehicle_for_branch_operation(
+        current_user,
+        effective_vehicle_id,
+        effective_branch_id,
+        { require_active: true },
+      );
     }
 
     return this.data_source.transaction(async (manager) => {

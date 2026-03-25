@@ -21,9 +21,21 @@ describe('DispatchOrderLifecyclePolicy', () => {
     ).toThrow(DomainConflictException);
   });
 
+  it('rejects marking non-draft orders as ready', () => {
+    expect(() =>
+      policy.assert_readyable({ status: DispatchOrderStatus.READY }),
+    ).toThrow(DomainConflictException);
+  });
+
   it('rejects completing orders that are not in progress', () => {
     expect(() =>
       policy.assert_completable({ status: DispatchOrderStatus.READY }),
+    ).toThrow(DomainConflictException);
+  });
+
+  it('rejects cancelling dispatched orders', () => {
+    expect(() =>
+      policy.assert_cancellable({ status: DispatchOrderStatus.DISPATCHED }),
     ).toThrow(DomainConflictException);
   });
 });

@@ -25,12 +25,38 @@ export class RoutesRepository {
     );
   }
 
-  async find_all_by_business(business_id: number): Promise<Route[]> {
-    return this.route_repository.find({
-      where: { business_id },
-      relations: ['zone', 'default_driver', 'default_vehicle'],
-      order: { name: 'ASC' },
-    });
+  async find_all_by_business(
+    business_id: number,
+    branch_ids?: number[],
+  ): Promise<Route[]> {
+    const qb = this.route_repository
+      .createQueryBuilder('route')
+      .leftJoinAndSelect('route.zone', 'zone')
+      .leftJoinAndSelect('route.default_driver', 'default_driver')
+      .leftJoinAndSelect('route.default_vehicle', 'default_vehicle')
+      .leftJoinAndSelect(
+        'route.branch_links',
+        'branch_link',
+        'branch_link.is_active = true',
+      )
+      .leftJoinAndSelect('branch_link.branch', 'branch')
+      .where('route.business_id = :business_id', { business_id })
+      .orderBy('route.name', 'ASC')
+      .addOrderBy('branch.name', 'ASC')
+      .distinct(true);
+
+    if (branch_ids !== undefined) {
+      if (branch_ids.length > 0) {
+        qb.andWhere(
+          '(route.is_global = true OR branch_link.branch_id IN (:...branch_ids))',
+          { branch_ids },
+        );
+      } else {
+        qb.andWhere('route.is_global = true');
+      }
+    }
+
+    return qb.getMany();
   }
 
   async find_by_id_in_business(
@@ -39,7 +65,13 @@ export class RoutesRepository {
   ): Promise<Route | null> {
     return this.route_repository.findOne({
       where: { id, business_id },
-      relations: ['zone', 'default_driver', 'default_vehicle'],
+      relations: [
+        'zone',
+        'default_driver',
+        'default_vehicle',
+        'branch_links',
+        'branch_links.branch',
+      ],
     });
   }
 

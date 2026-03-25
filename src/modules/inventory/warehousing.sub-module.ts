@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
+import { DispatchCatalogValidationSubModule } from './dispatch-catalog-validation.sub-module';
 import { WarehouseLocationsController } from './controllers/warehouse-locations.controller';
 import { WarehouseStockController } from './controllers/warehouse-stock.controller';
 import { WarehousesController } from './controllers/warehouses.controller';
@@ -10,11 +11,14 @@ import { WarehouseLocation } from './entities/warehouse-location.entity';
 import { WarehouseStock } from './entities/warehouse-stock.entity';
 import { Warehouse } from './entities/warehouse.entity';
 import { Zone } from './entities/zone.entity';
+import { ZoneBranchLink } from './entities/zone-branch-link.entity';
+import { InventoryValidationSubModule } from './inventory-validation.sub-module';
 import { WarehouseAccessPolicy } from './policies/warehouse-access.policy';
 import { WarehouseBranchLinksRepository } from './repositories/warehouse-branch-links.repository';
 import { WarehouseLocationsRepository } from './repositories/warehouse-locations.repository';
 import { WarehouseStockRepository } from './repositories/warehouse-stock.repository';
 import { WarehousesRepository } from './repositories/warehouses.repository';
+import { ZoneBranchLinksRepository } from './repositories/zone-branch-links.repository';
 import { ZonesRepository } from './repositories/zones.repository';
 import { WarehouseLocationSerializer } from './serializers/warehouse-location.serializer';
 import { WarehouseSerializer } from './serializers/warehouse.serializer';
@@ -46,8 +50,11 @@ import { UpdateWarehouseUseCase } from './use-cases/update-warehouse.use-case';
       WarehouseLocation,
       WarehouseStock,
       Zone,
+      ZoneBranchLink,
     ]),
     BranchesModule,
+    DispatchCatalogValidationSubModule,
+    InventoryValidationSubModule,
     ProductsSubModule,
   ],
   controllers: [
@@ -61,6 +68,7 @@ import { UpdateWarehouseUseCase } from './use-cases/update-warehouse.use-case';
     WarehouseBranchLinksRepository,
     WarehouseLocationsRepository,
     WarehouseStockRepository,
+    ZoneBranchLinksRepository,
     ZonesRepository,
     WarehouseAccessPolicy,
     WarehouseSerializer,
@@ -92,7 +100,9 @@ import { UpdateWarehouseUseCase } from './use-cases/update-warehouse.use-case';
     WarehouseBranchLinksRepository,
     WarehouseLocationsRepository,
     WarehouseStockRepository,
+    ZoneBranchLinksRepository,
     ZonesRepository,
+    ZonesService,
   ],
 })
 export class WarehousingSubModule {}

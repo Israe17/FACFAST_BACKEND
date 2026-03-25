@@ -3,22 +3,32 @@ import { EntitySerializer } from '../../common/application/interfaces/entity-ser
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { DispatchStopStatus } from '../enums/dispatch-stop-status.enum';
 
 @Injectable()
 export class DispatchOrderSerializer
   implements EntitySerializer<DispatchOrder, DispatchOrderView>
 {
   serialize(order: DispatchOrder): DispatchOrderView {
+    const can_ready = order.status === DispatchOrderStatus.DRAFT;
     const can_edit =
       order.status === DispatchOrderStatus.DRAFT ||
       order.status === DispatchOrderStatus.READY;
     const can_dispatch = order.status === DispatchOrderStatus.READY;
+    const all_stops_resolved =
+      (order.stops?.length ?? 0) > 0 &&
+      (order.stops ?? []).every(
+        (stop) =>
+          stop.status !== DispatchStopStatus.PENDING &&
+          stop.status !== DispatchStopStatus.IN_TRANSIT,
+      );
     const can_complete =
-      order.status === DispatchOrderStatus.DISPATCHED ||
-      order.status === DispatchOrderStatus.IN_TRANSIT;
+      (order.status === DispatchOrderStatus.DISPATCHED ||
+        order.status === DispatchOrderStatus.IN_TRANSIT) &&
+      all_stops_resolved;
     const can_cancel =
-      order.status !== DispatchOrderStatus.CANCELLED &&
-      order.status !== DispatchOrderStatus.COMPLETED;
+      order.status === DispatchOrderStatus.DRAFT ||
+      order.status === DispatchOrderStatus.READY;
 
     return {
       id: order.id,
@@ -115,6 +125,7 @@ export class DispatchOrderSerializer
         updated_at: expense.updated_at,
       })),
       lifecycle: {
+        can_ready,
         can_edit,
         can_dispatch,
         can_complete,

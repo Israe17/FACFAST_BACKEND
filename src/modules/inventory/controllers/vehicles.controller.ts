@@ -16,6 +16,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-platform-permission-override.decorator';
@@ -28,6 +29,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { CreateVehicleDto } from '../dto/create-vehicle.dto';
+import { SetBranchAssignmentsDto } from '../dto/set-branch-assignments.dto';
 import { UpdateVehicleDto } from '../dto/update-vehicle.dto';
 import { VehiclesService } from '../services/vehicles.service';
 
@@ -71,6 +73,20 @@ export class VehiclesController {
     return this.vehicles_service.get_vehicle(current_user, vehicle_id);
   }
 
+  @Get(':vehicle_id/branches')
+  @RequirePermissions(PermissionKey.VEHICLES_VIEW)
+  @ApiOperation({ summary: 'Obtener asignacion por sucursales de vehiculo' })
+  @ApiParam({ name: 'vehicle_id', type: Number })
+  get_vehicle_branch_assignments(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('vehicle_id', ParseIntPipe) vehicle_id: number,
+  ) {
+    return this.vehicles_service.get_vehicle_branch_assignments(
+      current_user,
+      vehicle_id,
+    );
+  }
+
   @Patch(':vehicle_id')
   @RequirePermissions(PermissionKey.VEHICLES_UPDATE)
   @ApiOperation({ summary: 'Actualizar vehículo' })
@@ -82,6 +98,23 @@ export class VehiclesController {
     @Body() dto: UpdateVehicleDto,
   ) {
     return this.vehicles_service.update_vehicle(current_user, vehicle_id, dto);
+  }
+
+  @Put(':vehicle_id/branches')
+  @RequirePermissions(PermissionKey.VEHICLES_UPDATE)
+  @ApiOperation({ summary: 'Actualizar asignacion por sucursales de vehiculo' })
+  @ApiParam({ name: 'vehicle_id', type: Number })
+  @ApiBody({ type: SetBranchAssignmentsDto })
+  set_vehicle_branch_assignments(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('vehicle_id', ParseIntPipe) vehicle_id: number,
+    @Body() dto: SetBranchAssignmentsDto,
+  ) {
+    return this.vehicles_service.set_vehicle_branch_assignments(
+      current_user,
+      vehicle_id,
+      dto,
+    );
   }
 
   @Delete(':vehicle_id')

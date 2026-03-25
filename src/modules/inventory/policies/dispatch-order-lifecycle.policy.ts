@@ -5,6 +5,7 @@ import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
 
 export type DispatchOrderTransition =
+  | 'ready'
   | 'edit'
   | 'dispatch'
   | 'complete'
@@ -20,6 +21,15 @@ export class DispatchOrderLifecyclePolicy
     transition: DispatchOrderTransition,
   ): void {
     switch (transition) {
+      case 'ready':
+        if (order.status !== DispatchOrderStatus.DRAFT) {
+          throw new DomainConflictException({
+            code: 'DISPATCH_ORDER_NOT_READYABLE',
+            messageKey: 'inventory.dispatch_order_not_readyable',
+            details: { status: order.status },
+          });
+        }
+        return;
       case 'edit':
         if (
           order.status !== DispatchOrderStatus.DRAFT &&
@@ -55,8 +65,8 @@ export class DispatchOrderLifecyclePolicy
         return;
       case 'cancel':
         if (
-          order.status === DispatchOrderStatus.CANCELLED ||
-          order.status === DispatchOrderStatus.COMPLETED
+          order.status !== DispatchOrderStatus.DRAFT &&
+          order.status !== DispatchOrderStatus.READY
         ) {
           throw new DomainConflictException({
             code: 'DISPATCH_ORDER_CANNOT_CANCEL',
@@ -66,6 +76,10 @@ export class DispatchOrderLifecyclePolicy
         }
         return;
     }
+  }
+
+  assert_readyable(order: Pick<DispatchOrder, 'status'>): void {
+    this.assert_transition_allowed(order, 'ready');
   }
 
   assert_editable(order: Pick<DispatchOrder, 'status'>): void {

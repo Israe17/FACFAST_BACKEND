@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DispatchCatalogValidationSubModule } from './dispatch-catalog-validation.sub-module';
 import { DispatchSubModule } from './dispatch.sub-module';
 import { MovementsSubModule } from './movements.sub-module';
 import { PricingSubModule } from './pricing.sub-module';
@@ -8,6 +9,7 @@ import { WarehousingSubModule } from './warehousing.sub-module';
 
 @Module({
   imports: [
+    DispatchCatalogValidationSubModule,
     ProductsSubModule,
     PricingSubModule,
     PromotionsSubModule,
@@ -16,6 +18,7 @@ import { WarehousingSubModule } from './warehousing.sub-module';
     DispatchSubModule,
   ],
   exports: [
+    DispatchCatalogValidationSubModule,
     ProductsSubModule,
     PricingSubModule,
     PromotionsSubModule,

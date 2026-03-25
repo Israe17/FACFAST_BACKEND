@@ -3,20 +3,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
 import { ContactsModule } from '../contacts/contacts.module';
 import { SaleOrder } from '../sales/entities/sale-order.entity';
+import { DispatchCatalogValidationSubModule } from './dispatch-catalog-validation.sub-module';
 import { DispatchOrdersController } from './controllers/dispatch-orders.controller';
 import { RoutesController } from './controllers/routes.controller';
 import { VehiclesController } from './controllers/vehicles.controller';
 import { DispatchExpense } from './entities/dispatch-expense.entity';
 import { DispatchOrder } from './entities/dispatch-order.entity';
 import { DispatchStop } from './entities/dispatch-stop.entity';
-import { Route } from './entities/route.entity';
-import { Vehicle } from './entities/vehicle.entity';
 import { DispatchOrderAccessPolicy } from './policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from './policies/dispatch-order-lifecycle.policy';
 import { DispatchSaleOrderPolicy } from './policies/dispatch-sale-order.policy';
 import { DispatchOrdersRepository } from './repositories/dispatch-orders.repository';
-import { RoutesRepository } from './repositories/routes.repository';
-import { VehiclesRepository } from './repositories/vehicles.repository';
 import { DispatchOrderSerializer } from './serializers/dispatch-order.serializer';
 import { DispatchOrdersService } from './services/dispatch-orders.service';
 import { RoutesService } from './services/routes.service';
@@ -30,11 +27,13 @@ import { CreateDispatchOrderUseCase } from './use-cases/create-dispatch-order.us
 import { GetDispatchOrderQueryUseCase } from './use-cases/get-dispatch-order.query.use-case';
 import { GetDispatchOrdersCursorQueryUseCase } from './use-cases/get-dispatch-orders-cursor.query.use-case';
 import { GetDispatchOrdersListQueryUseCase } from './use-cases/get-dispatch-orders-list.query.use-case';
+import { MarkDispatchOrderReadyUseCase } from './use-cases/mark-dispatch-order-ready.use-case';
 import { MarkDispatchOrderCompletedUseCase } from './use-cases/mark-dispatch-order-completed.use-case';
 import { MarkDispatchOrderDispatchedUseCase } from './use-cases/mark-dispatch-order-dispatched.use-case';
 import { RemoveDispatchExpenseUseCase } from './use-cases/remove-dispatch-expense.use-case';
 import { RemoveDispatchStopUseCase } from './use-cases/remove-dispatch-stop.use-case';
 import { UpdateDispatchOrderUseCase } from './use-cases/update-dispatch-order.use-case';
+import { UpdateDispatchStopStatusUseCase } from './use-cases/update-dispatch-stop-status.use-case';
 
 @Module({
   imports: [
@@ -42,12 +41,11 @@ import { UpdateDispatchOrderUseCase } from './use-cases/update-dispatch-order.us
       DispatchOrder,
       DispatchStop,
       DispatchExpense,
-      Route,
-      Vehicle,
       SaleOrder,
     ]),
     BranchesModule,
     ContactsModule,
+    DispatchCatalogValidationSubModule,
     WarehousingSubModule,
     MovementsSubModule,
   ],
@@ -58,8 +56,6 @@ import { UpdateDispatchOrderUseCase } from './use-cases/update-dispatch-order.us
   ],
   providers: [
     DispatchOrdersRepository,
-    RoutesRepository,
-    VehiclesRepository,
     DispatchOrderAccessPolicy,
     DispatchOrderLifecyclePolicy,
     DispatchSaleOrderPolicy,
@@ -72,6 +68,8 @@ import { UpdateDispatchOrderUseCase } from './use-cases/update-dispatch-order.us
     GetDispatchOrderQueryUseCase,
     CreateDispatchOrderUseCase,
     UpdateDispatchOrderUseCase,
+    UpdateDispatchStopStatusUseCase,
+    MarkDispatchOrderReadyUseCase,
     AddDispatchStopUseCase,
     RemoveDispatchStopUseCase,
     AddDispatchExpenseUseCase,
@@ -83,8 +81,6 @@ import { UpdateDispatchOrderUseCase } from './use-cases/update-dispatch-order.us
   exports: [
     DispatchOrdersService,
     DispatchOrdersRepository,
-    RoutesRepository,
-    VehiclesRepository,
   ],
 })
 export class DispatchSubModule {}

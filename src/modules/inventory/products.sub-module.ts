@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
 import { BrandsController } from './controllers/brands.controller';
@@ -22,6 +22,7 @@ import { TaxProfile } from './entities/tax-profile.entity';
 import { VariantAttribute } from './entities/variant-attribute.entity';
 import { VariantAttributeValue } from './entities/variant-attribute-value.entity';
 import { WarrantyProfile } from './entities/warranty-profile.entity';
+import { InventoryValidationSubModule } from './inventory-validation.sub-module';
 import { BrandsRepository } from './repositories/brands.repository';
 import { MeasurementUnitsRepository } from './repositories/measurement-units.repository';
 import { ProductCategoriesRepository } from './repositories/product-categories.repository';
@@ -40,6 +41,7 @@ import { ProductsService } from './services/products.service';
 import { TaxProfilesService } from './services/tax-profiles.service';
 import { VariantAttributesService } from './services/variant-attributes.service';
 import { WarrantyProfilesService } from './services/warranty-profiles.service';
+import { PricingSubModule } from './pricing.sub-module';
 import { GetProductsCursorQueryUseCase } from './use-cases/get-products-cursor.query.use-case';
 
 @Module({
@@ -58,6 +60,8 @@ import { GetProductsCursorQueryUseCase } from './use-cases/get-products-cursor.q
       WarrantyProfile,
     ]),
     BranchesModule,
+    InventoryValidationSubModule,
+    forwardRef(() => PricingSubModule),
   ],
   controllers: [
     BrandsController,

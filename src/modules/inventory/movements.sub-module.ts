@@ -20,13 +20,13 @@ import { InventoryMovementsRepository } from './repositories/inventory-movements
 import { InventoryReservationsRepository } from './repositories/inventory-reservations.repository';
 import { InventoryLotSerializer } from './serializers/inventory-lot.serializer';
 import { InventoryMovementSerializer } from './serializers/inventory-movement.serializer';
+import { InventoryValidationSubModule } from './inventory-validation.sub-module';
 import { InventoryAdjustmentsService } from './services/inventory-adjustments.service';
 import { InventoryLedgerService } from './services/inventory-ledger.service';
 import { InventoryLotsService } from './services/inventory-lots.service';
 import { InventoryMovementsService } from './services/inventory-movements.service';
 import { InventoryReservationsService } from './services/inventory-reservations.service';
 import { InventoryTransfersService } from './services/inventory-transfers.service';
-import { InventoryValidationService } from './services/inventory-validation.service';
 import { ProductsSubModule } from './products.sub-module';
 import { WarehousingSubModule } from './warehousing.sub-module';
 import { AdjustInventoryUseCase } from './use-cases/adjust-inventory.use-case';
@@ -55,6 +55,7 @@ import { UpdateInventoryLotUseCase } from './use-cases/update-inventory-lot.use-
       InventoryReservation,
     ]),
     BranchesModule,
+    InventoryValidationSubModule,
     ProductsSubModule,
     WarehousingSubModule,
   ],
@@ -76,7 +77,6 @@ import { UpdateInventoryLotUseCase } from './use-cases/update-inventory-lot.use-
     InventoryMovementSerializer,
     InventoryLedgerService,
     InventoryReservationsService,
-    InventoryValidationService,
     InventoryAdjustmentsService,
     InventoryLotsService,
     InventoryMovementsService,
@@ -101,7 +101,6 @@ import { UpdateInventoryLotUseCase } from './use-cases/update-inventory-lot.use-
     InventoryMovementsService,
     InventoryLedgerService,
     InventoryReservationsService,
-    InventoryValidationService,
     InventoryAdjustmentsService,
     InventoryTransfersService,
     InventoryBalancesRepository,
