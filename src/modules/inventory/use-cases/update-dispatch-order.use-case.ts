@@ -8,11 +8,14 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { UpdateDispatchOrderDto } from '../dto/update-dispatch-order.dto';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
+import { DispatchType } from '../enums/dispatch-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
+import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { DispatchCatalogValidationService } from '../services/dispatch-catalog-validation.service';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 
 export type UpdateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -29,6 +32,7 @@ export class UpdateDispatchOrderUseCase
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
     private readonly dispatch_order_access_policy: DispatchOrderAccessPolicy,
     private readonly dispatch_order_lifecycle_policy: DispatchOrderLifecyclePolicy,
+    private readonly dispatch_sale_order_policy: DispatchSaleOrderPolicy,
     private readonly dispatch_catalog_validation_service: DispatchCatalogValidationService,
     private readonly entity_code_service: EntityCodeService,
     private readonly dispatch_order_serializer: DispatchOrderSerializer,
@@ -71,6 +75,12 @@ export class UpdateDispatchOrderUseCase
       dto.route_id !== undefined ? dto.route_id : order.route_id;
     const effective_vehicle_id =
       dto.vehicle_id !== undefined ? dto.vehicle_id : order.vehicle_id;
+    const effective_origin_warehouse_id =
+      dto.origin_warehouse_id !== undefined
+        ? dto.origin_warehouse_id
+        : order.origin_warehouse_id;
+    const effective_dispatch_type =
+      dto.dispatch_type !== undefined ? dto.dispatch_type : order.dispatch_type;
 
     if (effective_route_id !== null && effective_route_id !== undefined) {
       await this.dispatch_catalog_validation_service.get_route_for_branch_operation(
@@ -87,6 +97,23 @@ export class UpdateDispatchOrderUseCase
         effective_vehicle_id,
         effective_branch_id,
         { require_active: true },
+      );
+    }
+
+    this.assert_dispatch_type_allows_current_stop_count(
+      effective_dispatch_type,
+      order.stops?.length ?? 0,
+    );
+
+    for (const stop of order.stops ?? []) {
+      if (!stop.sale_order) {
+        continue;
+      }
+
+      this.dispatch_sale_order_policy.assert_dispatch_order_sale_order(
+        effective_branch_id,
+        stop.sale_order,
+        effective_origin_warehouse_id,
       );
     }
 
@@ -135,5 +162,22 @@ export class UpdateDispatchOrderUseCase
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private assert_dispatch_type_allows_current_stop_count(
+    dispatch_type: DispatchType,
+    stop_count: number,
+  ): void {
+    if (dispatch_type === DispatchType.INDIVIDUAL && stop_count > 1) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_INDIVIDUAL_REQUIRES_SINGLE_SALE_ORDER',
+        messageKey:
+          'inventory.dispatch_order_individual_requires_single_sale_order',
+        details: {
+          dispatch_type,
+          stop_count,
+        },
+      });
+    }
   }
 }

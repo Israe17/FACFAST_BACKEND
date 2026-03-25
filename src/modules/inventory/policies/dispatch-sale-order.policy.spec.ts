@@ -49,4 +49,34 @@ describe('DispatchSaleOrderPolicy', () => {
       }),
     ).not.toThrow();
   });
+
+  it('allows assigned sale orders already attached to a dispatch', () => {
+    expect(() =>
+      policy.assert_dispatch_order_sale_order(10, {
+        id: 1,
+        branch_id: 10,
+        dispatch_status: SaleDispatchStatus.ASSIGNED,
+        fulfillment_mode: FulfillmentMode.DELIVERY,
+        status: SaleOrderStatus.CONFIRMED,
+        warehouse_id: 4,
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects warehouse mismatches against dispatch origin warehouse', () => {
+    expect(() =>
+      policy.assert_dispatchable_sale_order(
+        10,
+        {
+          id: 1,
+          branch_id: 10,
+          dispatch_status: SaleDispatchStatus.PENDING,
+          fulfillment_mode: FulfillmentMode.DELIVERY,
+          status: SaleOrderStatus.CONFIRMED,
+          warehouse_id: 4,
+        },
+        9,
+      ),
+    ).toThrow(DomainBadRequestException);
+  });
 });

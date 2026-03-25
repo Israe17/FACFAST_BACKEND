@@ -10,6 +10,7 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { DispatchType } from '../enums/dispatch-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
 import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
@@ -156,6 +157,21 @@ export class MarkDispatchOrderReadyUseCase
       });
     }
 
+    if (
+      order.dispatch_type === DispatchType.INDIVIDUAL &&
+      order.stops.length > 1
+    ) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_INDIVIDUAL_REQUIRES_SINGLE_SALE_ORDER',
+        messageKey:
+          'inventory.dispatch_order_individual_requires_single_sale_order',
+        details: {
+          dispatch_order_id: order.id,
+          stop_count: order.stops.length,
+        },
+      });
+    }
+
     for (const stop of order.stops) {
       if (!stop.sale_order) {
         throw new DomainBadRequestException({
@@ -169,9 +185,10 @@ export class MarkDispatchOrderReadyUseCase
         });
       }
 
-      this.dispatch_sale_order_policy.assert_dispatchable_sale_order(
+      this.dispatch_sale_order_policy.assert_dispatch_order_sale_order(
         order.branch_id,
         stop.sale_order,
+        order.origin_warehouse_id,
       );
     }
   }

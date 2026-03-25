@@ -17,7 +17,7 @@ import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.pol
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
-import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
+import { get_dispatch_status_for_resolved_stop } from '../../sales/utils/sale-dispatch-status.util';
 
 export type UpdateDispatchStopStatusCommand = {
   current_user: AuthenticatedUserContext;
@@ -108,14 +108,21 @@ export class UpdateDispatchStopStatusUseCase
           await manager.getRepository(DispatchOrder).save(order);
         }
 
-        if (stop.status === DispatchStopStatus.DELIVERED) {
+        if (
+          stop.status === DispatchStopStatus.DELIVERED ||
+          stop.status === DispatchStopStatus.FAILED ||
+          stop.status === DispatchStopStatus.PARTIAL ||
+          stop.status === DispatchStopStatus.SKIPPED
+        ) {
           await manager.getRepository(SaleOrder).update(
             {
               id: stop.sale_order_id,
               business_id,
             },
             {
-              dispatch_status: SaleDispatchStatus.DELIVERED,
+              dispatch_status: get_dispatch_status_for_resolved_stop(
+                stop.status,
+              ),
             },
           );
         }

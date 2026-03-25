@@ -12,12 +12,14 @@ import { CreateDispatchStopDto } from '../dto/create-dispatch-stop.dto';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchStop } from '../entities/dispatch-stop.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { DispatchType } from '../enums/dispatch-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
 import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
+import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 
 export type AddDispatchStopCommand = {
   current_user: AuthenticatedUserContext;
@@ -104,9 +106,14 @@ export class AddDispatchStopUseCase
         this.dispatch_sale_order_policy.assert_dispatchable_sale_order(
           order.branch_id,
           sale_order,
+          order.origin_warehouse_id,
         );
 
         const existing_stop_count = order.stops?.length ?? 0;
+        this.assert_dispatch_type_allows_another_stop(
+          order.dispatch_type,
+          existing_stop_count,
+        );
         await manager.getRepository(DispatchStop).save(
           this.dispatch_stop_repository.create({
             business_id,
@@ -122,6 +129,9 @@ export class AddDispatchStopUseCase
           }),
         );
 
+        sale_order.dispatch_status = SaleDispatchStatus.ASSIGNED;
+        await manager.getRepository(SaleOrder).save(sale_order);
+
         const full_order =
           await this.dispatch_orders_repository.find_by_id_in_business(
             dispatch_order_id,
@@ -136,6 +146,26 @@ export class AddDispatchStopUseCase
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private assert_dispatch_type_allows_another_stop(
+    dispatch_type: DispatchType,
+    existing_stop_count: number,
+  ): void {
+    if (
+      dispatch_type === DispatchType.INDIVIDUAL &&
+      existing_stop_count >= 1
+    ) {
+      throw new DomainConflictException({
+        code: 'DISPATCH_ORDER_INDIVIDUAL_REQUIRES_SINGLE_SALE_ORDER',
+        messageKey:
+          'inventory.dispatch_order_individual_requires_single_sale_order',
+        details: {
+          dispatch_type,
+          existing_stop_count,
+        },
+      });
+    }
   }
 
   private async assert_sale_order_not_assigned_to_active_dispatch(

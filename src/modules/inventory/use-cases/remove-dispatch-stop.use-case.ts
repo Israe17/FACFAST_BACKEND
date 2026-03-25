@@ -12,6 +12,8 @@ import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.pol
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
+import { SaleOrder } from '../../sales/entities/sale-order.entity';
+import { get_dispatch_status_for_fulfillment_mode } from '../../sales/utils/sale-dispatch-status.util';
 
 export type RemoveDispatchStopCommand = {
   current_user: AuthenticatedUserContext;
@@ -90,7 +92,20 @@ export class RemoveDispatchStopUseCase
           });
         }
 
+        const sale_order = await manager.getRepository(SaleOrder).findOne({
+          where: {
+            id: stop.sale_order_id,
+            business_id,
+          },
+        });
+
         await manager.getRepository(DispatchStop).remove(stop);
+        if (sale_order) {
+          sale_order.dispatch_status = get_dispatch_status_for_fulfillment_mode(
+            sale_order.fulfillment_mode,
+          );
+          await manager.getRepository(SaleOrder).save(sale_order);
+        }
         const full_order =
           await this.dispatch_orders_repository.find_by_id_in_business(
             dispatch_order_id,

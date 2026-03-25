@@ -10,6 +10,7 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { DispatchType } from '../enums/dispatch-type.enum';
 import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
@@ -100,13 +101,18 @@ export class MarkDispatchOrderDispatchedUseCase
             .andWhere('sale_order.business_id = :business_id', { business_id })
             .getOne();
 
-          if (!sale_order || !sale_order.warehouse) {
-            continue;
+          if (!sale_order) {
+            throw new DomainNotFoundException({
+              code: 'SALE_ORDER_NOT_FOUND',
+              messageKey: 'inventory.sale_order_not_found',
+              details: { sale_order_id: stop.sale_order_id },
+            });
           }
 
-          this.dispatch_sale_order_policy.assert_dispatchable_sale_order(
+          this.dispatch_sale_order_policy.assert_dispatch_order_sale_order(
             order.branch_id,
             sale_order,
+            order.origin_warehouse_id,
           );
 
           const consumed_deltas =
@@ -115,7 +121,7 @@ export class MarkDispatchOrderDispatchedUseCase
               current_user,
               sale_order,
             );
-          sale_order.dispatch_status = SaleDispatchStatus.DISPATCHED;
+          sale_order.dispatch_status = SaleDispatchStatus.OUT_FOR_DELIVERY;
           await manager.getRepository(SaleOrder).save(sale_order);
 
           if (consumed_deltas.length > 0) {
@@ -217,6 +223,21 @@ export class MarkDispatchOrderDispatchedUseCase
         code: 'DISPATCH_ORDER_STOPS_REQUIRED',
         messageKey: 'inventory.dispatch_order_stops_required',
         details: { dispatch_order_id: order.id },
+      });
+    }
+
+    if (
+      order.dispatch_type === DispatchType.INDIVIDUAL &&
+      order.stops.length > 1
+    ) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_INDIVIDUAL_REQUIRES_SINGLE_SALE_ORDER',
+        messageKey:
+          'inventory.dispatch_order_individual_requires_single_sale_order',
+        details: {
+          dispatch_order_id: order.id,
+          stop_count: order.stops.length,
+        },
       });
     }
   }
