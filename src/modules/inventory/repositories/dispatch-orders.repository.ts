@@ -128,7 +128,7 @@ export class DispatchOrdersRepository {
     return manager
       .getRepository(DispatchOrder)
       .createQueryBuilder('dispatch_order')
-      .setLock('pessimistic_write')
+      .setLock('pessimistic_write', undefined, ['dispatch_order'])
       .leftJoinAndSelect('dispatch_order.route', 'route')
       .leftJoinAndSelect('dispatch_order.vehicle', 'vehicle')
       .leftJoinAndSelect('dispatch_order.driver_user', 'driver_user')

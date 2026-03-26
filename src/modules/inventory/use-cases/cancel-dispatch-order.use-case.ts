@@ -13,6 +13,7 @@ import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecyc
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
+import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 import { get_dispatch_status_for_fulfillment_mode } from '../../sales/utils/sale-dispatch-status.util';
 
 export type CancelDispatchOrderCommand = {
@@ -92,6 +93,14 @@ export class CancelDispatchOrderUseCase
             sale_order.fulfillment_mode,
           );
           await manager.getRepository(SaleOrder).save(sale_order);
+        }
+
+        // Reset assigned sale orders back to pending
+        for (const stop of order.stops ?? []) {
+          await manager.getRepository(SaleOrder).update(
+            { id: stop.sale_order_id, business_id },
+            { dispatch_status: SaleDispatchStatus.PENDING },
+          );
         }
 
         const full_order =
