@@ -176,7 +176,7 @@ export class SaleOrdersRepository {
     return manager
       .getRepository(SaleOrder)
       .createQueryBuilder('sale_order')
-      .setLock('pessimistic_write')
+      .setLock('pessimistic_write', undefined, ['sale_order'])
       .leftJoinAndSelect('sale_order.customer_contact', 'customer_contact')
       .leftJoinAndSelect('sale_order.seller', 'seller')
       .leftJoinAndSelect('sale_order.branch', 'branch')
