@@ -49,6 +49,7 @@ export class WarehousesRepository {
 
     const query = this.warehouse_repository
       .createQueryBuilder('warehouse')
+      .leftJoinAndSelect('warehouse.branch', 'branch')
       .leftJoinAndSelect(
         'warehouse.branch_links',
         'branch_link',
@@ -82,6 +83,7 @@ export class WarehousesRepository {
   ): Promise<Warehouse | null> {
     return this.warehouse_repository
       .createQueryBuilder('warehouse')
+      .leftJoinAndSelect('warehouse.branch', 'branch')
       .leftJoinAndSelect(
         'warehouse.branch_links',
         'branch_link',

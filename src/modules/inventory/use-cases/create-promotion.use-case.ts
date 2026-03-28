@@ -60,7 +60,7 @@ export class CreatePromotionUseCase
       await this.promotion_definition_policy.normalize_promotion_items(
         business_id,
         dto.type,
-        dto.items ?? [],
+        dto.items,
       );
 
     const promotion = await this.promotions_repository.save(
@@ -75,20 +75,18 @@ export class CreatePromotionUseCase
       }),
     );
 
-    if (dto.items?.length) {
-      await this.promotions_repository.replace_items(
-        promotion.id,
-        normalized_items.map((item) => ({
-          promotion_id: promotion.id,
-          product_id: item.product_id,
-          product_variant_id: item.product_variant_id,
-          min_quantity: item.min_quantity ?? null,
-          discount_value: item.discount_value ?? null,
-          override_price: item.override_price ?? null,
-          bonus_quantity: item.bonus_quantity ?? null,
-        })),
-      );
-    }
+    await this.promotions_repository.replace_items(
+      promotion.id,
+      normalized_items.map((item) => ({
+        promotion_id: promotion.id,
+        product_id: item.product_id,
+        product_variant_id: item.product_variant_id,
+        min_quantity: item.min_quantity ?? null,
+        discount_value: item.discount_value ?? null,
+        override_price: item.override_price ?? null,
+        bonus_quantity: item.bonus_quantity ?? null,
+      })),
+    );
 
     const hydrated_promotion =
       await this.pricing_validation_service.get_promotion_in_business(

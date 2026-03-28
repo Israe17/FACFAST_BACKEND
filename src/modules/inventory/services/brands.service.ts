@@ -97,9 +97,11 @@ export class BrandsService {
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('MK', dto.code.trim());
-      brand.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('MK', dto.code.trim());
+      }
+      brand.code = dto.code?.trim() ?? null;
     }
     if (dto.name) {
       brand.name = dto.name.trim();

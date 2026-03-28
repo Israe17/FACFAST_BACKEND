@@ -7,6 +7,7 @@ import { EncryptionService } from '../../common/services/encryption.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { BranchView } from '../contracts/branch.view';
 import { CreateBranchDto } from '../dto/create-branch.dto';
+import { BranchLifecyclePolicy } from '../policies/branch-lifecycle.policy';
 import { BranchesRepository } from '../repositories/branches.repository';
 import { BranchSerializer } from '../serializers/branch.serializer';
 import { BranchesValidationService } from '../services/branches-validation.service';
@@ -23,6 +24,7 @@ export class CreateBranchUseCase
   constructor(
     private readonly branches_repository: BranchesRepository,
     private readonly branches_validation_service: BranchesValidationService,
+    private readonly branch_lifecycle_policy: BranchLifecyclePolicy,
     private readonly entity_code_service: EntityCodeService,
     private readonly encryption_service: EncryptionService,
     private readonly branch_serializer: BranchSerializer,
@@ -73,6 +75,17 @@ export class CreateBranchUseCase
     });
 
     const saved_branch = await this.branches_repository.save(branch);
-    return this.branch_serializer.serialize(saved_branch);
+    return this.branch_serializer.serialize(
+      saved_branch,
+      this.branch_lifecycle_policy.build_lifecycle(saved_branch, {
+        warehouses: 0,
+        warehouse_locations: 0,
+        warehouse_stock: 0,
+        warehouse_branch_links: 0,
+        inventory_lots: 0,
+        inventory_movement_headers: 0,
+        inventory_movements: 0,
+      }),
+    );
   }
 }

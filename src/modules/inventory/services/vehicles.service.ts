@@ -166,9 +166,11 @@ export class VehiclesService {
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('VH', dto.code.trim());
-      vehicle.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('VH', dto.code.trim());
+      }
+      vehicle.code = dto.code?.trim() ?? null;
     }
     vehicle.is_global = next_is_global;
     if (dto.plate_number) {

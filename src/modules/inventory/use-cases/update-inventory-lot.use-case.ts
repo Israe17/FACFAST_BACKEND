@@ -96,9 +96,11 @@ export class UpdateInventoryLotUseCase
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('LT', dto.code.trim());
-      lot.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('LT', dto.code.trim());
+      }
+      lot.code = dto.code?.trim() ?? null;
     }
     if (dto.location_id !== undefined) {
       lot.location_id = location?.id ?? null;
@@ -136,7 +138,11 @@ export class UpdateInventoryLotUseCase
     }
 
     const saved_lot = await this.inventory_lots_repository.save(lot);
-    return this.inventory_lot_serializer.serialize(saved_lot);
+    const persisted_lot = await this.inventory_lots_repository.find_by_id_in_business(
+      saved_lot.id,
+      business_id,
+    );
+    return this.inventory_lot_serializer.serialize(persisted_lot!);
   }
 
   private normalize_optional_string(value?: string | null): string | null {

@@ -70,7 +70,7 @@ export class ContactsRepository {
   async find_paginated_by_business(
     business_id: number,
     query: PaginatedQueryDto,
-    mapper: (contact: Contact) => unknown,
+    mapper: (contact: Contact) => unknown | Promise<unknown>,
   ): Promise<PaginatedResponseDto<unknown>> {
     const qb = this.contact_repository
       .createQueryBuilder('contact')

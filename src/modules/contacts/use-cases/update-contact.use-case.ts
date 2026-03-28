@@ -7,6 +7,7 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { ContactView } from '../contracts/contact.view';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
+import { ContactLifecyclePolicy } from '../policies/contact-lifecycle.policy';
 import { ContactsRepository } from '../repositories/contacts.repository';
 import { ContactSerializer } from '../serializers/contact.serializer';
 import { ContactsValidationService } from '../services/contacts-validation.service';
@@ -25,6 +26,7 @@ export class UpdateContactUseCase
     private readonly contacts_repository: ContactsRepository,
     private readonly contacts_validation_service: ContactsValidationService,
     private readonly entity_code_service: EntityCodeService,
+    private readonly contact_lifecycle_policy: ContactLifecyclePolicy,
     private readonly contact_serializer: ContactSerializer,
   ) {}
 
@@ -136,7 +138,18 @@ export class UpdateContactUseCase
     }
 
     const saved_contact = await this.contacts_repository.save(contact);
-    return this.contact_serializer.serialize(saved_contact);
+    const dependencies =
+      await this.contacts_validation_service.count_contact_delete_dependencies(
+        business_id,
+        saved_contact.id,
+      );
+    return this.contact_serializer.serialize(
+      saved_contact,
+      this.contact_lifecycle_policy.build_lifecycle(
+        saved_contact,
+        dependencies,
+      ),
+    );
   }
 
   private async assert_code_available(

@@ -76,6 +76,14 @@ export class RoutesService {
       this.entity_code_service.validate_code('RT', dto.code);
     }
 
+    await this.validate_route_catalog_references(current_user, {
+      branch_ids: assigned_branch_ids,
+      is_global,
+      zone_id: dto.zone_id ?? null,
+      default_driver_user_id: dto.default_driver_user_id ?? null,
+      default_vehicle_id: dto.default_vehicle_id ?? null,
+    });
+
     const saved_route = await this.routes_repository.save(
       this.routes_repository.create({
         business_id,
@@ -134,6 +142,16 @@ export class RoutesService {
         dto.is_global,
         dto.assigned_branch_ids,
       );
+    const effective_zone_id =
+      dto.zone_id !== undefined ? dto.zone_id : route.zone_id;
+    const effective_default_driver_user_id =
+      dto.default_driver_user_id !== undefined
+        ? dto.default_driver_user_id
+        : route.default_driver_user_id;
+    const effective_default_vehicle_id =
+      dto.default_vehicle_id !== undefined
+        ? dto.default_vehicle_id
+        : route.default_vehicle_id;
 
     this.dispatch_catalog_validation_service.assert_non_global_requires_assignments(
       next_is_global,
@@ -163,9 +181,19 @@ export class RoutesService {
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('RT', dto.code.trim());
-      route.code = dto.code.trim();
+    await this.validate_route_catalog_references(current_user, {
+      branch_ids: next_branch_ids,
+      is_global: next_is_global,
+      zone_id: effective_zone_id ?? null,
+      default_driver_user_id: effective_default_driver_user_id ?? null,
+      default_vehicle_id: effective_default_vehicle_id ?? null,
+    });
+
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('RT', dto.code.trim());
+      }
+      route.code = dto.code?.trim() ?? null;
     }
     route.is_global = next_is_global;
     if (dto.name) {
@@ -289,6 +317,100 @@ export class RoutesService {
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private async validate_route_catalog_references(
+    current_user: AuthenticatedUserContext,
+    input: {
+      branch_ids: number[];
+      is_global: boolean;
+      zone_id?: number | null;
+      default_driver_user_id?: number | null;
+      default_vehicle_id?: number | null;
+    },
+  ): Promise<void> {
+    if (input.zone_id !== undefined && input.zone_id !== null) {
+      await this.validate_branch_scoped_reference(
+        input.branch_ids,
+        input.is_global,
+        async (branch_id) =>
+          this.dispatch_catalog_validation_service.get_zone_for_branch_operation(
+            current_user,
+            input.zone_id!,
+            branch_id,
+            { require_active: true },
+          ),
+        () =>
+          this.dispatch_catalog_validation_service.get_zone_in_business(
+            current_user,
+            input.zone_id!,
+            { require_active: true },
+          ),
+      );
+    }
+
+    if (
+      input.default_driver_user_id !== undefined &&
+      input.default_driver_user_id !== null
+    ) {
+      await this.validate_branch_scoped_reference(
+        input.branch_ids,
+        input.is_global,
+        async (branch_id) =>
+          this.dispatch_catalog_validation_service.get_driver_user_for_dispatch_operation(
+            current_user,
+            input.default_driver_user_id!,
+            branch_id,
+            { require_active: true, allow_owner_or_global_scope: true },
+          ),
+        () =>
+          this.dispatch_catalog_validation_service.get_driver_user_for_dispatch_operation(
+            current_user,
+            input.default_driver_user_id!,
+            null,
+            { require_active: true, allow_owner_or_global_scope: true },
+          ),
+      );
+    }
+
+    if (
+      input.default_vehicle_id !== undefined &&
+      input.default_vehicle_id !== null
+    ) {
+      await this.validate_branch_scoped_reference(
+        input.branch_ids,
+        input.is_global,
+        async (branch_id) =>
+          this.dispatch_catalog_validation_service.get_vehicle_for_branch_operation(
+            current_user,
+            input.default_vehicle_id!,
+            branch_id,
+            { require_active: true },
+          ),
+        () =>
+          this.dispatch_catalog_validation_service.get_vehicle_in_business(
+            current_user,
+            input.default_vehicle_id!,
+            { require_active: true },
+          ),
+      );
+    }
+  }
+
+  private async validate_branch_scoped_reference(
+    branch_ids: number[],
+    is_global: boolean,
+    branch_validator: (branch_id: number) => Promise<unknown>,
+    global_validator: () => Promise<unknown>,
+  ): Promise<void> {
+    if (!is_global && branch_ids.length > 0) {
+      for (const branch_id of branch_ids) {
+        await branch_validator(branch_id);
+      }
+      return;
+    }
+
+    await global_validator();
   }
 
   private serialize_branch_assignments_view(view: {

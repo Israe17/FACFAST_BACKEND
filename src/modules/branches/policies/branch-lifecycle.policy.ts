@@ -13,6 +13,26 @@ type BranchDeleteDependencies = {
 
 @Injectable()
 export class BranchLifecyclePolicy {
+  build_lifecycle(
+    branch: { is_active: boolean },
+    dependencies?: BranchDeleteDependencies,
+  ) {
+    const has_dependencies =
+      dependencies !== undefined &&
+      Object.values(dependencies).some((count) => count > 0);
+
+    return {
+      can_delete: dependencies ? !has_dependencies : false,
+      can_deactivate: branch.is_active,
+      can_reactivate: !branch.is_active,
+      reasons: dependencies
+        ? has_dependencies
+          ? ['has_dependencies']
+          : []
+        : ['delete_requires_dependency_check'],
+    };
+  }
+
   assert_deletable(
     branch: { id: number },
     dependencies: BranchDeleteDependencies,

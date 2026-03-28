@@ -66,9 +66,11 @@ export class UpdateWarehouseUseCase
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('WH', dto.code.trim());
-      warehouse.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('WH', dto.code.trim());
+      }
+      warehouse.code = dto.code?.trim() ?? null;
     }
     if (branch) {
       warehouse.branch_id = branch.id;
@@ -103,7 +105,11 @@ export class UpdateWarehouseUseCase
       saved_warehouse,
       saved_warehouse.branch_id,
     );
-    return this.warehouse_serializer.serialize(saved_warehouse);
+    const persisted_warehouse = await this.warehouses_repository.find_by_id_in_business(
+      saved_warehouse.id,
+      saved_warehouse.business_id,
+    );
+    return this.warehouse_serializer.serialize(persisted_warehouse!);
   }
 
   private async sync_primary_branch_link(

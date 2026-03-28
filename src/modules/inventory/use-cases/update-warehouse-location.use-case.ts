@@ -56,9 +56,11 @@ export class UpdateWarehouseLocationUseCase
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('WL', dto.code.trim());
-      location.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('WL', dto.code.trim());
+      }
+      location.code = dto.code?.trim() ?? null;
     }
     if (dto.name) {
       location.name = dto.name.trim();

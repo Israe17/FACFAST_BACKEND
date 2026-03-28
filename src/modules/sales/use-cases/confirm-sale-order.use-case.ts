@@ -16,6 +16,7 @@ import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
 import { SaleOrderInventoryPolicy } from '../policies/sale-order-inventory.policy';
 import { SaleOrderLifecyclePolicy } from '../policies/sale-order-lifecycle.policy';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
+import { SalesValidationService } from '../services/sales-validation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 
 export type ConfirmSaleOrderCommand = {
@@ -37,6 +38,7 @@ export class ConfirmSaleOrderUseCase
     private readonly inventory_reservations_service: InventoryReservationsService,
     private readonly inventory_ledger_service: InventoryLedgerService,
     private readonly sale_order_serializer: SaleOrderSerializer,
+    private readonly sales_validation_service: SalesValidationService,
     private readonly idempotency_service: IdempotencyService,
   ) {}
 
@@ -78,6 +80,19 @@ export class ConfirmSaleOrderUseCase
           order,
         );
         this.sale_order_lifecycle_policy.assert_confirmable(order);
+        await this.sales_validation_service.validate_sale_order_references(
+          current_user,
+          {
+            branch_id: order.branch_id,
+            customer_contact_id: order.customer_contact_id,
+            seller_user_id: order.seller_user_id,
+            delivery_zone_id: order.delivery_zone_id,
+            warehouse_id: order.warehouse_id,
+            product_variant_ids: (order.lines ?? []).map(
+              (line) => line.product_variant_id,
+            ),
+          },
+        );
         await this.sale_order_inventory_policy.assert_order_can_reserve(
           manager,
           order,

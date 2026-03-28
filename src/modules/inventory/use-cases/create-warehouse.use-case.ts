@@ -78,7 +78,11 @@ export class CreateWarehouseUseCase
       }),
     );
     await this.sync_primary_branch_link(saved_warehouse, branch.id);
-    return this.warehouse_serializer.serialize(saved_warehouse);
+    const persisted_warehouse = await this.warehouses_repository.find_by_id_in_business(
+      saved_warehouse.id,
+      business_id,
+    );
+    return this.warehouse_serializer.serialize(persisted_warehouse!);
   }
 
   private async sync_primary_branch_link(

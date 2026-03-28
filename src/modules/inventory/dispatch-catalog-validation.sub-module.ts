@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
+import { UsersModule } from '../users/users.module';
+import { InventoryValidationSubModule } from './inventory-validation.sub-module';
 import { Route } from './entities/route.entity';
 import { RouteBranchLink } from './entities/route-branch-link.entity';
 import { Vehicle } from './entities/vehicle.entity';
@@ -26,6 +28,8 @@ import { DispatchCatalogValidationService } from './services/dispatch-catalog-va
       ZoneBranchLink,
     ]),
     BranchesModule,
+    UsersModule,
+    InventoryValidationSubModule,
   ],
   providers: [
     RoutesRepository,

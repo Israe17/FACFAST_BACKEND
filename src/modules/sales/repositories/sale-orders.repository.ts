@@ -13,6 +13,8 @@ import {
   apply_sorting,
 } from '../../common/utils/query-builder.util';
 import { SaleOrder } from '../entities/sale-order.entity';
+import { SaleOrderDeliveryCharge } from '../entities/sale-order-delivery-charge.entity';
+import { SaleOrderLine } from '../entities/sale-order-line.entity';
 
 const SALE_ORDER_SORT_COLUMNS: Record<string, string> = {
   code: 'sale_order.code',
@@ -53,6 +55,10 @@ export class SaleOrdersRepository {
   constructor(
     @InjectRepository(SaleOrder)
     private readonly sale_order_repository: Repository<SaleOrder>,
+    @InjectRepository(SaleOrderLine)
+    private readonly sale_order_line_repository: Repository<SaleOrderLine>,
+    @InjectRepository(SaleOrderDeliveryCharge)
+    private readonly sale_order_delivery_charge_repository: Repository<SaleOrderDeliveryCharge>,
     private readonly entity_code_service: EntityCodeService,
   ) {}
 
@@ -213,5 +219,41 @@ export class SaleOrdersRepository {
 
   async remove(order: SaleOrder): Promise<void> {
     await this.sale_order_repository.remove(order);
+  }
+
+  async replace_lines(
+    sale_order_id: number,
+    lines: Partial<SaleOrderLine>[],
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(SaleOrderLine)
+      : this.sale_order_line_repository;
+
+    await repository.delete({ sale_order_id });
+    if (!lines.length) {
+      return;
+    }
+
+    await repository.save(lines.map((line) => repository.create(line)));
+  }
+
+  async replace_delivery_charges(
+    sale_order_id: number,
+    charges: Partial<SaleOrderDeliveryCharge>[],
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(SaleOrderDeliveryCharge)
+      : this.sale_order_delivery_charge_repository;
+
+    await repository.delete({ sale_order_id });
+    if (!charges.length) {
+      return;
+    }
+
+    await repository.save(
+      charges.map((charge) => repository.create(charge)),
+    );
   }
 }

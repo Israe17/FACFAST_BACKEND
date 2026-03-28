@@ -2,10 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { EntitySerializer } from '../../common/application/interfaces/entity-serializer.interface';
 import { ContactView } from '../contracts/contact.view';
 import { Contact } from '../entities/contact.entity';
+import { ContactLifecyclePolicy } from '../policies/contact-lifecycle.policy';
 
 @Injectable()
 export class ContactSerializer implements EntitySerializer<Contact, ContactView> {
-  serialize(contact: Contact): ContactView {
+  constructor(
+    private readonly contact_lifecycle_policy: ContactLifecyclePolicy,
+  ) {}
+
+  serialize(
+    contact: Contact,
+    lifecycle = this.contact_lifecycle_policy.build_lifecycle(contact),
+  ): ContactView {
     return {
       id: contact.id,
       code: contact.code,
@@ -29,12 +37,7 @@ export class ContactSerializer implements EntitySerializer<Contact, ContactView>
       exoneration_institution: contact.exoneration_institution,
       exoneration_issue_date: contact.exoneration_issue_date,
       exoneration_percentage: contact.exoneration_percentage,
-      lifecycle: {
-        can_delete: true,
-        can_deactivate: contact.is_active,
-        can_reactivate: !contact.is_active,
-        reasons: [],
-      },
+      lifecycle,
       created_at: contact.created_at,
       updated_at: contact.updated_at,
     };

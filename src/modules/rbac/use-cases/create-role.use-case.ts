@@ -5,6 +5,7 @@ import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { RoleView } from '../contracts/role.view';
 import { CreateRoleDto } from '../dto/create-role.dto';
+import { RoleLifecyclePolicy } from '../policies/role-lifecycle.policy';
 import { RolesRepository } from '../repositories/roles.repository';
 import { RoleSerializer } from '../serializers/role.serializer';
 import { RbacValidationService } from '../services/rbac-validation.service';
@@ -22,6 +23,7 @@ export class CreateRoleUseCase
     private readonly roles_repository: RolesRepository,
     private readonly entity_code_service: EntityCodeService,
     private readonly role_serializer: RoleSerializer,
+    private readonly role_lifecycle_policy: RoleLifecyclePolicy,
     private readonly rbac_validation_service: RbacValidationService,
   ) {}
 
@@ -46,7 +48,13 @@ export class CreateRoleUseCase
       is_system: false,
     });
 
-    return this.role_serializer.serialize(await this.roles_repository.save(role));
+    const saved_role = await this.roles_repository.save(role);
+    return this.role_serializer.serialize(
+      saved_role,
+      this.role_lifecycle_policy.build_lifecycle(saved_role, {
+        user_assignments: 0,
+      }),
+    );
   }
 
   private normalize_code(code?: string): string | null {

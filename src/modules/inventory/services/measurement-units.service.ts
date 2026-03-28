@@ -108,9 +108,11 @@ export class MeasurementUnitsService {
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('MU', dto.code.trim());
-      measurement_unit.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('MU', dto.code.trim());
+      }
+      measurement_unit.code = dto.code?.trim() ?? null;
     }
     if (dto.name) {
       measurement_unit.name = dto.name.trim();

@@ -109,9 +109,11 @@ export class WarrantyProfilesService {
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('WP', dto.code.trim());
-      warranty_profile.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('WP', dto.code.trim());
+      }
+      warranty_profile.code = dto.code?.trim() ?? null;
     }
     if (dto.name) {
       warranty_profile.name = dto.name.trim();

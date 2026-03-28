@@ -3,17 +3,27 @@ import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy
 import { BranchesRepository } from '../../branches/repositories/branches.repository';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
+import { UserStatus } from '../../common/enums/user-status.enum';
+import { UserType } from '../../common/enums/user-type.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { Route } from '../entities/route.entity';
 import { Vehicle } from '../entities/vehicle.entity';
+import { Warehouse } from '../entities/warehouse.entity';
 import { Zone } from '../entities/zone.entity';
 import { RoutesRepository } from '../repositories/routes.repository';
 import { VehiclesRepository } from '../repositories/vehicles.repository';
 import { ZonesRepository } from '../repositories/zones.repository';
+import { User } from '../../users/entities/user.entity';
+import { UsersRepository } from '../../users/repositories/users.repository';
+import { InventoryValidationService } from './inventory-validation.service';
 
 type ActiveLookupOptions = {
   require_active?: boolean;
+};
+
+type DriverLookupOptions = ActiveLookupOptions & {
+  allow_owner_or_global_scope?: boolean;
 };
 
 type BranchScopedCatalog = {
@@ -34,6 +44,8 @@ export class DispatchCatalogValidationService {
     private readonly zones_repository: ZonesRepository,
     private readonly routes_repository: RoutesRepository,
     private readonly vehicles_repository: VehiclesRepository,
+    private readonly users_repository: UsersRepository,
+    private readonly inventory_validation_service: InventoryValidationService,
   ) {}
 
   async assert_manageable_branch_ids(
@@ -76,6 +88,25 @@ export class DispatchCatalogValidationService {
     branch_id: number,
     options?: ActiveLookupOptions,
   ): Promise<Zone> {
+    const zone = await this.get_zone_in_business(current_user, zone_id, options);
+    this.assert_entity_available_in_branch(
+      zone,
+      branch_id,
+      'ZONE_NOT_AVAILABLE_FOR_BRANCH',
+      'inventory.zone_not_available_for_branch',
+      {
+        zone_id,
+        branch_id,
+      },
+    );
+    return zone;
+  }
+
+  async get_zone_in_business(
+    current_user: AuthenticatedUserContext,
+    zone_id: number,
+    options?: ActiveLookupOptions,
+  ): Promise<Zone> {
     const zone = await this.zones_repository.find_by_id_in_business(
       zone_id,
       resolve_effective_business_id(current_user),
@@ -97,16 +128,6 @@ export class DispatchCatalogValidationService {
       'inventory.zone_inactive',
       {
         zone_id,
-      },
-    );
-    this.assert_entity_available_in_branch(
-      zone,
-      branch_id,
-      'ZONE_NOT_AVAILABLE_FOR_BRANCH',
-      'inventory.zone_not_available_for_branch',
-      {
-        zone_id,
-        branch_id,
       },
     );
     return zone;
@@ -160,6 +181,29 @@ export class DispatchCatalogValidationService {
     branch_id: number,
     options?: ActiveLookupOptions,
   ): Promise<Vehicle> {
+    const vehicle = await this.get_vehicle_in_business(
+      current_user,
+      vehicle_id,
+      options,
+    );
+    this.assert_entity_available_in_branch(
+      vehicle,
+      branch_id,
+      'VEHICLE_NOT_AVAILABLE_FOR_BRANCH',
+      'inventory.vehicle_not_available_for_branch',
+      {
+        vehicle_id,
+        branch_id,
+      },
+    );
+    return vehicle;
+  }
+
+  async get_vehicle_in_business(
+    current_user: AuthenticatedUserContext,
+    vehicle_id: number,
+    options?: ActiveLookupOptions,
+  ): Promise<Vehicle> {
     const vehicle = await this.vehicles_repository.find_by_id_in_business(
       vehicle_id,
       resolve_effective_business_id(current_user),
@@ -183,17 +227,81 @@ export class DispatchCatalogValidationService {
         vehicle_id,
       },
     );
-    this.assert_entity_available_in_branch(
-      vehicle,
-      branch_id,
-      'VEHICLE_NOT_AVAILABLE_FOR_BRANCH',
-      'inventory.vehicle_not_available_for_branch',
-      {
-        vehicle_id,
+    return vehicle;
+  }
+
+  async get_driver_user_for_dispatch_operation(
+    current_user: AuthenticatedUserContext,
+    user_id: number,
+    branch_id?: number | null,
+    options?: DriverLookupOptions,
+  ): Promise<User> {
+    const user = await this.users_repository.find_by_id_in_business(
+      user_id,
+      resolve_effective_business_id(current_user),
+    );
+    if (!user) {
+      throw new DomainNotFoundException({
+        code: 'USER_NOT_FOUND',
+        messageKey: 'users.not_found',
+        details: {
+          user_id,
+        },
+      });
+    }
+
+    if (options?.require_active && user.status !== UserStatus.ACTIVE) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_ORDER_DRIVER_INACTIVE',
+        messageKey: 'inventory.dispatch_order_driver_inactive',
+        details: {
+          driver_user_id: user_id,
+        },
+      });
+    }
+
+    if (branch_id !== undefined && branch_id !== null) {
+      this.assert_user_can_access_branch(
+        user,
+        branch_id,
+        options?.allow_owner_or_global_scope ?? false,
+      );
+    }
+
+    return user;
+  }
+
+  async get_warehouse_for_branch_operation(
+    current_user: AuthenticatedUserContext,
+    warehouse_id: number,
+    branch_id: number,
+    options?: ActiveLookupOptions,
+  ): Promise<Warehouse> {
+    const warehouse = await this.inventory_validation_service.get_warehouse_for_operation(
+      current_user,
+      warehouse_id,
+      options,
+    );
+    const available_branch_ids = Array.from(
+      new Set([
+        warehouse.branch_id,
+        ...(warehouse.branch_links
+          ?.filter((branch_link) => branch_link.is_active)
+          .map((branch_link) => branch_link.branch_id) ?? []),
+      ]),
+    );
+    if (available_branch_ids.includes(branch_id)) {
+      return warehouse;
+    }
+
+    throw new DomainBadRequestException({
+      code: 'WAREHOUSE_NOT_ALLOWED_FOR_BRANCH',
+      messageKey: 'inventory.warehouse_not_allowed_for_branch',
+      details: {
+        warehouse_id,
         branch_id,
       },
-    );
-    return vehicle;
+    });
   }
 
   assert_catalog_access(
@@ -291,6 +399,34 @@ export class DispatchCatalogValidationService {
       code,
       messageKey,
       details,
+    });
+  }
+
+  private assert_user_can_access_branch(
+    user: User,
+    branch_id: number,
+    allow_owner_or_global_scope: boolean,
+  ): void {
+    if (
+      user.is_platform_admin === true ||
+      (allow_owner_or_global_scope && user.user_type === UserType.OWNER)
+    ) {
+      return;
+    }
+
+    const accessible_branch_ids =
+      user.user_branch_access?.map((assignment) => assignment.branch_id) ?? [];
+    if (!accessible_branch_ids.length || accessible_branch_ids.includes(branch_id)) {
+      return;
+    }
+
+    throw new DomainBadRequestException({
+      code: 'DRIVER_USER_NOT_AVAILABLE_FOR_BRANCH',
+      messageKey: 'inventory.driver_user_not_available_for_branch',
+      details: {
+        user_id: user.id,
+        branch_id,
+      },
     });
   }
 }
