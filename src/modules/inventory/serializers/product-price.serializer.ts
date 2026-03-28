@@ -12,6 +12,7 @@ export class ProductPriceSerializer
       id: product_price.id,
       business_id: product_price.business_id,
       product_id: product_price.product_id,
+      product_variant_id: product_price.product_variant_id,
       product_variant: product_price.product_variant
         ? {
             id: product_price.product_variant.id,
@@ -20,6 +21,7 @@ export class ProductPriceSerializer
             is_default: product_price.product_variant.is_default,
           }
         : null,
+      price_list_id: product_price.price_list_id,
       price_list: product_price.price_list
         ? {
             id: product_price.price_list.id,

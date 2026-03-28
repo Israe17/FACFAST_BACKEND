@@ -115,9 +115,11 @@ export class TaxProfilesService {
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('TF', dto.code.trim());
-      tax_profile.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('TF', dto.code.trim());
+      }
+      tax_profile.code = dto.code?.trim() ?? null;
     }
     if (dto.name) {
       tax_profile.name = dto.name.trim();

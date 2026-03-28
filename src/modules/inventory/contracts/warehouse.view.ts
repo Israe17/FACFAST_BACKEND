@@ -3,6 +3,13 @@ export interface WarehouseView {
   code: string | null;
   business_id: number;
   branch_id: number;
+  branch: {
+    id: number;
+    code: string | null;
+    name: string | null;
+    business_name: string;
+    branch_number: string;
+  } | null;
   name: string;
   description: string | null;
   purpose: string;

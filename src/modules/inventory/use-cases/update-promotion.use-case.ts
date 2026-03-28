@@ -70,17 +70,32 @@ export class UpdatePromotionUseCase
       next_valid_to,
     );
 
-    const normalized_items = dto.items
+    const next_items_input =
+      dto.items ??
+      promotion.items?.map((item) => ({
+        product_id: item.product_id,
+        product_variant_id: item.product_variant_id,
+        min_quantity: item.min_quantity,
+        discount_value: item.discount_value,
+        override_price: item.override_price,
+        bonus_quantity: item.bonus_quantity,
+      })) ??
+      [];
+    const should_revalidate_items =
+      dto.items !== undefined || dto.type !== undefined;
+    const normalized_items = should_revalidate_items
       ? await this.promotion_definition_policy.normalize_promotion_items(
           business_id,
           next_type,
-          dto.items,
+          next_items_input,
         )
       : null;
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('PN', dto.code.trim());
-      promotion.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('PN', dto.code.trim());
+      }
+      promotion.code = dto.code?.trim() ?? null;
     }
     if (dto.name) {
       promotion.name = dto.name.trim();

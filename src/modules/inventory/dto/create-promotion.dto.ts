@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -43,10 +44,14 @@ export class CreatePromotionDto {
   @IsBoolean()
   is_active?: boolean;
 
-  @ApiPropertyOptional({ type: [CreatePromotionItemDto] })
-  @IsOptional()
+  @ApiProperty({
+    type: [CreatePromotionItemDto],
+    description:
+      'Full promotion items collection. At least one item is required.',
+  })
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreatePromotionItemDto)
-  items?: CreatePromotionItemDto[];
+  items!: CreatePromotionItemDto[];
 }

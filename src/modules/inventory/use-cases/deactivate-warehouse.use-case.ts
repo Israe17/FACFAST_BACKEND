@@ -32,6 +32,10 @@ export class DeactivateWarehouseUseCase
       );
     warehouse.is_active = false;
     const saved = await this.warehouses_repository.save(warehouse);
-    return this.warehouse_serializer.serialize(saved);
+    const persisted_warehouse = await this.warehouses_repository.find_by_id_in_business(
+      saved.id,
+      saved.business_id,
+    );
+    return this.warehouse_serializer.serialize(persisted_warehouse!);
   }
 }

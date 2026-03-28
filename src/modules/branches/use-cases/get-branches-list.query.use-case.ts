@@ -6,8 +6,10 @@ import {
   resolve_effective_business_id,
 } from '../../common/utils/tenant-context.util';
 import { BranchView } from '../contracts/branch.view';
+import { BranchLifecyclePolicy } from '../policies/branch-lifecycle.policy';
 import { BranchesRepository } from '../repositories/branches.repository';
 import { BranchSerializer } from '../serializers/branch.serializer';
+import { BranchesValidationService } from '../services/branches-validation.service';
 
 export type GetBranchesListQuery = {
   current_user: AuthenticatedUserContext;
@@ -19,6 +21,8 @@ export class GetBranchesListQueryUseCase
 {
   constructor(
     private readonly branches_repository: BranchesRepository,
+    private readonly branches_validation_service: BranchesValidationService,
+    private readonly branch_lifecycle_policy: BranchLifecyclePolicy,
     private readonly branch_serializer: BranchSerializer,
   ) {}
 
@@ -30,6 +34,17 @@ export class GetBranchesListQueryUseCase
       resolve_effective_branch_scope_ids(current_user),
     );
 
-    return branches.map((branch) => this.branch_serializer.serialize(branch));
+    return Promise.all(
+      branches.map(async (branch) => {
+        const dependencies =
+          await this.branches_validation_service.count_branch_delete_dependencies(
+            branch,
+          );
+        return this.branch_serializer.serialize(
+          branch,
+          this.branch_lifecycle_policy.build_lifecycle(branch, dependencies),
+        );
+      }),
+    );
   }
 }

@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  ArrayUnique,
   IsArray,
+  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
@@ -46,7 +49,7 @@ export class CreateDispatchOrderDto {
 
   @ApiPropertyOptional({ example: '2026-03-25' })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   scheduled_date?: string;
 
   @ApiPropertyOptional({ example: 'Deliver before noon' })
@@ -57,6 +60,8 @@ export class CreateDispatchOrderDto {
   @ApiPropertyOptional({ example: [1, 2, 3] })
   @IsOptional()
   @IsArray()
+  @ArrayUnique()
+  @Type(() => Number)
   @IsInt({ each: true })
   stop_sale_order_ids?: number[];
 }

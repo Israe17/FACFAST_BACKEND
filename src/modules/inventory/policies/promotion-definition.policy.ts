@@ -22,6 +22,8 @@ export class PromotionDefinitionPolicy {
     type: PromotionType,
     items: CreatePromotionItemDto[],
   ): Promise<NormalizedPromotionItem[]> {
+    this.assert_items_present(items);
+
     const normalized_items: NormalizedPromotionItem[] = [];
     const target_keys = new Set<string>();
 
@@ -122,6 +124,20 @@ export class PromotionDefinitionPolicy {
     }
 
     return normalized_items;
+  }
+
+  assert_items_present(items: CreatePromotionItemDto[]): void {
+    if (items.length > 0) {
+      return;
+    }
+
+    throw new DomainBadRequestException({
+      code: 'PROMOTION_ITEMS_REQUIRED',
+      messageKey: 'inventory.promotion_items_required',
+      details: {
+        field: 'items',
+      },
+    });
   }
 
   assert_valid_date_range(valid_from: string | Date, valid_to: string | Date): void {

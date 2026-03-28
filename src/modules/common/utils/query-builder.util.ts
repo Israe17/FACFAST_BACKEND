@@ -63,7 +63,7 @@ export function apply_sorting<T extends ObjectLiteral>(
 export async function apply_pagination<T extends ObjectLiteral, R>(
   qb: SelectQueryBuilder<T>,
   query: PaginatedQueryDto,
-  mapper: (entity: T) => R,
+  mapper: (entity: T) => R | Promise<R>,
 ): Promise<PaginatedResponseDto<R>> {
   const page = query.page ?? 1;
   const limit = query.limit ?? 20;
@@ -73,7 +73,12 @@ export async function apply_pagination<T extends ObjectLiteral, R>(
     .take(limit)
     .getManyAndCount();
 
-  return new PaginatedResponseDto(entities.map(mapper), total, page, limit);
+  return new PaginatedResponseDto(
+    await Promise.all(entities.map(mapper)),
+    total,
+    page,
+    limit,
+  );
 }
 
 /**
@@ -84,7 +89,7 @@ export async function apply_cursor<T extends ObjectLiteral, R>(
   qb: SelectQueryBuilder<T>,
   query: CursorQueryDto,
   id_column: string,
-  mapper: (entity: T) => R,
+  mapper: (entity: T) => R | Promise<R>,
 ): Promise<CursorResponseDto<R>> {
   const limit = query.limit ?? 20;
   const sort_order = query.sort_order ?? 'DESC';
@@ -108,5 +113,9 @@ export async function apply_cursor<T extends ObjectLiteral, R>(
         ] as number)
       : null;
 
-  return new CursorResponseDto(page_data.map(mapper), next_cursor, has_more);
+  return new CursorResponseDto(
+    await Promise.all(page_data.map(mapper)),
+    next_cursor,
+    has_more,
+  );
 }

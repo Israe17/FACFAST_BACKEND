@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ContactsModule } from '../contacts/contacts.module';
 import { SaleOrder } from './entities/sale-order.entity';
 import { SaleOrderLine } from './entities/sale-order-line.entity';
 import { SaleOrderDeliveryCharge } from './entities/sale-order-delivery-charge.entity';
@@ -12,7 +13,9 @@ import { ElectronicDocumentOutboxWorkerService } from './services/electronic-doc
 import { SaleOrdersController } from './controllers/sale-orders.controller';
 import { ElectronicDocumentsController } from './controllers/electronic-documents.controller';
 import { InventoryModule } from '../inventory/inventory.module';
+import { InventoryValidationSubModule } from '../inventory/inventory-validation.sub-module';
 import { BranchesModule } from '../branches/branches.module';
+import { UsersModule } from '../users/users.module';
 import { ElectronicDocumentAccessPolicy } from './policies/electronic-document-access.policy';
 import { ElectronicDocumentLifecyclePolicy } from './policies/electronic-document-lifecycle.policy';
 import { SaleOrderAccessPolicy } from './policies/sale-order-access.policy';
@@ -36,6 +39,7 @@ import { GetSaleOrdersCursorQueryUseCase } from './use-cases/get-sale-orders-cur
 import { GetSaleOrdersListQueryUseCase } from './use-cases/get-sale-orders-list.query.use-case';
 import { GetSaleOrdersPageQueryUseCase } from './use-cases/get-sale-orders-page.query.use-case';
 import { UpdateSaleOrderUseCase } from './use-cases/update-sale-order.use-case';
+import { SalesValidationService } from './services/sales-validation.service';
 
 @Module({
   imports: [
@@ -46,7 +50,10 @@ import { UpdateSaleOrderUseCase } from './use-cases/update-sale-order.use-case';
       ElectronicDocument,
     ]),
     InventoryModule,
+    InventoryValidationSubModule,
     BranchesModule,
+    ContactsModule,
+    UsersModule,
   ],
   controllers: [SaleOrdersController, ElectronicDocumentsController],
   providers: [
@@ -58,6 +65,7 @@ import { UpdateSaleOrderUseCase } from './use-cases/update-sale-order.use-case';
     SaleOrderLifecyclePolicy,
     SaleOrderInventoryPolicy,
     SaleOrderModePolicy,
+    SalesValidationService,
     ElectronicDocumentSerializer,
     SaleOrderSerializer,
     CreateSaleOrderUseCase,

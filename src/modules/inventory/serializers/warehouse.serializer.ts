@@ -13,6 +13,15 @@ export class WarehouseSerializer
       code: warehouse.code,
       business_id: warehouse.business_id,
       branch_id: warehouse.branch_id,
+      branch: warehouse.branch
+        ? {
+            id: warehouse.branch.id,
+            code: warehouse.branch.code,
+            name: warehouse.branch.name,
+            business_name: warehouse.branch.business_name,
+            branch_number: warehouse.branch.branch_number,
+          }
+        : null,
       name: warehouse.name,
       description: warehouse.description,
       purpose: warehouse.purpose,

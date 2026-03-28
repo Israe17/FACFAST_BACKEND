@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsArray,
   IsDateString,
   IsEnum,
@@ -101,13 +102,22 @@ export class CreateSaleOrderDto {
   @IsString({ message: validation_messages.invalid_string() })
   internal_notes?: string;
 
-  @ApiProperty({ type: [CreateSaleOrderLineDto] })
+  @ApiProperty({
+    type: [CreateSaleOrderLineDto],
+    description:
+      'Full line collection for the sale order. At least one line is required.',
+  })
   @IsArray({ message: validation_messages.array_required() })
+  @ArrayMinSize(1)
   @ValidateNested({ each: true, message: validation_messages.invalid_nested_object() })
   @Type(() => CreateSaleOrderLineDto)
   lines!: CreateSaleOrderLineDto[];
 
-  @ApiPropertyOptional({ type: [CreateSaleOrderDeliveryChargeDto] })
+  @ApiPropertyOptional({
+    type: [CreateSaleOrderDeliveryChargeDto],
+    description:
+      'Optional full delivery charges collection. Send [] to persist no delivery charges.',
+  })
   @IsOptional()
   @IsArray({ message: validation_messages.array_required() })
   @ValidateNested({ each: true, message: validation_messages.invalid_nested_object() })

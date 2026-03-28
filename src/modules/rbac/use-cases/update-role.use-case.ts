@@ -61,6 +61,14 @@ export class UpdateRoleUseCase
       role.name = dto.name.trim();
     }
 
-    return this.role_serializer.serialize(await this.roles_repository.save(role));
+    const saved_role = await this.roles_repository.save(role);
+    const dependencies =
+      await this.rbac_validation_service.count_role_delete_dependencies(
+        saved_role,
+      );
+    return this.role_serializer.serialize(
+      saved_role,
+      this.role_lifecycle_policy.build_lifecycle(saved_role, dependencies),
+    );
   }
 }

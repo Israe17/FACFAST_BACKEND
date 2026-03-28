@@ -7,6 +7,7 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { ContactView } from '../contracts/contact.view';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
+import { ContactLifecyclePolicy } from '../policies/contact-lifecycle.policy';
 import { ContactsRepository } from '../repositories/contacts.repository';
 import { ContactSerializer } from '../serializers/contact.serializer';
 
@@ -22,6 +23,7 @@ export class CreateContactUseCase
   constructor(
     private readonly contacts_repository: ContactsRepository,
     private readonly entity_code_service: EntityCodeService,
+    private readonly contact_lifecycle_policy: ContactLifecyclePolicy,
     private readonly contact_serializer: ContactSerializer,
   ) {}
 
@@ -76,7 +78,13 @@ export class CreateContactUseCase
     });
 
     const saved_contact = await this.contacts_repository.save(contact);
-    return this.contact_serializer.serialize(saved_contact);
+    return this.contact_serializer.serialize(
+      saved_contact,
+      this.contact_lifecycle_policy.build_lifecycle(saved_contact, {
+        inventory_lots: 0,
+        serial_events: 0,
+      }),
+    );
   }
 
   private async assert_code_available(

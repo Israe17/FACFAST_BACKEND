@@ -75,6 +75,8 @@ export class UpdateDispatchOrderUseCase
       dto.route_id !== undefined ? dto.route_id : order.route_id;
     const effective_vehicle_id =
       dto.vehicle_id !== undefined ? dto.vehicle_id : order.vehicle_id;
+    const effective_driver_user_id =
+      dto.driver_user_id !== undefined ? dto.driver_user_id : order.driver_user_id;
     const effective_origin_warehouse_id =
       dto.origin_warehouse_id !== undefined
         ? dto.origin_warehouse_id
@@ -95,6 +97,28 @@ export class UpdateDispatchOrderUseCase
       await this.dispatch_catalog_validation_service.get_vehicle_for_branch_operation(
         current_user,
         effective_vehicle_id,
+        effective_branch_id,
+        { require_active: true },
+      );
+    }
+    if (
+      effective_driver_user_id !== null &&
+      effective_driver_user_id !== undefined
+    ) {
+      await this.dispatch_catalog_validation_service.get_driver_user_for_dispatch_operation(
+        current_user,
+        effective_driver_user_id,
+        effective_branch_id,
+        { require_active: true },
+      );
+    }
+    if (
+      effective_origin_warehouse_id !== null &&
+      effective_origin_warehouse_id !== undefined
+    ) {
+      await this.dispatch_catalog_validation_service.get_warehouse_for_branch_operation(
+        current_user,
+        effective_origin_warehouse_id,
         effective_branch_id,
         { require_active: true },
       );

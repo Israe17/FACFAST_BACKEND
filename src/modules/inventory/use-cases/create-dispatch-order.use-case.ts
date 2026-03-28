@@ -75,6 +75,25 @@ export class CreateDispatchOrderUseCase
         { require_active: true },
       );
     }
+    if (dto.driver_user_id !== undefined && dto.driver_user_id !== null) {
+      await this.dispatch_catalog_validation_service.get_driver_user_for_dispatch_operation(
+        current_user,
+        dto.driver_user_id,
+        dto.branch_id,
+        { require_active: true },
+      );
+    }
+    if (
+      dto.origin_warehouse_id !== undefined &&
+      dto.origin_warehouse_id !== null
+    ) {
+      await this.dispatch_catalog_validation_service.get_warehouse_for_branch_operation(
+        current_user,
+        dto.origin_warehouse_id,
+        dto.branch_id,
+        { require_active: true },
+      );
+    }
 
     return this.idempotency_service.execute(
       this.data_source,

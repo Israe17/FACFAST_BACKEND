@@ -257,12 +257,17 @@ export class ProductVariantsService {
       });
     }
 
-    await this.inventory_validation_service.get_tax_profile_in_business(
+    const fiscal_profile =
+      await this.inventory_validation_service.get_tax_profile_in_business(
       business_id,
       dto.fiscal_profile_id,
       {
         require_active: true,
       },
+    );
+    this.inventory_validation_service.assert_product_tax_profile_compatibility(
+      product.type,
+      fiscal_profile,
     );
 
     if (dto.stock_unit_measure_id) {
@@ -313,7 +318,8 @@ export class ProductVariantsService {
     });
 
     this.apply_variant_rules(variant);
-    return this.product_variants_repository.save(variant);
+    const saved_variant = await this.product_variants_repository.save(variant);
+    return this.get_variant_entity(business_id, saved_variant.id);
   }
 
   async update_variant(
@@ -372,12 +378,26 @@ export class ProductVariantsService {
       variant.variant_name = dto.variant_name.trim();
     }
     if (dto.fiscal_profile_id !== undefined) {
-      await this.inventory_validation_service.get_tax_profile_in_business(
+      if (!variant.product) {
+        throw new DomainNotFoundException({
+          code: 'PRODUCT_NOT_FOUND',
+          messageKey: 'inventory.product_not_found',
+          details: {
+            product_variant_id: variant.id,
+          },
+        });
+      }
+      const fiscal_profile =
+        await this.inventory_validation_service.get_tax_profile_in_business(
         business_id,
         dto.fiscal_profile_id,
         {
           require_active: true,
         },
+      );
+      this.inventory_validation_service.assert_product_tax_profile_compatibility(
+        variant.product.type,
+        fiscal_profile,
       );
       variant.fiscal_profile_id = dto.fiscal_profile_id;
     }
@@ -434,7 +454,8 @@ export class ProductVariantsService {
     }
 
     this.apply_variant_rules(variant);
-    return this.product_variants_repository.save(variant);
+    const saved_variant = await this.product_variants_repository.save(variant);
+    return this.get_variant_entity(business_id, saved_variant.id);
   }
 
   async list_variants(
@@ -483,7 +504,8 @@ export class ProductVariantsService {
     }
 
     variant.is_active = false;
-    return this.product_variants_repository.save(variant);
+    const saved_variant = await this.product_variants_repository.save(variant);
+    return this.get_variant_entity(business_id, saved_variant.id);
   }
 
   async delete_variant_permanently(

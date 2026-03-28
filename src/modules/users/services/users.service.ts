@@ -164,7 +164,10 @@ export class UsersService {
       user.max_sale_discount = dto.max_sale_discount;
     }
 
-    return this.serialize_user(await this.users_repository.save(user));
+    const saved_user = await this.users_repository.save(user);
+    return this.serialize_user(
+      await this.get_user_entity(current_user, saved_user.id),
+    );
   }
 
   async update_user_status(
@@ -178,7 +181,10 @@ export class UsersService {
       user.allow_login = dto.allow_login;
     }
 
-    return this.serialize_user(await this.users_repository.save(user));
+    const saved_user = await this.users_repository.save(user);
+    return this.serialize_user(
+      await this.get_user_entity(current_user, saved_user.id),
+    );
   }
 
   async update_user_password(
@@ -610,6 +616,7 @@ export class UsersService {
         user.user_branch_access?.map((item) => ({
           id: item.branch?.id ?? item.branch_id,
           code: item.branch?.code,
+          name: item.branch?.name,
           branch_number: item.branch?.branch_number,
           business_name: item.branch?.business_name,
         })) ?? [],

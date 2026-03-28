@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
@@ -73,6 +74,7 @@ export class UpdateRouteDto {
   @IsOptional()
   @IsArray()
   @ArrayUnique()
+  @Type(() => Number)
   @IsInt({ each: true })
   assigned_branch_ids?: number[];
 }

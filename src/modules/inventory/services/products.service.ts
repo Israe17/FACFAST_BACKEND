@@ -367,9 +367,11 @@ export class ProductsService {
             ).id;
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('PD', dto.code.trim());
-      product.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('PD', dto.code.trim());
+      }
+      product.code = dto.code?.trim() ?? null;
     }
     if (dto.type) {
       product.type = dto.type;

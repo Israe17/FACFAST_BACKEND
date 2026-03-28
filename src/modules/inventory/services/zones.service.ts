@@ -160,9 +160,11 @@ export class ZonesService {
       });
     }
 
-    if (dto.code) {
-      this.entity_code_service.validate_code('ZN', dto.code.trim());
-      zone.code = dto.code.trim();
+    if (dto.code !== undefined) {
+      if (dto.code !== null) {
+        this.entity_code_service.validate_code('ZN', dto.code.trim());
+      }
+      zone.code = dto.code?.trim() ?? null;
     }
     zone.is_global = next_is_global;
     if (dto.name) {

@@ -65,7 +65,14 @@ export class AssignRolePermissionsUseCase
       role.id,
       role.business_id,
     );
-
-    return this.role_serializer.serialize(refreshed_role ?? role);
+    const resolved_role = refreshed_role ?? role;
+    const dependencies =
+      await this.rbac_validation_service.count_role_delete_dependencies(
+        resolved_role,
+      );
+    return this.role_serializer.serialize(
+      resolved_role,
+      this.role_lifecycle_policy.build_lifecycle(resolved_role, dependencies),
+    );
   }
 }

@@ -4,12 +4,14 @@ export interface ProductPriceView {
   id: number;
   business_id: number;
   product_id: number;
+  product_variant_id: number | null;
   product_variant: {
     id: number;
     sku: string;
     variant_name: string | null;
     is_default: boolean;
   } | null;
+  price_list_id: number;
   price_list: {
     id: number;
     code: string | null;

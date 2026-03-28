@@ -1,20 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
-import { DispatchCatalogValidationService } from '../../inventory/services/dispatch-catalog-validation.service';
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
 import { SaleOrder } from '../entities/sale-order.entity';
-import { SaleOrderDeliveryCharge } from '../entities/sale-order-delivery-charge.entity';
-import { SaleOrderLine } from '../entities/sale-order-line.entity';
 import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
 import { SaleOrderLifecyclePolicy } from '../policies/sale-order-lifecycle.policy';
 import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
 import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
+import { SalesValidationService } from '../services/sales-validation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 
 export type UpdateSaleOrderCommand = {
@@ -33,7 +32,7 @@ export class UpdateSaleOrderUseCase
     private readonly sale_order_access_policy: SaleOrderAccessPolicy,
     private readonly sale_order_lifecycle_policy: SaleOrderLifecyclePolicy,
     private readonly sale_order_mode_policy: SaleOrderModePolicy,
-    private readonly dispatch_catalog_validation_service: DispatchCatalogValidationService,
+    private readonly sales_validation_service: SalesValidationService,
     private readonly sale_order_serializer: SaleOrderSerializer,
   ) {}
 
@@ -79,23 +78,76 @@ export class UpdateSaleOrderUseCase
     }
 
     const effective_branch_id = dto.branch_id ?? order.branch_id;
+    const effective_seller_user_id =
+      dto.seller_user_id !== undefined ? dto.seller_user_id : order.seller_user_id;
     const effective_delivery_zone_id =
       dto.delivery_zone_id !== undefined
         ? dto.delivery_zone_id
         : order.delivery_zone_id;
-    if (effective_delivery_zone_id !== null && effective_delivery_zone_id !== undefined) {
-      await this.dispatch_catalog_validation_service.get_zone_for_branch_operation(
+    const effective_warehouse_id =
+      dto.warehouse_id !== undefined ? dto.warehouse_id : order.warehouse_id;
+
+    if (dto.customer_contact_id !== undefined) {
+      await this.sales_validation_service.validate_sale_order_references(
         current_user,
-        effective_delivery_zone_id,
-        effective_branch_id,
-        { require_active: true },
+        {
+          branch_id: effective_branch_id,
+          customer_contact_id: dto.customer_contact_id,
+        },
+      );
+    }
+
+    if (
+      dto.seller_user_id !== undefined ||
+      dto.sale_mode !== undefined ||
+      dto.branch_id !== undefined
+    ) {
+      await this.sales_validation_service.validate_sale_order_references(
+        current_user,
+        {
+          branch_id: effective_branch_id,
+          customer_contact_id: order.customer_contact_id,
+          seller_user_id: effective_seller_user_id,
+        },
+      );
+    }
+
+    if (dto.delivery_zone_id !== undefined || dto.branch_id !== undefined) {
+      await this.sales_validation_service.validate_sale_order_references(
+        current_user,
+        {
+          branch_id: effective_branch_id,
+          customer_contact_id: order.customer_contact_id,
+          delivery_zone_id: effective_delivery_zone_id,
+        },
+      );
+    }
+
+    if (dto.warehouse_id !== undefined || dto.branch_id !== undefined) {
+      await this.sales_validation_service.validate_sale_order_references(
+        current_user,
+        {
+          branch_id: effective_branch_id,
+          customer_contact_id: order.customer_contact_id,
+          warehouse_id: effective_warehouse_id,
+        },
+      );
+    }
+
+    if (dto.lines !== undefined) {
+      this.assert_replace_all_lines_payload(dto.lines);
+      await this.sales_validation_service.validate_sale_order_references(
+        current_user,
+        {
+          branch_id: effective_branch_id,
+          customer_contact_id: order.customer_contact_id,
+          product_variant_ids: dto.lines.map((line) => line.product_variant_id),
+        },
       );
     }
 
     return this.data_source.transaction(async (manager) => {
       const order_repo = manager.getRepository(SaleOrder);
-      const line_repo = manager.getRepository(SaleOrderLine);
-      const charge_repo = manager.getRepository(SaleOrderDeliveryCharge);
 
       if (dto.branch_id !== undefined) order.branch_id = dto.branch_id;
       if (dto.customer_contact_id !== undefined) {
@@ -151,16 +203,16 @@ export class UpdateSaleOrderUseCase
       await order_repo.save(order);
 
       if (dto.lines !== undefined) {
-        await line_repo.delete({ sale_order_id: order.id });
-        if (dto.lines.length) {
-          const lines = dto.lines.map((line_dto, index) => {
+        await this.sale_orders_repository.replace_lines(
+          order.id,
+          dto.lines.map((line_dto, index) => {
             const discount = line_dto.discount_percent ?? 0;
             const subtotal = line_dto.quantity * line_dto.unit_price;
             const discounted = subtotal * (1 - discount / 100);
             const tax = line_dto.tax_amount ?? 0;
             const total = line_dto.line_total ?? discounted + tax;
 
-            return line_repo.create({
+            return {
               business_id,
               sale_order_id: order.id,
               line_no: index + 1,
@@ -171,26 +223,24 @@ export class UpdateSaleOrderUseCase
               tax_amount: tax,
               line_total: total,
               notes: this.normalize_optional_string(line_dto.notes),
-            });
-          });
-          await line_repo.save(lines);
-        }
+            };
+          }),
+          manager,
+        );
       }
 
       if (dto.delivery_charges !== undefined) {
-        await charge_repo.delete({ sale_order_id: order.id });
-        if (dto.delivery_charges.length) {
-          const charges = dto.delivery_charges.map((charge_dto) =>
-            charge_repo.create({
-              business_id,
-              sale_order_id: order.id,
-              charge_type: charge_dto.charge_type,
-              amount: charge_dto.amount,
-              notes: this.normalize_optional_string(charge_dto.notes),
-            }),
-          );
-          await charge_repo.save(charges);
-        }
+        await this.sale_orders_repository.replace_delivery_charges(
+          order.id,
+          dto.delivery_charges.map((charge_dto) => ({
+            business_id,
+            sale_order_id: order.id,
+            charge_type: charge_dto.charge_type,
+            amount: charge_dto.amount,
+            notes: this.normalize_optional_string(charge_dto.notes),
+          })),
+          manager,
+        );
       }
 
       const full_order = await this.sale_orders_repository.find_by_id_in_business(
@@ -205,5 +255,19 @@ export class UpdateSaleOrderUseCase
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private assert_replace_all_lines_payload(
+    lines: NonNullable<UpdateSaleOrderDto['lines']>,
+  ): void {
+    if (!lines.length) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_LINES_REQUIRED',
+        messageKey: 'sales.lines_required',
+        details: {
+          field: 'lines',
+        },
+      });
+    }
   }
 }

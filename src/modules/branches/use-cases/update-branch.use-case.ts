@@ -5,6 +5,7 @@ import { EntityCodeService } from '../../common/services/entity-code.service';
 import { EncryptionService } from '../../common/services/encryption.service';
 import { BranchView } from '../contracts/branch.view';
 import { UpdateBranchDto } from '../dto/update-branch.dto';
+import { BranchLifecyclePolicy } from '../policies/branch-lifecycle.policy';
 import { BranchesRepository } from '../repositories/branches.repository';
 import { BranchSerializer } from '../serializers/branch.serializer';
 import { BranchesValidationService } from '../services/branches-validation.service';
@@ -22,6 +23,7 @@ export class UpdateBranchUseCase
   constructor(
     private readonly branches_repository: BranchesRepository,
     private readonly branches_validation_service: BranchesValidationService,
+    private readonly branch_lifecycle_policy: BranchLifecyclePolicy,
     private readonly entity_code_service: EntityCodeService,
     private readonly encryption_service: EncryptionService,
     private readonly branch_serializer: BranchSerializer,
@@ -121,6 +123,13 @@ export class UpdateBranchUseCase
     }
 
     const saved_branch = await this.branches_repository.save(branch);
-    return this.branch_serializer.serialize(saved_branch);
+    const dependencies =
+      await this.branches_validation_service.count_branch_delete_dependencies(
+        saved_branch,
+      );
+    return this.branch_serializer.serialize(
+      saved_branch,
+      this.branch_lifecycle_policy.build_lifecycle(saved_branch, dependencies),
+    );
   }
 }

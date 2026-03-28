@@ -2,15 +2,20 @@ import { Injectable } from '@nestjs/common';
 import { EntitySerializer } from '../../common/application/interfaces/entity-serializer.interface';
 import { RoleView } from '../contracts/role.view';
 import { Role } from '../entities/role.entity';
+import { RoleLifecyclePolicy } from '../policies/role-lifecycle.policy';
 import { PermissionSerializer } from './permission.serializer';
 
 @Injectable()
 export class RoleSerializer implements EntitySerializer<Role, RoleView> {
   constructor(
     private readonly permission_serializer: PermissionSerializer,
+    private readonly role_lifecycle_policy: RoleLifecyclePolicy,
   ) {}
 
-  serialize(role: Role): RoleView {
+  serialize(
+    role: Role,
+    lifecycle = this.role_lifecycle_policy.build_lifecycle(role),
+  ): RoleView {
     return {
       id: role.id,
       code: role.code,
@@ -24,12 +29,7 @@ export class RoleSerializer implements EntitySerializer<Role, RoleView> {
           .map((role_permission) =>
             this.permission_serializer.serialize(role_permission.permission!),
           ) ?? [],
-      lifecycle: {
-        can_update: true,
-        can_delete: !role.is_system,
-        can_assign_permissions: true,
-        reasons: role.is_system ? ['system_role'] : [],
-      },
+      lifecycle,
       created_at: role.created_at,
       updated_at: role.updated_at,
     };

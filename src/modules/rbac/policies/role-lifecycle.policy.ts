@@ -16,6 +16,31 @@ export class RoleLifecyclePolicy
   implements
     TransitionPolicy<{ id: number; is_system: boolean }, RoleLifecycleTransition>
 {
+  build_lifecycle(
+    role: { is_system: boolean },
+    dependencies?: RoleDeleteDependencies,
+  ) {
+    let can_delete = false;
+    let reasons: string[] = [];
+
+    if (role.is_system) {
+      reasons = ['system_role'];
+    } else if (dependencies === undefined) {
+      reasons = ['delete_requires_dependency_check'];
+    } else if (dependencies.user_assignments > 0) {
+      reasons = ['in_use'];
+    } else {
+      can_delete = true;
+    }
+
+    return {
+      can_update: true,
+      can_delete,
+      can_assign_permissions: true,
+      reasons,
+    };
+  }
+
   assert_transition_allowed(
     role: { id: number; is_system: boolean },
     transition: RoleLifecycleTransition,
