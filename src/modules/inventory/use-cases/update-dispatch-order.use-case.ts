@@ -46,8 +46,6 @@ export class UpdateDispatchOrderUseCase
     dispatch_order_id,
     dto,
   }: UpdateDispatchOrderCommand): Promise<DispatchOrderView> {
-    console.log('[UpdateDispatchOrder] dto.stop_sale_order_ids:', dto.stop_sale_order_ids);
-    console.log('[UpdateDispatchOrder] full dto keys:', Object.keys(dto));
     const business_id = resolve_effective_business_id(current_user);
     const order = await this.dispatch_orders_repository.find_by_id_in_business(
       dispatch_order_id,
