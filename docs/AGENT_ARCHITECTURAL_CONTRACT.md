@@ -271,6 +271,30 @@ Minimum expectation:
 - timestamps
 - any additional state needed to reopen or continue editing without guessing
 
+### 11. Pessimistic locks must scope to the main table
+
+When using `setLock('pessimistic_write')` on a query that includes
+`leftJoinAndSelect`, the lock MUST be scoped to the main table using the third
+parameter. PostgreSQL rejects `FOR UPDATE` on the nullable side of a LEFT JOIN.
+
+```typescript
+// WRONG — will crash with "FOR UPDATE cannot be applied to the nullable side of an outer join"
+.createQueryBuilder('entity')
+.setLock('pessimistic_write')
+.leftJoinAndSelect('entity.relation', 'relation')
+
+// CORRECT — lock only the main table
+.createQueryBuilder('entity')
+.setLock('pessimistic_write', undefined, ['entity'])
+.leftJoinAndSelect('entity.relation', 'relation')
+```
+
+Rule:
+
+- if the query has any `leftJoinAndSelect`, always pass the third parameter
+- if the query has no joins, the third parameter is optional but harmless
+- the table name in the array is the **alias** used in `createQueryBuilder`
+
 Rule:
 
 - the frontend should not need to fully reload every catalog only to paint the
