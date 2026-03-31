@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { InventoryReservation } from '../entities/inventory-reservation.entity';
+import { InventoryReservationStatus } from '../enums/inventory-reservation-status.enum';
 
 @Injectable()
 export class InventoryReservationsRepository {
@@ -22,6 +23,7 @@ export class InventoryReservationsRepository {
       where: {
         business_id,
         sale_order_id,
+        status: InventoryReservationStatus.ACTIVE,
       },
     });
   }
