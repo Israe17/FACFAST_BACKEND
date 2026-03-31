@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -8,6 +8,7 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { UpdateDispatchOrderDto } from '../dto/update-dispatch-order.dto';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
+import { DispatchStop } from '../entities/dispatch-stop.entity';
 import { DispatchType } from '../enums/dispatch-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
@@ -16,6 +17,8 @@ import { DispatchOrdersRepository } from '../repositories/dispatch-orders.reposi
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { DispatchCatalogValidationService } from '../services/dispatch-catalog-validation.service';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
+import { SaleOrder } from '../../sales/entities/sale-order.entity';
+import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 
 export type UpdateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -43,6 +46,8 @@ export class UpdateDispatchOrderUseCase
     dispatch_order_id,
     dto,
   }: UpdateDispatchOrderCommand): Promise<DispatchOrderView> {
+    console.log('[UpdateDispatchOrder] dto.stop_sale_order_ids:', dto.stop_sale_order_ids);
+    console.log('[UpdateDispatchOrder] full dto keys:', Object.keys(dto));
     const business_id = resolve_effective_business_id(current_user);
     const order = await this.dispatch_orders_repository.find_by_id_in_business(
       dispatch_order_id,
@@ -124,23 +129,6 @@ export class UpdateDispatchOrderUseCase
       );
     }
 
-    this.assert_dispatch_type_allows_current_stop_count(
-      effective_dispatch_type,
-      order.stops?.length ?? 0,
-    );
-
-    for (const stop of order.stops ?? []) {
-      if (!stop.sale_order) {
-        continue;
-      }
-
-      this.dispatch_sale_order_policy.assert_dispatch_order_sale_order(
-        effective_branch_id,
-        stop.sale_order,
-        effective_origin_warehouse_id,
-      );
-    }
-
     return this.data_source.transaction(async (manager) => {
       const dispatch_order_repository = manager.getRepository(DispatchOrder);
 
@@ -174,6 +162,19 @@ export class UpdateDispatchOrderUseCase
 
       await dispatch_order_repository.save(order);
 
+      // Replace stops if stop_sale_order_ids was sent in the payload
+      if (dto.stop_sale_order_ids !== undefined) {
+        await this.replace_stops(
+          manager,
+          order,
+          business_id,
+          effective_branch_id,
+          effective_origin_warehouse_id,
+          effective_dispatch_type,
+          dto.stop_sale_order_ids ?? [],
+        );
+      }
+
       const full_order = await this.dispatch_orders_repository.find_by_id_in_business(
         order.id,
         business_id,
@@ -183,12 +184,107 @@ export class UpdateDispatchOrderUseCase
     });
   }
 
+  private async replace_stops(
+    manager: EntityManager,
+    order: DispatchOrder,
+    business_id: number,
+    effective_branch_id: number,
+    effective_origin_warehouse_id: number | null | undefined,
+    effective_dispatch_type: DispatchType,
+    new_sale_order_ids: number[],
+  ): Promise<void> {
+    this.assert_dispatch_type_allows_stop_count(
+      effective_dispatch_type,
+      new_sale_order_ids.length,
+    );
+
+    const dispatch_stop_repository = manager.getRepository(DispatchStop);
+    const sale_order_repository = manager.getRepository(SaleOrder);
+
+    // Release dispatch status on old stops being removed
+    const current_stops = order.stops ?? [];
+    const new_ids_set = new Set(new_sale_order_ids);
+    for (const stop of current_stops) {
+      if (!new_ids_set.has(stop.sale_order_id)) {
+        const sale_order = await sale_order_repository.findOne({
+          where: { id: stop.sale_order_id, business_id },
+        });
+        if (sale_order && sale_order.dispatch_status === SaleDispatchStatus.ASSIGNED) {
+          sale_order.dispatch_status = SaleDispatchStatus.PENDING;
+          await sale_order_repository.save(sale_order);
+        }
+      }
+    }
+
+    // Delete all current stops
+    await dispatch_stop_repository.delete({ dispatch_order_id: order.id });
+
+    // Create new stops
+    for (let index = 0; index < new_sale_order_ids.length; index++) {
+      const sale_order_id = new_sale_order_ids[index];
+
+      // Verify sale order not assigned to another active dispatch
+      const existing_stop = await dispatch_stop_repository
+        .createQueryBuilder('stop')
+        .innerJoin('stop.dispatch_order', 'dispatch_order')
+        .where('stop.sale_order_id = :sale_order_id', { sale_order_id })
+        .andWhere('dispatch_order.business_id = :business_id', { business_id })
+        .andWhere('dispatch_order.id != :current_id', { current_id: order.id })
+        .andWhere('dispatch_order.status NOT IN (:...excluded)', {
+          excluded: ['cancelled', 'completed'],
+        })
+        .getOne();
+
+      if (existing_stop) {
+        throw new DomainBadRequestException({
+          code: 'SALE_ORDER_ALREADY_ASSIGNED_TO_DISPATCH',
+          messageKey: 'inventory.sale_order_already_assigned_to_dispatch',
+          details: { sale_order_id, dispatch_order_id: existing_stop.dispatch_order_id },
+        });
+      }
+
+      const sale_order = await sale_order_repository.findOne({
+        where: { id: sale_order_id, business_id },
+      });
+      if (!sale_order) {
+        throw new DomainNotFoundException({
+          code: 'SALE_ORDER_NOT_FOUND',
+          messageKey: 'inventory.sale_order_not_found',
+          details: { sale_order_id },
+        });
+      }
+
+      this.dispatch_sale_order_policy.assert_dispatchable_sale_order(
+        effective_branch_id,
+        sale_order,
+        effective_origin_warehouse_id,
+      );
+
+      await dispatch_stop_repository.save(
+        dispatch_stop_repository.create({
+          business_id,
+          dispatch_order_id: order.id,
+          sale_order_id: sale_order.id,
+          customer_contact_id: sale_order.customer_contact_id,
+          delivery_sequence: index + 1,
+          delivery_address: sale_order.delivery_address,
+          delivery_province: sale_order.delivery_province,
+          delivery_canton: sale_order.delivery_canton,
+          delivery_district: sale_order.delivery_district,
+        }),
+      );
+
+      sale_order.dispatch_status = SaleDispatchStatus.ASSIGNED;
+      await sale_order_repository.save(sale_order);
+    }
+  }
+
   private normalize_optional_string(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
   }
 
-  private assert_dispatch_type_allows_current_stop_count(
+  private assert_dispatch_type_allows_stop_count(
     dispatch_type: DispatchType,
     stop_count: number,
   ): void {

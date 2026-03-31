@@ -182,6 +182,26 @@ Current important examples:
 - sale order `lines`
 - sale order `delivery_charges`
 - promotion `items`
+- dispatch order `stop_sale_order_ids`
+
+#### Mandatory rule for replace-all collections
+
+If the CREATE use case accepts a child collection field (e.g., `lines`,
+`stop_sale_order_ids`, `items`), the UPDATE use case MUST also accept and
+process the same field. The UPDATE handling should be conditional: if the
+field is present in the DTO, replace the full set; if absent, preserve the
+current collection.
+
+```typescript
+// In the update use case:
+if (dto.collection_field !== undefined) {
+  await this.replace_collection(manager, entity, dto.collection_field);
+}
+```
+
+This rule exists because the frontend reuses the same form for create and
+edit. If create accepts a field that update ignores, the user will fill the
+form, save, and the data will silently disappear.
 
 #### Subresource-managed collections
 
@@ -194,7 +214,6 @@ Current important examples:
 - user roles
 - user branch access
 - role permissions
-- dispatch stops
 - dispatch expenses
 - branch assignments for contacts, promotions, price lists, zones, routes and vehicles
 
@@ -669,10 +688,11 @@ Requirements:
 
 ## Current Collection Contract Matrix
 
-### Replace-all
+### Replace-all (via base create/update DTO)
 
 - `sale-orders.lines`
 - `sale-orders.delivery_charges`
+- `dispatch-orders.stop_sale_order_ids`
 - `promotions.items`
 
 ### Subresource-managed, full-set replacement per call
@@ -683,7 +703,6 @@ Requirements:
 
 ### Subresource-managed, item-level operational actions
 
-- `dispatch-orders/:id/stops`
 - `dispatch-orders/:id/expenses`
 - branch assignment item endpoints for contacts/promotions/price lists
 
