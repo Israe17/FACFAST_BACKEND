@@ -93,7 +93,7 @@ export class MarkDispatchOrderDispatchedUseCase
           const sale_order = await manager
             .getRepository(SaleOrder)
             .createQueryBuilder('sale_order')
-            .setLock('pessimistic_write')
+            .setLock('pessimistic_write', undefined, ['sale_order'])
             .leftJoinAndSelect('sale_order.lines', 'line')
             .leftJoinAndSelect('line.product_variant', 'product_variant')
             .leftJoinAndSelect('sale_order.warehouse', 'warehouse')
