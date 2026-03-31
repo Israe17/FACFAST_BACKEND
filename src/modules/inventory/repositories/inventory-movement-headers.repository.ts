@@ -78,7 +78,7 @@ export class InventoryMovementHeadersRepository {
     return manager
       .getRepository(InventoryMovementHeader)
       .createQueryBuilder('header')
-      .setLock('pessimistic_write')
+      .setLock('pessimistic_write', undefined, ['header'])
       .leftJoinAndSelect('header.branch', 'branch')
       .leftJoinAndSelect('header.performed_by_user', 'performed_by_user')
       .leftJoinAndSelect('header.lines', 'line')

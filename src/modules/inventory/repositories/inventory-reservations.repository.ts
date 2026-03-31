@@ -34,7 +34,7 @@ export class InventoryReservationsRepository {
     return manager
       .getRepository(InventoryReservation)
       .createQueryBuilder('inventory_reservation')
-      .setLock('pessimistic_write')
+      .setLock('pessimistic_write', undefined, ['inventory_reservation'])
       .leftJoinAndSelect('inventory_reservation.warehouse', 'warehouse')
       .leftJoinAndSelect(
         'inventory_reservation.product_variant',

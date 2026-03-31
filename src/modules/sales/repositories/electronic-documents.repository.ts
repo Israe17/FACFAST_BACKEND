@@ -152,7 +152,7 @@ export class ElectronicDocumentsRepository {
     return manager
       .getRepository(ElectronicDocument)
       .createQueryBuilder('document')
-      .setLock('pessimistic_write')
+      .setLock('pessimistic_write', undefined, ['document'])
       .leftJoinAndSelect('document.sale_order', 'sale_order')
       .leftJoinAndSelect('document.branch', 'branch')
       .where('document.id = :id', { id })
@@ -179,7 +179,7 @@ export class ElectronicDocumentsRepository {
     return manager
       .getRepository(ElectronicDocument)
       .createQueryBuilder('document')
-      .setLock('pessimistic_write')
+      .setLock('pessimistic_write', undefined, ['document'])
       .leftJoinAndSelect('document.sale_order', 'sale_order')
       .leftJoinAndSelect('document.branch', 'branch')
       .where('document.sale_order_id = :sale_order_id', { sale_order_id })
