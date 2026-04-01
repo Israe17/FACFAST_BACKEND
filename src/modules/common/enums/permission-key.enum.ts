@@ -125,6 +125,7 @@ export enum PermissionKey {
   DISPATCH_ORDERS_VIEW = 'dispatch_orders.view',
   DISPATCH_ORDERS_CREATE = 'dispatch_orders.create',
   DISPATCH_ORDERS_UPDATE = 'dispatch_orders.update',
+  DISPATCH_ORDERS_DELETE = 'dispatch_orders.delete',
   DISPATCH_ORDERS_CANCEL = 'dispatch_orders.cancel',
   DISPATCH_EXPENSES_CREATE = 'dispatch_expenses.create',
   DISPATCH_EXPENSES_DELETE = 'dispatch_expenses.delete',

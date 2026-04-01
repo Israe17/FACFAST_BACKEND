@@ -10,6 +10,7 @@ import { UpdateDispatchOrderDto } from '../dto/update-dispatch-order.dto';
 import { AddDispatchExpenseUseCase } from '../use-cases/add-dispatch-expense.use-case';
 import { AddDispatchStopUseCase } from '../use-cases/add-dispatch-stop.use-case';
 import { CancelDispatchOrderUseCase } from '../use-cases/cancel-dispatch-order.use-case';
+import { DeleteDispatchOrderUseCase, DeleteDispatchOrderResult } from '../use-cases/delete-dispatch-order.use-case';
 import { CreateDispatchOrderUseCase } from '../use-cases/create-dispatch-order.use-case';
 import { GetDispatchOrderQueryUseCase } from '../use-cases/get-dispatch-order.query.use-case';
 import { GetDispatchOrdersCursorQueryUseCase } from '../use-cases/get-dispatch-orders-cursor.query.use-case';
@@ -39,6 +40,7 @@ export class DispatchOrdersService {
     private readonly mark_dispatch_order_dispatched_use_case: MarkDispatchOrderDispatchedUseCase,
     private readonly mark_dispatch_order_completed_use_case: MarkDispatchOrderCompletedUseCase,
     private readonly cancel_dispatch_order_use_case: CancelDispatchOrderUseCase,
+    private readonly delete_dispatch_order_use_case: DeleteDispatchOrderUseCase,
     private readonly update_dispatch_stop_status_use_case: UpdateDispatchStopStatusUseCase,
   ) {}
 
@@ -197,6 +199,16 @@ export class DispatchOrdersService {
       current_user,
       dispatch_order_id,
       idempotency_key,
+    });
+  }
+
+  async delete_dispatch_order(
+    current_user: AuthenticatedUserContext,
+    dispatch_order_id: number,
+  ): Promise<DeleteDispatchOrderResult> {
+    return this.delete_dispatch_order_use_case.execute({
+      current_user,
+      dispatch_order_id,
     });
   }
 

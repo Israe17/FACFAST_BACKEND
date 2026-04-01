@@ -29,6 +29,9 @@ export class DispatchOrderSerializer
     const can_cancel =
       order.status === DispatchOrderStatus.DRAFT ||
       order.status === DispatchOrderStatus.READY;
+    const can_delete =
+      order.status === DispatchOrderStatus.DRAFT ||
+      order.status === DispatchOrderStatus.CANCELLED;
 
     return {
       id: order.id,
@@ -130,6 +133,7 @@ export class DispatchOrderSerializer
         can_dispatch,
         can_complete,
         can_cancel,
+        can_delete,
       },
       created_at: order.created_at,
       updated_at: order.updated_at,
