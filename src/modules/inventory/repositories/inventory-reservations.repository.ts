@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { InventoryReservation } from '../entities/inventory-reservation.entity';
 import { InventoryReservationStatus } from '../enums/inventory-reservation-status.enum';
 
@@ -25,6 +25,20 @@ export class InventoryReservationsRepository {
         sale_order_id,
         status: InventoryReservationStatus.ACTIVE,
       },
+    });
+  }
+
+  async delete_inactive_by_sale_order_id(
+    business_id: number,
+    sale_order_id: number,
+  ): Promise<void> {
+    await this.inventory_reservation_repository.delete({
+      business_id,
+      sale_order_id,
+      status: In([
+        InventoryReservationStatus.RELEASED,
+        InventoryReservationStatus.CONSUMED,
+      ]),
     });
   }
 

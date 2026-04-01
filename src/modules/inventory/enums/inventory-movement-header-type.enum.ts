@@ -1,6 +1,7 @@
 export enum InventoryMovementHeaderType {
   PURCHASE_RECEIPT = 'purchase_receipt',
   SALES_DISPATCH = 'sales_dispatch',
+  SALES_ALLOCATED = 'sales_allocated',
   STOCK_ADJUSTMENT = 'stock_adjustment',
   TRANSFER = 'transfer',
   MANUAL_CORRECTION = 'manual_correction',
@@ -9,5 +10,5 @@ export enum InventoryMovementHeaderType {
   RETURN_IN = 'return_in',
   RETURN_OUT = 'return_out',
   PURCHASE_EXPECTED = 'purchase_expected',
-  SALES_ALLOCATED = 'sales_allocated',
+  DISPATCH_CANCELLED = 'dispatch_cancelled',
 }

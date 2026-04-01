@@ -7,13 +7,16 @@ import { IdempotencyService } from '../../common/services/idempotency.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
+import { DispatchStop } from '../entities/dispatch-stop.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
+import { InventoryLedgerService } from '../services/inventory-ledger.service';
+import { InventoryReservationsService } from '../services/inventory-reservations.service';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
-import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 import { get_dispatch_status_for_fulfillment_mode } from '../../sales/utils/sale-dispatch-status.util';
 
 export type CancelDispatchOrderCommand = {
@@ -32,6 +35,8 @@ export class CancelDispatchOrderUseCase
     private readonly dispatch_order_access_policy: DispatchOrderAccessPolicy,
     private readonly dispatch_order_lifecycle_policy: DispatchOrderLifecyclePolicy,
     private readonly dispatch_order_serializer: DispatchOrderSerializer,
+    private readonly inventory_reservations_service: InventoryReservationsService,
+    private readonly inventory_ledger_service: InventoryLedgerService,
     private readonly idempotency_service: IdempotencyService,
   ) {}
 
@@ -74,33 +79,72 @@ export class CancelDispatchOrderUseCase
         );
         this.dispatch_order_lifecycle_policy.assert_cancellable(order);
 
+        const was_dispatched =
+          order.status === DispatchOrderStatus.DISPATCHED ||
+          order.status === DispatchOrderStatus.IN_TRANSIT;
+
         order.status = DispatchOrderStatus.CANCELLED;
         await manager.getRepository(DispatchOrder).save(order);
+
+        // Revert each sale order's dispatch_status and handle inventory
         for (const stop of order.stops ?? []) {
           const sale_order =
             stop.sale_order ??
-            (await manager.getRepository(SaleOrder).findOne({
-              where: {
-                id: stop.sale_order_id,
+            (await manager
+              .getRepository(SaleOrder)
+              .createQueryBuilder('sale_order')
+              .leftJoinAndSelect('sale_order.lines', 'line')
+              .leftJoinAndSelect('line.product_variant', 'product_variant')
+              .leftJoinAndSelect('sale_order.warehouse', 'warehouse')
+              .where('sale_order.id = :id', { id: stop.sale_order_id })
+              .andWhere('sale_order.business_id = :business_id', {
                 business_id,
-              },
-            }));
+              })
+              .getOne());
           if (!sale_order) {
             continue;
+          }
+
+          // If dispatch was already dispatched, we need to reverse the
+          // consumed inventory back to reserved state
+          if (was_dispatched) {
+            const re_reserve_deltas =
+              await this.inventory_reservations_service.unreserve_consumed_for_sale_order(
+                manager,
+                current_user,
+                sale_order,
+              );
+
+            if (re_reserve_deltas.length > 0) {
+              await this.inventory_ledger_service.post_posted_movement(
+                manager,
+                {
+                  business_id,
+                  branch_id: sale_order.branch_id,
+                  performed_by_user_id: current_user.id,
+                  occurred_at: new Date(),
+                  movement_type:
+                    InventoryMovementHeaderType.DISPATCH_CANCELLED,
+                  source_document_type: 'DispatchOrder',
+                  source_document_id: order.id,
+                  source_document_number: order.code,
+                  notes: `Reversion de stock por cancelacion de despacho ${order.code}`,
+                },
+                re_reserve_deltas.map((line) => ({
+                  warehouse: line.warehouse,
+                  product_variant: line.product_variant,
+                  quantity: line.quantity,
+                  on_hand_delta: line.quantity,
+                  reserved_delta: line.quantity,
+                })),
+              );
+            }
           }
 
           sale_order.dispatch_status = get_dispatch_status_for_fulfillment_mode(
             sale_order.fulfillment_mode,
           );
           await manager.getRepository(SaleOrder).save(sale_order);
-        }
-
-        // Reset assigned sale orders back to pending
-        for (const stop of order.stops ?? []) {
-          await manager.getRepository(SaleOrder).update(
-            { id: stop.sale_order_id, business_id },
-            { dispatch_status: SaleDispatchStatus.PENDING },
-          );
         }
 
         const full_order =
