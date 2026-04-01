@@ -76,6 +76,14 @@ export class DeleteSaleOrderUseCase
       });
     }
 
+    // Clean up inactive reservations (released/consumed) before deleting
+    // so the FK constraint doesn't block the delete.
+    // Active reservations were already checked above and would have thrown.
+    await this.inventory_reservations_service.delete_inactive_by_sale_order_id(
+      business_id,
+      order_id,
+    );
+
     await this.sale_orders_repository.remove(order);
     return { id: order_id, deleted: true };
   }

@@ -31,6 +31,16 @@ export class InventoryReservationsService {
     );
   }
 
+  async delete_inactive_by_sale_order_id(
+    business_id: number,
+    sale_order_id: number,
+  ): Promise<void> {
+    return this.inventory_reservations_repository.delete_inactive_by_sale_order_id(
+      business_id,
+      sale_order_id,
+    );
+  }
+
   async reserve_for_sale_order(
     manager: EntityManager,
     current_user: AuthenticatedUserContext,
