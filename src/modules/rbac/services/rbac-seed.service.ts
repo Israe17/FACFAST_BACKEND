@@ -582,6 +582,12 @@ const dispatch_permissions: PermissionSeed[] = [
     description: 'Can cancel dispatch orders.',
   },
   {
+    key: PermissionKey.DISPATCH_ORDERS_DELETE,
+    module: 'dispatch_orders',
+    action: 'delete',
+    description: 'Can delete dispatch orders.',
+  },
+  {
     key: PermissionKey.DISPATCH_EXPENSES_CREATE,
     module: 'dispatch_expenses',
     action: 'create',
