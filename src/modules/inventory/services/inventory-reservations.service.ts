@@ -239,6 +239,56 @@ export class InventoryReservationsService {
     return this.aggregate_delta_lines(consumed_lines);
   }
 
+  /**
+   * Reverses consumed reservations back to active state.
+   * Used when a dispatch order is cancelled after it was dispatched,
+   * to restore the on_hand and reserved stock that was consumed.
+   */
+  async unreserve_consumed_for_sale_order(
+    manager: EntityManager,
+    current_user: AuthenticatedUserContext,
+    order: SaleOrder,
+  ): Promise<ReservationDeltaLine[]> {
+    const reservations =
+      await this.inventory_reservations_repository.find_by_sale_order_id_for_update(
+        manager,
+        order.business_id,
+        order.id,
+      );
+    if (!reservations.length) {
+      return [];
+    }
+
+    const reservation_repository = manager.getRepository(InventoryReservation);
+    const restored_lines: ReservationDeltaLine[] = [];
+    const reservations_to_update: InventoryReservation[] = [];
+
+    for (const reservation of reservations) {
+      const consumed = Number(reservation.consumed_quantity);
+      if (consumed <= 0) {
+        continue;
+      }
+
+      // Reverse the consumed quantity back to available
+      reservation.consumed_quantity = 0;
+      reservation.consumed_by_user_id = null;
+      reservation.status = InventoryReservationStatus.ACTIVE;
+
+      reservations_to_update.push(reservation);
+      restored_lines.push({
+        warehouse: reservation.warehouse!,
+        product_variant: reservation.product_variant!,
+        quantity: consumed,
+      });
+    }
+
+    if (reservations_to_update.length > 0) {
+      await reservation_repository.save(reservations_to_update);
+    }
+
+    return this.aggregate_delta_lines(restored_lines);
+  }
+
   private get_trackable_lines(order: SaleOrder): SaleOrderLine[] {
     return [...(order.lines ?? [])]
       .filter((line) => line.product_variant?.track_inventory !== false)
