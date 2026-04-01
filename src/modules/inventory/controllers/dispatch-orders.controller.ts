@@ -280,4 +280,18 @@ export class DispatchOrdersController {
       idempotency_key,
     );
   }
+
+  @Delete(':dispatch_order_id')
+  @RequirePermissions(PermissionKey.DISPATCH_ORDERS_DELETE)
+  @ApiOperation({ summary: 'Eliminar orden de despacho (solo borradores o canceladas)' })
+  @ApiParam({ name: 'dispatch_order_id', type: Number })
+  delete_dispatch_order(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('dispatch_order_id', ParseIntPipe) dispatch_order_id: number,
+  ) {
+    return this.dispatch_orders_service.delete_dispatch_order(
+      current_user,
+      dispatch_order_id,
+    );
+  }
 }

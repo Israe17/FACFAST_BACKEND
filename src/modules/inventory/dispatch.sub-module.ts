@@ -23,6 +23,7 @@ import { MovementsSubModule } from './movements.sub-module';
 import { AddDispatchExpenseUseCase } from './use-cases/add-dispatch-expense.use-case';
 import { AddDispatchStopUseCase } from './use-cases/add-dispatch-stop.use-case';
 import { CancelDispatchOrderUseCase } from './use-cases/cancel-dispatch-order.use-case';
+import { DeleteDispatchOrderUseCase } from './use-cases/delete-dispatch-order.use-case';
 import { CreateDispatchOrderUseCase } from './use-cases/create-dispatch-order.use-case';
 import { GetDispatchOrderQueryUseCase } from './use-cases/get-dispatch-order.query.use-case';
 import { GetDispatchOrdersCursorQueryUseCase } from './use-cases/get-dispatch-orders-cursor.query.use-case';
@@ -77,6 +78,7 @@ import { UpdateDispatchStopStatusUseCase } from './use-cases/update-dispatch-sto
     MarkDispatchOrderDispatchedUseCase,
     MarkDispatchOrderCompletedUseCase,
     CancelDispatchOrderUseCase,
+    DeleteDispatchOrderUseCase,
   ],
   exports: [
     DispatchOrdersService,

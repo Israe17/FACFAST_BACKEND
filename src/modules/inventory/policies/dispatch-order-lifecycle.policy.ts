@@ -9,7 +9,8 @@ export type DispatchOrderTransition =
   | 'edit'
   | 'dispatch'
   | 'complete'
-  | 'cancel';
+  | 'cancel'
+  | 'delete';
 
 @Injectable()
 export class DispatchOrderLifecyclePolicy
@@ -75,6 +76,18 @@ export class DispatchOrderLifecyclePolicy
           });
         }
         return;
+      case 'delete':
+        if (
+          order.status !== DispatchOrderStatus.DRAFT &&
+          order.status !== DispatchOrderStatus.CANCELLED
+        ) {
+          throw new DomainConflictException({
+            code: 'DISPATCH_ORDER_DELETE_NOT_ALLOWED',
+            messageKey: 'inventory.dispatch_order_delete_not_allowed',
+            details: { status: order.status },
+          });
+        }
+        return;
     }
   }
 
@@ -96,5 +109,9 @@ export class DispatchOrderLifecyclePolicy
 
   assert_cancellable(order: Pick<DispatchOrder, 'status'>): void {
     this.assert_transition_allowed(order, 'cancel');
+  }
+
+  assert_deletable(order: Pick<DispatchOrder, 'status'>): void {
+    this.assert_transition_allowed(order, 'delete');
   }
 }

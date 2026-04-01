@@ -146,4 +146,14 @@ export class DispatchOrdersRepository {
       .addOrderBy('expense.id', 'ASC')
       .getOne();
   }
+
+  async remove(
+    order: DispatchOrder,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(DispatchOrder)
+      : this.dispatch_order_repository;
+    await repository.remove(order);
+  }
 }

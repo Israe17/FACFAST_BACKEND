@@ -71,6 +71,7 @@ export interface DispatchOrderView {
     can_dispatch: boolean;
     can_complete: boolean;
     can_cancel: boolean;
+    can_delete: boolean;
   };
   created_at: Date;
   updated_at: Date;
