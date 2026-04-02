@@ -14,6 +14,7 @@ const DISPATCH_ORDER_LIST_RELATIONS = [
   'branch',
   'origin_warehouse',
   'created_by_user',
+  'stops',
 ];
 
 const DISPATCH_ORDER_DETAIL_RELATIONS = [
