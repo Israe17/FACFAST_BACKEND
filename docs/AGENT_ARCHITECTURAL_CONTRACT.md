@@ -321,6 +321,22 @@ Rule:
 - if a resource is editable, its detail response must make edit hydration
   straightforward
 
+### 12. Database constraint violations must never surface as 500 errors
+
+The global exception filter intercepts PostgreSQL unique constraint violations
+(error code `23505`) and converts them to HTTP 409 Conflict responses with
+a user-facing message.
+
+This means:
+
+- agents do not need to manually catch duplicate key errors in every use case
+- the system will never return a 500 for a unique constraint violation
+- the response includes the constraint name, table, and detail for debugging
+
+If a use case needs to provide a more specific error message for a particular
+unique violation, it should catch the `QueryFailedError` before it reaches
+the filter and throw a domain exception with a specific message key.
+
 ---
 
 ## Bounded Context Map
