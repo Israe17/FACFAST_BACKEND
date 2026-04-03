@@ -136,13 +136,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     if (this.is_unique_violation(exception)) {
-      const constraint_detail = this.extract_unique_violation_detail(exception as QueryFailedError);
+      const { details, params } = this.extract_unique_violation_detail(exception as QueryFailedError);
       return {
         statusCode: 409,
         error: 'Conflict',
         code: 'UNIQUE_CONSTRAINT_VIOLATION',
         messageKey: 'errors.unique_constraint_violation',
-        details: constraint_detail,
+        details,
+        params,
         isExpected: true,
       };
     }
@@ -231,16 +232,31 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private extract_unique_violation_detail(
     error: QueryFailedError,
-  ): Record<string, unknown> {
+  ): {
+    details: Record<string, unknown>;
+    params: Record<string, string>;
+  } {
     const driver_error = error.driverError as {
       detail?: string;
       constraint?: string;
       table?: string;
     } | undefined;
+
+    // PostgreSQL detail format: "Key (field1, field2)=(val1, val2) already exists."
+    const detail = driver_error?.detail ?? '';
+    const field_match = detail.match(/Key \(([^)]+)\)/);
+    const value_match = detail.match(/\)=\(([^)]+)\)/);
+    const fields = field_match?.[1] ?? '';
+    const values = value_match?.[1] ?? '';
+
     return {
-      constraint: driver_error?.constraint ?? null,
-      table: driver_error?.table ?? null,
-      detail: driver_error?.detail ?? null,
+      details: {
+        constraint: driver_error?.constraint ?? null,
+        table: driver_error?.table ?? null,
+        fields,
+        values,
+      },
+      params: { fields, values },
     };
   }
 
