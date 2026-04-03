@@ -6,6 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { QueryFailedError } from 'typeorm';
 import { RequestValidationException } from '../errors/exceptions/request-validation.exception';
 import {
   ErrorResponseBody,
@@ -134,6 +135,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
     }
 
+    if (this.is_unique_violation(exception)) {
+      const constraint_detail = this.extract_unique_violation_detail(exception as QueryFailedError);
+      return {
+        statusCode: 409,
+        error: 'Conflict',
+        code: 'UNIQUE_CONSTRAINT_VIOLATION',
+        messageKey: 'errors.unique_constraint_violation',
+        details: constraint_detail,
+        isExpected: true,
+      };
+    }
+
     if (exception instanceof HttpException) {
       const status_code = exception.getStatus();
       const response_body = this.normalize_http_exception_body(
@@ -206,6 +219,29 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     return exception.name.replace(/Exception$/, '') || 'HttpError';
+  }
+
+  private is_unique_violation(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+    const driver_error = error.driverError as { code?: string } | undefined;
+    return driver_error?.code === '23505';
+  }
+
+  private extract_unique_violation_detail(
+    error: QueryFailedError,
+  ): Record<string, unknown> {
+    const driver_error = error.driverError as {
+      detail?: string;
+      constraint?: string;
+      table?: string;
+    } | undefined;
+    return {
+      constraint: driver_error?.constraint ?? null,
+      table: driver_error?.table ?? null,
+      detail: driver_error?.detail ?? null,
+    };
   }
 
   private log_exception(
