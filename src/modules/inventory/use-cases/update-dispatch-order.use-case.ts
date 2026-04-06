@@ -19,6 +19,7 @@ import { DispatchCatalogValidationService } from '../services/dispatch-catalog-v
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
+import { DispatchStopLine } from '../entities/dispatch-stop-line.entity';
 
 export type UpdateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -243,6 +244,7 @@ export class UpdateDispatchOrderUseCase
 
       const sale_order = await sale_order_repository.findOne({
         where: { id: sale_order_id, business_id },
+        relations: ['lines'],
       });
       if (!sale_order) {
         throw new DomainNotFoundException({
@@ -262,7 +264,7 @@ export class UpdateDispatchOrderUseCase
         sale_order,
       );
 
-      await dispatch_stop_repository.save(
+      const stop = await dispatch_stop_repository.save(
         dispatch_stop_repository.create({
           business_id,
           dispatch_order_id: order.id,
@@ -275,6 +277,20 @@ export class UpdateDispatchOrderUseCase
           delivery_district: sale_order.delivery_district,
         }),
       );
+
+      // Create stop lines from sale order lines
+      const stop_line_repo = manager.getRepository(DispatchStopLine);
+      for (const line of sale_order.lines ?? []) {
+        await stop_line_repo.save(
+          stop_line_repo.create({
+            business_id,
+            dispatch_stop_id: stop.id,
+            sale_order_line_id: line.id,
+            product_variant_id: line.product_variant_id,
+            ordered_quantity: line.quantity,
+          }),
+        );
+      }
 
       sale_order.dispatch_status = SaleDispatchStatus.ASSIGNED;
       await sale_order_repository.save(sale_order);
