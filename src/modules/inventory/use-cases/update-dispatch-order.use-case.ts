@@ -257,6 +257,10 @@ export class UpdateDispatchOrderUseCase
         sale_order,
         effective_origin_warehouse_id,
       );
+      this.dispatch_sale_order_policy.assert_date_coherence(
+        order.scheduled_date,
+        sale_order,
+      );
 
       await dispatch_stop_repository.save(
         dispatch_stop_repository.create({

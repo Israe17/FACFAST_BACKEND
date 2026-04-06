@@ -139,6 +139,13 @@ export class DispatchOrderSerializer
           missing_vehicle: !order.vehicle_id,
           missing_driver: !order.driver_user_id,
           missing_stops: (order.stops?.length ?? 0) === 0,
+          has_date_conflicts:
+            !!order.scheduled_date &&
+            (order.stops ?? []).some(
+              (stop) =>
+                stop.sale_order?.delivery_requested_date &&
+                order.scheduled_date! > stop.sale_order.delivery_requested_date,
+            ),
         },
       },
       created_at: order.created_at,

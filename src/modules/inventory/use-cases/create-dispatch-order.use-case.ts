@@ -168,6 +168,10 @@ export class CreateDispatchOrderUseCase
               sale_order,
               order.origin_warehouse_id,
             );
+            this.dispatch_sale_order_policy.assert_date_coherence(
+              order.scheduled_date,
+              sale_order,
+            );
 
             await manager.getRepository(DispatchStop).save(
               this.dispatch_stop_repository.create({
