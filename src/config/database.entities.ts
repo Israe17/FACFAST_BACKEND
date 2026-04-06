@@ -42,6 +42,7 @@ import { Vehicle } from '../modules/inventory/entities/vehicle.entity';
 import { Route } from '../modules/inventory/entities/route.entity';
 import { DispatchOrder } from '../modules/inventory/entities/dispatch-order.entity';
 import { DispatchStop } from '../modules/inventory/entities/dispatch-stop.entity';
+import { DispatchStopLine } from '../modules/inventory/entities/dispatch-stop-line.entity';
 import { DispatchExpense } from '../modules/inventory/entities/dispatch-expense.entity';
 import { SaleOrder } from '../modules/sales/entities/sale-order.entity';
 import { SaleOrderLine } from '../modules/sales/entities/sale-order-line.entity';
@@ -105,6 +106,7 @@ export const database_entities = [
   Route,
   DispatchOrder,
   DispatchStop,
+  DispatchStopLine,
   DispatchExpense,
   SaleOrder,
   SaleOrderLine,
