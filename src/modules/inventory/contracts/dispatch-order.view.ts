@@ -72,6 +72,12 @@ export interface DispatchOrderView {
     can_complete: boolean;
     can_cancel: boolean;
     can_delete: boolean;
+    readiness: {
+      missing_scheduled_date: boolean;
+      missing_vehicle: boolean;
+      missing_driver: boolean;
+      missing_stops: boolean;
+    };
   };
   created_at: Date;
   updated_at: Date;

@@ -1029,6 +1029,23 @@ For `sales` + fulfillment work, also read:
 
 ---
 
+## Rule 13: Validate at CREATE what is needed to advance
+
+If a field is required for a later lifecycle step (confirm, mark ready,
+dispatch), it must be validated at creation time when the condition is known
+from the start.
+
+**Example:** if `fulfillment_mode = delivery`, then `warehouse_id` is needed to
+confirm the order → validate it at CREATE, not at CONFIRM.
+
+**Exception:** entities that follow a progressive draft pattern (e.g., dispatch
+orders) where fields are filled incrementally. In that case, the serializer
+must expose a `readiness` block in the lifecycle indicating what is still
+missing so the frontend can show a checklist before the user attempts the
+transition.
+
+---
+
 ## Final Rule
 
 If an agent is unsure where a rule belongs, the decision order is:
