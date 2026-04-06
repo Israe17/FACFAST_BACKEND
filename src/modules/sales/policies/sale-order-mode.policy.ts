@@ -8,6 +8,8 @@ export type SaleOrderModeInput = {
   fulfillment_mode?: string;
   seller_user_id?: number | null;
   delivery_charges?: unknown[] | null;
+  warehouse_id?: number | null;
+  delivery_address?: string | null;
 };
 
 @Injectable()
@@ -17,6 +19,8 @@ export class SaleOrderModePolicy {
     fulfillment_mode,
     seller_user_id,
     delivery_charges,
+    warehouse_id,
+    delivery_address,
   }: SaleOrderModeInput): void {
     if (
       (sale_mode === SaleMode.SELLER_ATTRIBUTED ||
@@ -49,6 +53,28 @@ export class SaleOrderModePolicy {
       throw new DomainBadRequestException({
         code: 'SALE_ORDER_PICKUP_NO_DELIVERY_CHARGES',
         messageKey: 'sales.order_pickup_no_delivery_charges',
+        details: { fulfillment_mode },
+      });
+    }
+
+    if (
+      fulfillment_mode === FulfillmentMode.DELIVERY &&
+      !warehouse_id
+    ) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_DELIVERY_REQUIRES_WAREHOUSE',
+        messageKey: 'sales.order_delivery_requires_warehouse',
+        details: { fulfillment_mode },
+      });
+    }
+
+    if (
+      fulfillment_mode === FulfillmentMode.DELIVERY &&
+      !delivery_address?.trim()
+    ) {
+      throw new DomainBadRequestException({
+        code: 'SALE_ORDER_DELIVERY_REQUIRES_ADDRESS',
+        messageKey: 'sales.order_delivery_requires_address',
         details: { fulfillment_mode },
       });
     }

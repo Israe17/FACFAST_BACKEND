@@ -134,6 +134,12 @@ export class DispatchOrderSerializer
         can_complete,
         can_cancel,
         can_delete,
+        readiness: {
+          missing_scheduled_date: !order.scheduled_date,
+          missing_vehicle: !order.vehicle_id,
+          missing_driver: !order.driver_user_id,
+          missing_stops: (order.stops?.length ?? 0) === 0,
+        },
       },
       created_at: order.created_at,
       updated_at: order.updated_at,

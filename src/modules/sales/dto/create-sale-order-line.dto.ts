@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Max,
   Min,
 } from 'class-validator';
 import { validation_messages } from '../../common/validation/validation-message.util';
@@ -29,6 +30,7 @@ export class CreateSaleOrderLineDto {
   @IsOptional()
   @IsNumber({}, { message: validation_messages.invalid_number() })
   @Min(0, { message: validation_messages.min_value() })
+  @Max(100, { message: validation_messages.max_value() })
   discount_percent?: number;
 
   @ApiPropertyOptional()

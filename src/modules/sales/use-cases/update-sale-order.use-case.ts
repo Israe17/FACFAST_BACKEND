@@ -68,6 +68,14 @@ export class UpdateSaleOrderUseCase
           ? dto.seller_user_id
           : order.seller_user_id,
       delivery_charges: dto.delivery_charges ?? order.delivery_charges,
+      warehouse_id:
+        dto.warehouse_id !== undefined
+          ? dto.warehouse_id
+          : order.warehouse_id,
+      delivery_address:
+        dto.delivery_address !== undefined
+          ? dto.delivery_address
+          : order.delivery_address,
     });
 
     if (dto.branch_id !== undefined) {

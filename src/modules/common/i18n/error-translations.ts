@@ -281,6 +281,72 @@ export const error_translations = {
       'Solo las ordenes confirmadas pueden programarse para despacho.',
     'sales.order_dispatch_branch_mismatch':
       'La orden de venta pertenece a una sucursal distinta a la del despacho.',
+    'sales.order_seller_required':
+      'El vendedor es requerido para el modo de venta seleccionado.',
+    'sales.order_route_requires_delivery':
+      'El modo ruta de vendedor requiere cumplimiento por entrega.',
+    'sales.order_pickup_no_delivery_charges':
+      'El modo recogida no permite cargos de entrega.',
+    'sales.order_delivery_requires_warehouse':
+      'La bodega es requerida para modo entrega.',
+    'sales.order_delivery_requires_address':
+      'La direccion de entrega es requerida para modo entrega.',
+    'sales.order_warehouse_required':
+      'La bodega es requerida para confirmar la orden.',
+    'sales.order_not_confirmable':
+      'La orden no se puede confirmar en su estado actual.',
+    'sales.order_not_editable':
+      'La orden no se puede editar en su estado actual.',
+    'sales.order_already_cancelled': 'La orden ya fue cancelada.',
+    'sales.order_cannot_cancel_after_logistics':
+      'La orden no puede cancelarse porque ya tiene operaciones logisticas.',
+    'sales.order_delete_not_allowed':
+      'La orden no puede eliminarse en su estado actual.',
+    'sales.order_not_found': 'La orden de venta no existe.',
+    'sales.order_delete_forbidden':
+      'La orden no puede eliminarse porque tiene dependencias asociadas.',
+    'sales.order_customer_inactive':
+      'El cliente seleccionado no se encuentra activo.',
+    'sales.order_customer_type_invalid':
+      'El contacto seleccionado no esta habilitado como cliente.',
+    'sales.order_seller_inactive':
+      'El vendedor seleccionado no se encuentra activo.',
+    'sales.order_seller_branch_scope_invalid':
+      'El vendedor asignado no tiene alcance sobre la sucursal seleccionada.',
+    'sales.order_has_no_lines':
+      'La orden no tiene lineas de productos.',
+    'inventory.dispatch_order_not_found':
+      'La orden de despacho no existe.',
+    'inventory.dispatch_order_not_readyable':
+      'La orden de despacho no puede marcarse como lista en su estado actual.',
+    'inventory.dispatch_order_not_editable':
+      'La orden de despacho no puede editarse en su estado actual.',
+    'inventory.dispatch_order_not_ready':
+      'La orden de despacho no esta lista para despachar.',
+    'inventory.dispatch_order_not_in_progress':
+      'La orden de despacho no esta en progreso.',
+    'inventory.dispatch_order_cannot_cancel':
+      'La orden de despacho no puede cancelarse en su estado actual.',
+    'inventory.dispatch_order_delete_not_allowed':
+      'La orden de despacho no puede eliminarse en su estado actual.',
+    'inventory.dispatch_order_scheduled_date_required':
+      'La fecha programada es requerida.',
+    'inventory.dispatch_order_vehicle_required':
+      'El vehiculo es requerido.',
+    'inventory.dispatch_order_vehicle_inactive':
+      'El vehiculo asignado esta inactivo.',
+    'inventory.dispatch_order_driver_required':
+      'El chofer es requerido.',
+    'inventory.dispatch_order_driver_inactive':
+      'El chofer asignado esta inactivo.',
+    'inventory.dispatch_order_route_inactive':
+      'La ruta asignada esta inactiva.',
+    'inventory.dispatch_order_stops_required':
+      'Se requiere al menos una parada.',
+    'inventory.dispatch_order_stops_not_updatable':
+      'Las paradas no pueden actualizarse en el estado actual de la orden.',
+    'inventory.dispatch_order_stops_unresolved':
+      'Todas las paradas deben estar resueltas para completar la orden.',
     'rbac.role_not_found': 'El rol no existe.',
     'rbac.role_key_duplicate':
       'Ya existe un rol con esa clave en la empresa activa.',
@@ -592,6 +658,72 @@ export const error_translations = {
       'Only confirmed sale orders can be scheduled for dispatch.',
     'sales.order_dispatch_branch_mismatch':
       'The sale order belongs to a different branch than the dispatch order.',
+    'sales.order_seller_required':
+      'A seller is required for the selected sale mode.',
+    'sales.order_route_requires_delivery':
+      'Seller route mode requires delivery fulfillment.',
+    'sales.order_pickup_no_delivery_charges':
+      'Pickup mode does not allow delivery charges.',
+    'sales.order_delivery_requires_warehouse':
+      'A warehouse is required for delivery fulfillment.',
+    'sales.order_delivery_requires_address':
+      'A delivery address is required for delivery fulfillment.',
+    'sales.order_warehouse_required':
+      'A warehouse is required to confirm the order.',
+    'sales.order_not_confirmable':
+      'The order cannot be confirmed in its current state.',
+    'sales.order_not_editable':
+      'The order cannot be edited in its current state.',
+    'sales.order_already_cancelled': 'The order has already been cancelled.',
+    'sales.order_cannot_cancel_after_logistics':
+      'The order cannot be cancelled because it already has logistics operations.',
+    'sales.order_delete_not_allowed':
+      'The order cannot be deleted in its current state.',
+    'sales.order_not_found': 'The sale order does not exist.',
+    'sales.order_delete_forbidden':
+      'The order cannot be deleted because it has associated dependencies.',
+    'sales.order_customer_inactive':
+      'The selected customer is not active.',
+    'sales.order_customer_type_invalid':
+      'The selected contact is not enabled as a customer.',
+    'sales.order_seller_inactive':
+      'The selected seller is not active.',
+    'sales.order_seller_branch_scope_invalid':
+      'The assigned seller does not have access to the selected branch.',
+    'sales.order_has_no_lines':
+      'The order has no product lines.',
+    'inventory.dispatch_order_not_found':
+      'The dispatch order does not exist.',
+    'inventory.dispatch_order_not_readyable':
+      'The dispatch order cannot be marked as ready in its current state.',
+    'inventory.dispatch_order_not_editable':
+      'The dispatch order cannot be edited in its current state.',
+    'inventory.dispatch_order_not_ready':
+      'The dispatch order is not ready for dispatch.',
+    'inventory.dispatch_order_not_in_progress':
+      'The dispatch order is not in progress.',
+    'inventory.dispatch_order_cannot_cancel':
+      'The dispatch order cannot be cancelled in its current state.',
+    'inventory.dispatch_order_delete_not_allowed':
+      'The dispatch order cannot be deleted in its current state.',
+    'inventory.dispatch_order_scheduled_date_required':
+      'A scheduled date is required.',
+    'inventory.dispatch_order_vehicle_required':
+      'A vehicle is required.',
+    'inventory.dispatch_order_vehicle_inactive':
+      'The assigned vehicle is inactive.',
+    'inventory.dispatch_order_driver_required':
+      'A driver is required.',
+    'inventory.dispatch_order_driver_inactive':
+      'The assigned driver is inactive.',
+    'inventory.dispatch_order_route_inactive':
+      'The assigned route is inactive.',
+    'inventory.dispatch_order_stops_required':
+      'At least one stop is required.',
+    'inventory.dispatch_order_stops_not_updatable':
+      'Stops cannot be updated in the current order state.',
+    'inventory.dispatch_order_stops_unresolved':
+      'All stops must be resolved to complete the order.',
     'rbac.role_not_found': 'The role does not exist.',
     'rbac.role_key_duplicate':
       'A role with that business key already exists in the active business.',
