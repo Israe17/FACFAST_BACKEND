@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
@@ -11,11 +11,14 @@ import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { UpdateDispatchStopStatusDto } from '../dto/update-dispatch-stop-status.dto';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 import { DispatchStop } from '../entities/dispatch-stop.entity';
+import { DispatchStopLine } from '../entities/dispatch-stop-line.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
 import { DispatchStopStatus } from '../enums/dispatch-stop-status.enum';
+import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
+import { InventoryLedgerService } from '../services/inventory-ledger.service';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { get_dispatch_status_for_resolved_stop } from '../../sales/utils/sale-dispatch-status.util';
 
@@ -37,6 +40,7 @@ export class UpdateDispatchStopStatusUseCase
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
     private readonly dispatch_order_access_policy: DispatchOrderAccessPolicy,
     private readonly dispatch_order_serializer: DispatchOrderSerializer,
+    private readonly inventory_ledger_service: InventoryLedgerService,
     private readonly idempotency_service: IdempotencyService,
   ) {}
 
@@ -124,6 +128,16 @@ export class UpdateDispatchStopStatusUseCase
                 stop.status,
               ),
             },
+          );
+
+          // Handle inventory reversal for non-delivered stops
+          await this.handle_stop_inventory_return(
+            manager,
+            current_user,
+            order,
+            stop,
+            business_id,
+            dto,
           );
         }
 
@@ -272,6 +286,131 @@ export class UpdateDispatchStopStatusUseCase
             status: dto.status,
           },
         });
+    }
+  }
+
+  private async handle_stop_inventory_return(
+    manager: EntityManager,
+    current_user: AuthenticatedUserContext,
+    order: DispatchOrder,
+    stop: DispatchStop,
+    business_id: number,
+    dto: UpdateDispatchStopStatusDto,
+  ): Promise<void> {
+    // Delivered → no return needed
+    if (stop.status === DispatchStopStatus.DELIVERED) {
+      // Mark all stop lines as fully delivered
+      await manager.getRepository(DispatchStopLine).update(
+        { dispatch_stop_id: stop.id },
+        { delivered_quantity: () => 'ordered_quantity' },
+      );
+      return;
+    }
+
+    const stop_lines = await manager.getRepository(DispatchStopLine).find({
+      where: { dispatch_stop_id: stop.id },
+      relations: ['product_variant'],
+    });
+
+    if (stop_lines.length === 0) {
+      return;
+    }
+
+    // Load the sale order warehouse for the inventory movement
+    const sale_order = await manager.getRepository(SaleOrder).findOne({
+      where: { id: stop.sale_order_id, business_id },
+      relations: ['warehouse'],
+    });
+    if (!sale_order?.warehouse) {
+      return;
+    }
+
+    type ReturnLine = {
+      product_variant: NonNullable<DispatchStopLine['product_variant']>;
+      return_quantity: number;
+    };
+    const return_lines: ReturnLine[] = [];
+
+    if (
+      stop.status === DispatchStopStatus.FAILED ||
+      stop.status === DispatchStopStatus.SKIPPED
+    ) {
+      // Return 100% of all lines
+      for (const stop_line of stop_lines) {
+        stop_line.delivered_quantity = 0;
+        await manager.getRepository(DispatchStopLine).save(stop_line);
+
+        if (stop_line.product_variant && stop_line.ordered_quantity > 0) {
+          return_lines.push({
+            product_variant: stop_line.product_variant,
+            return_quantity: stop_line.ordered_quantity,
+          });
+        }
+      }
+    } else if (stop.status === DispatchStopStatus.PARTIAL) {
+      // Partial: require delivered_lines from DTO
+      if (!dto.delivered_lines?.length) {
+        throw new DomainBadRequestException({
+          code: 'DISPATCH_STOP_DELIVERED_LINES_REQUIRED',
+          messageKey: 'inventory.dispatch_stop_delivered_lines_required',
+          details: { dispatch_stop_id: stop.id },
+        });
+      }
+
+      const delivered_map = new Map(
+        dto.delivered_lines.map((dl) => [dl.sale_order_line_id, dl.delivered_quantity]),
+      );
+
+      for (const stop_line of stop_lines) {
+        const delivered = delivered_map.get(stop_line.sale_order_line_id) ?? 0;
+
+        if (delivered > stop_line.ordered_quantity) {
+          throw new DomainBadRequestException({
+            code: 'DISPATCH_STOP_DELIVERED_EXCEEDS_ORDERED',
+            messageKey: 'inventory.dispatch_stop_delivered_exceeds_ordered',
+            details: {
+              sale_order_line_id: stop_line.sale_order_line_id,
+              ordered_quantity: stop_line.ordered_quantity,
+              delivered_quantity: delivered,
+            },
+          });
+        }
+
+        stop_line.delivered_quantity = delivered;
+        await manager.getRepository(DispatchStopLine).save(stop_line);
+
+        const return_qty = stop_line.ordered_quantity - delivered;
+        if (return_qty > 0 && stop_line.product_variant) {
+          return_lines.push({
+            product_variant: stop_line.product_variant,
+            return_quantity: return_qty,
+          });
+        }
+      }
+    }
+
+    // Post the DISPATCH_RETURN inventory movement
+    if (return_lines.length > 0) {
+      await this.inventory_ledger_service.post_posted_movement(
+        manager,
+        {
+          business_id,
+          branch_id: sale_order.branch_id,
+          performed_by_user_id: current_user.id,
+          occurred_at: new Date(),
+          movement_type: InventoryMovementHeaderType.DISPATCH_RETURN,
+          source_document_type: 'DispatchOrder',
+          source_document_id: order.id,
+          source_document_number: order.code,
+          notes: `Devolucion de stock por entrega ${stop.status} - orden ${sale_order.code}`,
+        },
+        return_lines.map((line) => ({
+          warehouse: sale_order.warehouse!,
+          product_variant: line.product_variant,
+          quantity: line.return_quantity,
+          on_hand_delta: line.return_quantity,
+        })),
+      );
     }
   }
 

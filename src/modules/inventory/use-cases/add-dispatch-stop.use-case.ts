@@ -20,6 +20,7 @@ import { DispatchOrdersRepository } from '../repositories/dispatch-orders.reposi
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
+import { DispatchStopLine } from '../entities/dispatch-stop-line.entity';
 
 export type AddDispatchStopCommand = {
   current_user: AuthenticatedUserContext;
@@ -88,6 +89,7 @@ export class AddDispatchStopUseCase
 
         const sale_order = await manager.getRepository(SaleOrder).findOne({
           where: { id: dto.sale_order_id, business_id },
+          relations: ['lines'],
         });
         if (!sale_order) {
           throw new DomainNotFoundException({
@@ -108,13 +110,17 @@ export class AddDispatchStopUseCase
           sale_order,
           order.origin_warehouse_id,
         );
+        this.dispatch_sale_order_policy.assert_date_coherence(
+          order.scheduled_date,
+          sale_order,
+        );
 
         const existing_stop_count = order.stops?.length ?? 0;
         this.assert_dispatch_type_allows_another_stop(
           order.dispatch_type,
           existing_stop_count,
         );
-        await manager.getRepository(DispatchStop).save(
+        const stop = await manager.getRepository(DispatchStop).save(
           this.dispatch_stop_repository.create({
             business_id,
             dispatch_order_id: order.id,
@@ -128,6 +134,20 @@ export class AddDispatchStopUseCase
             notes: this.normalize_optional_string(dto.notes),
           }),
         );
+
+        // Create stop lines from sale order lines
+        const stop_line_repo = manager.getRepository(DispatchStopLine);
+        for (const line of sale_order.lines ?? []) {
+          await stop_line_repo.save(
+            stop_line_repo.create({
+              business_id,
+              dispatch_stop_id: stop.id,
+              sale_order_line_id: line.id,
+              product_variant_id: line.product_variant_id,
+              ordered_quantity: line.quantity,
+            }),
+          );
+        }
 
         sale_order.dispatch_status = SaleDispatchStatus.ASSIGNED;
         await manager.getRepository(SaleOrder).save(sale_order);

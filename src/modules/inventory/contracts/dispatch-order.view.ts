@@ -50,6 +50,19 @@ export interface DispatchOrderView {
     received_by: string | null;
     failure_reason: string | null;
     notes: string | null;
+    lines: Array<{
+      id: number;
+      sale_order_line_id: number;
+      product_variant_id: number;
+      product_variant: {
+        id: number;
+        variant_name: string | null;
+        sku: string | null;
+        product: { id: number; name: string } | null;
+      } | null;
+      ordered_quantity: number;
+      delivered_quantity: number | null;
+    }>;
     created_at: Date;
     updated_at: Date;
   }>;

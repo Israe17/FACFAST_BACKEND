@@ -369,6 +369,10 @@ export const error_translations = {
       'La parada ya tiene ese estado.',
     'inventory.dispatch_stop_status_not_supported':
       'El estado indicado no es valido para esta parada.',
+    'inventory.dispatch_stop_delivered_lines_required':
+      'Se requieren las cantidades entregadas por linea para entregas parciales.',
+    'inventory.dispatch_stop_delivered_exceeds_ordered':
+      'La cantidad entregada no puede ser mayor a la cantidad ordenada.',
     'inventory.sale_order_not_found':
       'La orden de venta no existe en el contexto de despacho.',
     'inventory.sale_order_already_assigned_to_dispatch':
@@ -409,6 +413,12 @@ export const error_translations = {
       'El documento electronico no puede reenviarse.',
     'sales.electronic_document_sale_order_not_emittable':
       'La orden de venta no es elegible para emitir documento electronico.',
+    'sales.order_dispatch_reset_requires_confirmed':
+      'Solo las ordenes confirmadas pueden resetearse para re-despacho.',
+    'sales.order_dispatch_reset_invalid_status':
+      'Solo las ordenes con despacho fallido o parcial pueden resetearse.',
+    'sales.order_has_active_dispatch_stops':
+      'La orden de venta tiene paradas activas en una orden de despacho.',
     'sales.order_seller_required':
       'El vendedor es requerido para el modo de venta seleccionado.',
     'sales.order_route_requires_delivery':
@@ -878,6 +888,10 @@ export const error_translations = {
       'The stop already has that status.',
     'inventory.dispatch_stop_status_not_supported':
       'The specified status is not valid for this stop.',
+    'inventory.dispatch_stop_delivered_lines_required':
+      'Per-line delivered quantities are required for partial deliveries.',
+    'inventory.dispatch_stop_delivered_exceeds_ordered':
+      'The delivered quantity cannot exceed the ordered quantity.',
     'inventory.sale_order_not_found':
       'The sale order does not exist in the dispatch context.',
     'inventory.sale_order_already_assigned_to_dispatch':
@@ -918,6 +932,12 @@ export const error_translations = {
       'The electronic document cannot be resubmitted.',
     'sales.electronic_document_sale_order_not_emittable':
       'The sale order is not eligible for electronic document emission.',
+    'sales.order_dispatch_reset_requires_confirmed':
+      'Only confirmed orders can be reset for re-dispatch.',
+    'sales.order_dispatch_reset_invalid_status':
+      'Only orders with failed or partial dispatch can be reset.',
+    'sales.order_has_active_dispatch_stops':
+      'The sale order has active stops in a dispatch order.',
     'sales.order_seller_required':
       'A seller is required for the selected sale mode.',
     'sales.order_route_requires_delivery':

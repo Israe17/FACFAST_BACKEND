@@ -28,6 +28,7 @@ import { CreateSaleOrderUseCase } from './use-cases/create-sale-order.use-case';
 import { ConfirmSaleOrderUseCase } from './use-cases/confirm-sale-order.use-case';
 import { CancelSaleOrderUseCase } from './use-cases/cancel-sale-order.use-case';
 import { DeleteSaleOrderUseCase } from './use-cases/delete-sale-order.use-case';
+import { ResetSaleOrderDispatchStatusUseCase } from './use-cases/reset-sale-order-dispatch-status.use-case';
 import { EmitElectronicDocumentUseCase } from './use-cases/emit-electronic-document.use-case';
 import { GetElectronicDocumentQueryUseCase } from './use-cases/get-electronic-document.query.use-case';
 import { GetElectronicDocumentsCursorQueryUseCase } from './use-cases/get-electronic-documents-cursor.query.use-case';
@@ -73,6 +74,7 @@ import { SalesValidationService } from './services/sales-validation.service';
     ConfirmSaleOrderUseCase,
     CancelSaleOrderUseCase,
     DeleteSaleOrderUseCase,
+    ResetSaleOrderDispatchStatusUseCase,
     GetSaleOrderQueryUseCase,
     GetSaleOrdersListQueryUseCase,
     GetSaleOrdersPageQueryUseCase,

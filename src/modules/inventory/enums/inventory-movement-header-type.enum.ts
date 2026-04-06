@@ -11,4 +11,5 @@ export enum InventoryMovementHeaderType {
   RETURN_OUT = 'return_out',
   PURCHASE_EXPECTED = 'purchase_expected',
   DISPATCH_CANCELLED = 'dispatch_cancelled',
+  DISPATCH_RETURN = 'dispatch_return',
 }

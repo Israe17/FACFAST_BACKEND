@@ -22,6 +22,9 @@ const DISPATCH_ORDER_DETAIL_RELATIONS = [
   'stops',
   'stops.sale_order',
   'stops.customer_contact',
+  'stops.lines',
+  'stops.lines.product_variant',
+  'stops.lines.product_variant.product',
   'expenses',
   'expenses.created_by_user',
 ];

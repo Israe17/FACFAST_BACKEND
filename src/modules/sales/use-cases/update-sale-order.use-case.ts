@@ -155,6 +155,21 @@ export class UpdateSaleOrderUseCase
     }
 
     return this.data_source.transaction(async (manager) => {
+      // Re-load with pessimistic lock to prevent TOCTOU race with confirm
+      const locked_order = await this.sale_orders_repository.find_by_id_in_business_for_update(
+        manager,
+        order_id,
+        business_id,
+      );
+      if (!locked_order) {
+        throw new DomainNotFoundException({
+          code: 'SALE_ORDER_NOT_FOUND',
+          messageKey: 'sales.order_not_found',
+          details: { order_id },
+        });
+      }
+      this.sale_order_lifecycle_policy.assert_editable(locked_order);
+
       const order_repo = manager.getRepository(SaleOrder);
 
       if (dto.branch_id !== undefined) order.branch_id = dto.branch_id;

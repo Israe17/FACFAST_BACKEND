@@ -7,8 +7,8 @@ import { IdempotencyService } from '../../common/services/idempotency.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
-import { DispatchStop } from '../entities/dispatch-stop.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { DispatchStopStatus } from '../enums/dispatch-stop-status.enum';
 import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
@@ -86,8 +86,21 @@ export class CancelDispatchOrderUseCase
         order.status = DispatchOrderStatus.CANCELLED;
         await manager.getRepository(DispatchOrder).save(order);
 
+        const resolved_statuses = [
+          DispatchStopStatus.DELIVERED,
+          DispatchStopStatus.PARTIAL,
+          DispatchStopStatus.FAILED,
+          DispatchStopStatus.SKIPPED,
+        ];
+
         // Revert each sale order's dispatch_status and handle inventory
         for (const stop of order.stops ?? []) {
+          // Skip already-resolved stops — their inventory was already
+          // handled when the stop was marked delivered/failed/partial
+          if (was_dispatched && resolved_statuses.includes(stop.status)) {
+            continue;
+          }
+
           const sale_order =
             stop.sale_order ??
             (await manager

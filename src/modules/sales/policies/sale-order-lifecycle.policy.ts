@@ -91,6 +91,29 @@ export class SaleOrderLifecyclePolicy
     this.assert_transition_allowed(order, 'cancel');
   }
 
+  assert_dispatch_resettable(
+    order: Pick<SaleOrder, 'status' | 'dispatch_status'>,
+  ): void {
+    if (order.status !== SaleOrderStatus.CONFIRMED) {
+      throw new DomainConflictException({
+        code: 'SALE_ORDER_DISPATCH_RESET_REQUIRES_CONFIRMED',
+        messageKey: 'sales.order_dispatch_reset_requires_confirmed',
+        details: { status: order.status },
+      });
+    }
+
+    if (
+      order.dispatch_status !== SaleDispatchStatus.FAILED &&
+      order.dispatch_status !== SaleDispatchStatus.PARTIAL
+    ) {
+      throw new DomainConflictException({
+        code: 'SALE_ORDER_DISPATCH_RESET_INVALID_STATUS',
+        messageKey: 'sales.order_dispatch_reset_invalid_status',
+        details: { dispatch_status: order.dispatch_status },
+      });
+    }
+  }
+
   assert_deletable(
     order: Pick<SaleOrder, 'status' | 'dispatch_status'>,
     order_id: number,

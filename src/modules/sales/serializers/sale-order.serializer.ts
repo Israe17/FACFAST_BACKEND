@@ -96,6 +96,10 @@ export class SaleOrderSerializer
         can_delete:
           order.status === SaleOrderStatus.DRAFT ||
           order.status === SaleOrderStatus.CANCELLED,
+        can_reset_dispatch:
+          order.status === SaleOrderStatus.CONFIRMED &&
+          (order.dispatch_status === SaleDispatchStatus.FAILED ||
+            order.dispatch_status === SaleDispatchStatus.PARTIAL),
         reasons: [],
       },
       created_at: order.created_at,

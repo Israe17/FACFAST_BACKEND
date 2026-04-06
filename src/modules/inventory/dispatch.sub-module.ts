@@ -10,6 +10,7 @@ import { VehiclesController } from './controllers/vehicles.controller';
 import { DispatchExpense } from './entities/dispatch-expense.entity';
 import { DispatchOrder } from './entities/dispatch-order.entity';
 import { DispatchStop } from './entities/dispatch-stop.entity';
+import { DispatchStopLine } from './entities/dispatch-stop-line.entity';
 import { DispatchOrderAccessPolicy } from './policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from './policies/dispatch-order-lifecycle.policy';
 import { DispatchSaleOrderPolicy } from './policies/dispatch-sale-order.policy';
@@ -41,6 +42,7 @@ import { UpdateDispatchStopStatusUseCase } from './use-cases/update-dispatch-sto
     TypeOrmModule.forFeature([
       DispatchOrder,
       DispatchStop,
+      DispatchStopLine,
       DispatchExpense,
       SaleOrder,
     ]),

@@ -63,10 +63,7 @@ export class DeleteDispatchOrderUseCase
         const sale_order = await manager.getRepository(SaleOrder).findOne({
           where: { id: stop.sale_order_id, business_id },
         });
-        if (
-          sale_order &&
-          sale_order.dispatch_status === SaleDispatchStatus.ASSIGNED
-        ) {
+        if (sale_order) {
           sale_order.dispatch_status =
             get_dispatch_status_for_fulfillment_mode(
               sale_order.fulfillment_mode,

@@ -67,7 +67,9 @@ export class DispatchOrderLifecyclePolicy
       case 'cancel':
         if (
           order.status !== DispatchOrderStatus.DRAFT &&
-          order.status !== DispatchOrderStatus.READY
+          order.status !== DispatchOrderStatus.READY &&
+          order.status !== DispatchOrderStatus.DISPATCHED &&
+          order.status !== DispatchOrderStatus.IN_TRANSIT
         ) {
           throw new DomainConflictException({
             code: 'DISPATCH_ORDER_CANNOT_CANCEL',
