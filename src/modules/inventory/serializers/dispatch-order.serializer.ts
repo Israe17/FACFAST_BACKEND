@@ -28,7 +28,9 @@ export class DispatchOrderSerializer
       all_stops_resolved;
     const can_cancel =
       order.status === DispatchOrderStatus.DRAFT ||
-      order.status === DispatchOrderStatus.READY;
+      order.status === DispatchOrderStatus.READY ||
+      order.status === DispatchOrderStatus.DISPATCHED ||
+      order.status === DispatchOrderStatus.IN_TRANSIT;
     const can_delete =
       order.status === DispatchOrderStatus.DRAFT ||
       order.status === DispatchOrderStatus.CANCELLED;

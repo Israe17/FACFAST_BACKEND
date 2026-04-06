@@ -5,6 +5,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,6 +14,7 @@ import { Contact } from '../../contacts/entities/contact.entity';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { DispatchStopStatus } from '../enums/dispatch-stop-status.enum';
 import { DispatchOrder } from './dispatch-order.entity';
+import { DispatchStopLine } from './dispatch-stop-line.entity';
 
 @Entity('dispatch_stops')
 @Index(['dispatch_order_id', 'sale_order_id'], { unique: true })
@@ -136,6 +138,11 @@ export class DispatchStop {
     nullable: true,
   })
   notes!: string | null;
+
+  @OneToMany(() => DispatchStopLine, (line) => line.dispatch_stop, {
+    cascade: true,
+  })
+  lines?: DispatchStopLine[];
 
   @CreateDateColumn({
     type: 'timestamptz',

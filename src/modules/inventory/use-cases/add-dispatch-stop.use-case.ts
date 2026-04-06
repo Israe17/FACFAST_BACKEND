@@ -108,6 +108,10 @@ export class AddDispatchStopUseCase
           sale_order,
           order.origin_warehouse_id,
         );
+        this.dispatch_sale_order_policy.assert_date_coherence(
+          order.scheduled_date,
+          sale_order,
+        );
 
         const existing_stop_count = order.stops?.length ?? 0;
         this.assert_dispatch_type_allows_another_stop(
