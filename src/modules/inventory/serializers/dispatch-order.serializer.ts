@@ -109,6 +109,23 @@ export class DispatchOrderSerializer
         received_by: stop.received_by,
         failure_reason: stop.failure_reason,
         notes: stop.notes,
+        lines: (stop.lines ?? []).map((line) => ({
+          id: line.id,
+          sale_order_line_id: line.sale_order_line_id,
+          product_variant_id: line.product_variant_id,
+          product_variant: line.product_variant
+            ? {
+                id: line.product_variant.id,
+                variant_name: line.product_variant.variant_name ?? null,
+                sku: line.product_variant.sku ?? null,
+                product: line.product_variant.product
+                  ? { id: line.product_variant.product.id, name: line.product_variant.product.name }
+                  : null,
+              }
+            : null,
+          ordered_quantity: line.ordered_quantity,
+          delivered_quantity: line.delivered_quantity,
+        })),
         created_at: stop.created_at,
         updated_at: stop.updated_at,
       })),
