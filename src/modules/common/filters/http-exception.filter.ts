@@ -233,7 +233,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private extract_unique_violation_detail(
     error: QueryFailedError,
   ): {
-    details: Record<string, unknown>;
+    details: ValidationErrorDetail[];
     params: Record<string, string>;
   } {
     const driver_error = error.driverError as {
@@ -246,17 +246,38 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const detail = driver_error?.detail ?? '';
     const field_match = detail.match(/Key \(([^)]+)\)/);
     const value_match = detail.match(/\)=\(([^)]+)\)/);
-    const fields = field_match?.[1] ?? '';
-    const values = value_match?.[1] ?? '';
+    const fields_raw = field_match?.[1] ?? '';
+    const values_raw = value_match?.[1] ?? '';
+
+    // Parse individual fields to create per-field errors for the frontend
+    // The frontend form-error-mapper expects: [{ field, message, code, messageKey }]
+    const fields = fields_raw.split(',').map((f) => f.trim()).filter(Boolean);
+    const values = values_raw.split(',').map((v) => v.trim()).filter(Boolean);
+
+    // Find the most specific field (skip business_id as it's not a user field)
+    const user_fields = fields.filter((f) => f !== 'business_id');
+    const field_errors: ValidationErrorDetail[] = user_fields.map((field, index) => {
+      const value = values[fields.indexOf(field)] ?? '';
+      return {
+        field,
+        code: 'UNIQUE_CONSTRAINT_VIOLATION',
+        messageKey: 'errors.field_value_already_exists',
+        message: `El valor "${value}" ya esta en uso.`,
+      };
+    });
+
+    // If no user fields found, return a generic error
+    if (field_errors.length === 0) {
+      field_errors.push({
+        field: fields[0] ?? 'unknown',
+        code: 'UNIQUE_CONSTRAINT_VIOLATION',
+        messageKey: 'errors.unique_constraint_violation',
+      });
+    }
 
     return {
-      details: {
-        constraint: driver_error?.constraint ?? null,
-        table: driver_error?.table ?? null,
-        fields,
-        values,
-      },
-      params: { fields, values },
+      details: field_errors,
+      params: { fields: fields_raw, values: values_raw },
     };
   }
 
