@@ -252,7 +252,7 @@ export class UpdateDispatchOrderUseCase
         });
       }
 
-      this.dispatch_sale_order_policy.assert_dispatchable_sale_order(
+      this.dispatch_sale_order_policy.assert_dispatch_order_sale_order(
         effective_branch_id,
         sale_order,
         effective_origin_warehouse_id,
