@@ -18,6 +18,7 @@ import { GetSaleOrdersCursorQueryUseCase } from '../use-cases/get-sale-orders-cu
 import { GetSaleOrderQueryUseCase } from '../use-cases/get-sale-order.query.use-case';
 import { GetSaleOrdersListQueryUseCase } from '../use-cases/get-sale-orders-list.query.use-case';
 import { GetSaleOrdersPageQueryUseCase } from '../use-cases/get-sale-orders-page.query.use-case';
+import { ResetSaleOrderDispatchStatusUseCase } from '../use-cases/reset-sale-order-dispatch-status.use-case';
 import { UpdateSaleOrderUseCase } from '../use-cases/update-sale-order.use-case';
 
 @Injectable()
@@ -32,6 +33,7 @@ export class SaleOrdersService {
     private readonly get_sale_orders_page_query_use_case: GetSaleOrdersPageQueryUseCase,
     private readonly get_sale_orders_cursor_query_use_case: GetSaleOrdersCursorQueryUseCase,
     private readonly get_sale_order_query_use_case: GetSaleOrderQueryUseCase,
+    private readonly reset_sale_order_dispatch_status_use_case: ResetSaleOrderDispatchStatusUseCase,
   ) {}
 
   async get_sale_orders(
@@ -115,5 +117,15 @@ export class SaleOrdersService {
     order_id: number,
   ): Promise<DeleteSaleOrderResult> {
     return this.delete_sale_order_use_case.execute({ current_user, order_id });
+  }
+
+  async reset_dispatch_status(
+    current_user: AuthenticatedUserContext,
+    order_id: number,
+  ): Promise<SaleOrderView> {
+    return this.reset_sale_order_dispatch_status_use_case.execute({
+      current_user,
+      order_id,
+    });
   }
 }

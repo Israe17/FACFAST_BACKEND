@@ -165,4 +165,19 @@ export class SaleOrdersController {
       dto,
     );
   }
+
+  @Post(':sale_order_id/reset-dispatch')
+  @RequirePermissions(PermissionKey.SALE_ORDERS_CONFIRM)
+  @ApiOperation({ summary: 'Resetear estado de despacho para re-despacho' })
+  @ApiParam({ name: 'sale_order_id', type: Number })
+  @ApiOkResponse({ description: 'Estado de despacho reseteado a pendiente.' })
+  reset_dispatch_status(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('sale_order_id', ParseIntPipe) order_id: number,
+  ) {
+    return this.sale_orders_service.reset_dispatch_status(
+      current_user,
+      order_id,
+    );
+  }
 }

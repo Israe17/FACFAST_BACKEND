@@ -63,6 +63,7 @@ export interface SaleOrderView {
     can_confirm: boolean;
     can_cancel: boolean;
     can_delete: boolean;
+    can_reset_dispatch: boolean;
     reasons: string[];
   };
   created_at: Date;
