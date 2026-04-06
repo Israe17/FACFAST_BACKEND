@@ -77,6 +77,7 @@ export interface DispatchOrderView {
       missing_vehicle: boolean;
       missing_driver: boolean;
       missing_stops: boolean;
+      has_date_conflicts: boolean;
     };
   };
   created_at: Date;

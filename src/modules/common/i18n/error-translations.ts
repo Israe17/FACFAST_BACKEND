@@ -457,6 +457,8 @@ export const error_translations = {
       'La orden de despacho no puede cancelarse en su estado actual.',
     'inventory.dispatch_order_delete_not_allowed':
       'La orden de despacho no puede eliminarse en su estado actual.',
+    'inventory.dispatch_scheduled_date_after_delivery_date':
+      'La fecha programada del despacho ({{scheduled_date}}) es posterior a la fecha de entrega solicitada ({{delivery_requested_date}}) de la orden de venta #{{sale_order_id}}.',
     'inventory.dispatch_order_scheduled_date_required':
       'La fecha programada es requerida.',
     'inventory.dispatch_order_vehicle_required':
@@ -964,6 +966,8 @@ export const error_translations = {
       'The dispatch order cannot be cancelled in its current state.',
     'inventory.dispatch_order_delete_not_allowed':
       'The dispatch order cannot be deleted in its current state.',
+    'inventory.dispatch_scheduled_date_after_delivery_date':
+      'The dispatch scheduled date ({{scheduled_date}}) is after the requested delivery date ({{delivery_requested_date}}) of sale order #{{sale_order_id}}.',
     'inventory.dispatch_order_scheduled_date_required':
       'A scheduled date is required.',
     'inventory.dispatch_order_vehicle_required':

@@ -134,4 +134,25 @@ export class DispatchSaleOrderPolicy {
       });
     }
   }
+
+  assert_date_coherence(
+    scheduled_date: string | null | undefined,
+    sale_order: Pick<SaleOrder, 'id' | 'delivery_requested_date'>,
+  ): void {
+    if (!scheduled_date || !sale_order.delivery_requested_date) {
+      return;
+    }
+
+    if (scheduled_date > sale_order.delivery_requested_date) {
+      throw new DomainBadRequestException({
+        code: 'DISPATCH_SCHEDULED_DATE_AFTER_DELIVERY_DATE',
+        messageKey: 'inventory.dispatch_scheduled_date_after_delivery_date',
+        details: {
+          sale_order_id: sale_order.id,
+          scheduled_date,
+          delivery_requested_date: sale_order.delivery_requested_date,
+        },
+      });
+    }
+  }
 }

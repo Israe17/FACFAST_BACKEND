@@ -190,6 +190,10 @@ export class MarkDispatchOrderReadyUseCase
         stop.sale_order,
         order.origin_warehouse_id,
       );
+      this.dispatch_sale_order_policy.assert_date_coherence(
+        order.scheduled_date,
+        stop.sale_order,
+      );
     }
   }
 }
