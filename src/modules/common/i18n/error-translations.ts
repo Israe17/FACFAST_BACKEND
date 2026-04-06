@@ -269,6 +269,118 @@ export const error_translations = {
       'La conversion de unidades distinta entre venta y stock aun no esta soportada.',
     'inventory.product_variant_delete_forbidden':
       'La variante no puede eliminarse permanentemente porque aun tiene restricciones o dependencias.',
+    'inventory.brand_in_use':
+      'La marca no puede eliminarse porque esta en uso.',
+    'inventory.category_has_children':
+      'La categoria no puede eliminarse porque tiene subcategorias.',
+    'inventory.category_in_use':
+      'La categoria no puede eliminarse porque esta en uso.',
+    'inventory.measurement_unit_in_use':
+      'La unidad de medida no puede eliminarse porque esta en uso.',
+    'inventory.warranty_profile_in_use':
+      'El perfil de garantia no puede eliminarse porque esta en uso.',
+    'inventory.cannot_deactivate_default_variant':
+      'No se puede desactivar la variante por defecto.',
+    'inventory.cannot_deactivate_last_active_variant':
+      'No se puede desactivar la ultima variante activa del producto.',
+    'inventory.cannot_edit_default_variant_of_simple_product':
+      'No se puede editar la variante por defecto de un producto simple.',
+    'inventory.cannot_delete_default_price_list':
+      'La lista de precios por defecto no puede eliminarse.',
+    'inventory.product_does_not_support_variants':
+      'Este producto no soporta variantes.',
+    'inventory.product_has_non_default_variants':
+      'El producto tiene variantes adicionales que deben eliminarse primero.',
+    'inventory.product_or_variant_required':
+      'Debe indicarse un producto o una variante.',
+    'inventory.product_variant_not_found':
+      'La variante del producto no existe.',
+    'inventory.no_attributes_defined':
+      'No hay atributos definidos para generar variantes.',
+    'inventory.variant_barcode_duplicate':
+      'Ya existe una variante con ese codigo de barras.',
+    'inventory.variant_sku_duplicate':
+      'Ya existe una variante con ese SKU.',
+    'inventory.variant_product_mismatch':
+      'La variante no pertenece al producto indicado.',
+    'inventory.variant_required_for_multi_variant_product':
+      'Debe indicarse una variante para productos con multiples variantes.',
+    'inventory.variant_inventory_tracking_required':
+      'La variante no soporta seguimiento de inventario.',
+    'inventory.variant_lot_tracking_requires_inventory':
+      'Las variantes con seguimiento por lote deben llevar inventario.',
+    'inventory.variant_expiration_requires_lots':
+      'Las variantes con vencimiento deben llevar lotes.',
+    'inventory.inventory_lot_variant_mismatch':
+      'El lote no pertenece a la variante indicada.',
+    'inventory.product_serial_tracking_disabled':
+      'Este producto no tiene habilitado el seguimiento por serie.',
+    'inventory.serial_not_found':
+      'El numero de serie no existe.',
+    'inventory.serial_number_duplicate':
+      'El numero de serie ya existe.',
+    'inventory.serial_numbers_required':
+      'Se requieren numeros de serie.',
+    'inventory.serial_variant_mismatch':
+      'El numero de serie no pertenece a la variante indicada.',
+    'inventory.serial_warehouse_mismatch':
+      'El numero de serie no pertenece a la bodega indicada.',
+    'inventory.serial_status_not_transferable':
+      'El numero de serie no esta en un estado transferible.',
+    'inventory.serial_transfer_integer_quantity_required':
+      'Las transferencias con series requieren cantidades enteras.',
+    'inventory.serial_transfer_quantity_mismatch':
+      'La cantidad de series no coincide con la cantidad del movimiento.',
+    'inventory.serials_outside_business':
+      'Uno o mas numeros de serie no pertenecen a la empresa activa.',
+    'inventory.serials_required_for_serial_tracked_variant':
+      'Se requieren numeros de serie para variantes con seguimiento por serie.',
+    'inventory.transfer_warehouse_duplicate':
+      'La bodega de origen y destino no pueden ser la misma.',
+    'inventory.route_not_found':
+      'La ruta no existe.',
+    'inventory.route_name_duplicate':
+      'Ya existe una ruta con ese nombre.',
+    'inventory.vehicle_not_found':
+      'El vehiculo no existe.',
+    'inventory.vehicle_plate_duplicate':
+      'Ya existe un vehiculo con esa placa.',
+    'inventory.zone_not_found':
+      'La zona no existe.',
+    'inventory.zone_name_duplicate':
+      'Ya existe una zona con ese nombre.',
+    'inventory.driver_user_not_available_for_branch':
+      'El chofer no esta disponible para la sucursal indicada.',
+    'inventory.dispatch_expense_not_found':
+      'El gasto del despacho no existe.',
+    'inventory.dispatch_stop_not_found':
+      'La parada del despacho no existe.',
+    'inventory.dispatch_stop_already_resolved':
+      'La parada ya fue resuelta.',
+    'inventory.dispatch_stop_failure_reason_required':
+      'Se requiere una razon de fallo para esta parada.',
+    'inventory.dispatch_stop_invalid_transition':
+      'La transicion de estado de la parada no es valida.',
+    'inventory.dispatch_stop_received_by_required':
+      'Se requiere indicar quien recibio la entrega.',
+    'inventory.dispatch_stop_sale_order_required':
+      'La parada requiere una orden de venta.',
+    'inventory.dispatch_stop_status_already_set':
+      'La parada ya tiene ese estado.',
+    'inventory.dispatch_stop_status_not_supported':
+      'El estado indicado no es valido para esta parada.',
+    'inventory.sale_order_not_found':
+      'La orden de venta no existe en el contexto de despacho.',
+    'inventory.sale_order_already_assigned_to_dispatch':
+      'La orden de venta ya esta asignada a otra orden de despacho.',
+    'inventory.sale_order_already_assigned_to_active_dispatch':
+      'La orden de venta ya esta asignada a una orden de despacho activa.',
+    'inventory.promotion_items_required':
+      'La promocion requiere al menos un item.',
+    'inventory.promotion_product_or_variant_required':
+      'Cada item de la promocion requiere un producto o variante.',
+    'common.outbox_event_payload_invalid':
+      'El payload del evento de outbox no es valido.',
     'sales.order_reservations_already_exist':
       'La orden ya tiene reservas de inventario registradas.',
     'sales.order_line_variant_required':
@@ -281,6 +393,22 @@ export const error_translations = {
       'Solo las ordenes confirmadas pueden programarse para despacho.',
     'sales.order_dispatch_branch_mismatch':
       'La orden de venta pertenece a una sucursal distinta a la del despacho.',
+    'sales.order_already_assigned_or_dispatched':
+      'La orden de venta ya esta asignada o despachada.',
+    'sales.order_dispatch_requires_delivery':
+      'Solo las ordenes con modo entrega pueden programarse para despacho.',
+    'sales.order_dispatch_warehouse_mismatch':
+      'La bodega de la orden de venta no coincide con la del despacho.',
+    'sales.lines_required':
+      'La orden requiere al menos una linea.',
+    'sales.electronic_document_not_found':
+      'El documento electronico no existe.',
+    'sales.electronic_document_not_submittable':
+      'El documento electronico no puede enviarse en su estado actual.',
+    'sales.electronic_document_not_resubmittable':
+      'El documento electronico no puede reenviarse.',
+    'sales.electronic_document_sale_order_not_emittable':
+      'La orden de venta no es elegible para emitir documento electronico.',
     'sales.order_seller_required':
       'El vendedor es requerido para el modo de venta seleccionado.',
     'sales.order_route_requires_delivery':
@@ -348,6 +476,8 @@ export const error_translations = {
     'inventory.dispatch_order_stops_unresolved':
       'Todas las paradas deben estar resueltas para completar la orden.',
     'rbac.role_not_found': 'El rol no existe.',
+    'rbac.role_access_forbidden':
+      'El usuario no tiene acceso al rol indicado.',
     'rbac.role_key_duplicate':
       'Ya existe un rol con esa clave en la empresa activa.',
     'rbac.system_role_delete_forbidden':
@@ -646,6 +776,118 @@ export const error_translations = {
       'Different sale and stock unit conversion is not supported yet.',
     'inventory.product_variant_delete_forbidden':
       'The variant cannot be permanently deleted because it still has restrictions or dependencies.',
+    'inventory.brand_in_use':
+      'The brand cannot be deleted because it is in use.',
+    'inventory.category_has_children':
+      'The category cannot be deleted because it has subcategories.',
+    'inventory.category_in_use':
+      'The category cannot be deleted because it is in use.',
+    'inventory.measurement_unit_in_use':
+      'The measurement unit cannot be deleted because it is in use.',
+    'inventory.warranty_profile_in_use':
+      'The warranty profile cannot be deleted because it is in use.',
+    'inventory.cannot_deactivate_default_variant':
+      'The default variant cannot be deactivated.',
+    'inventory.cannot_deactivate_last_active_variant':
+      'The last active variant of the product cannot be deactivated.',
+    'inventory.cannot_edit_default_variant_of_simple_product':
+      'The default variant of a simple product cannot be edited.',
+    'inventory.cannot_delete_default_price_list':
+      'The default price list cannot be deleted.',
+    'inventory.product_does_not_support_variants':
+      'This product does not support variants.',
+    'inventory.product_has_non_default_variants':
+      'The product has additional variants that must be deleted first.',
+    'inventory.product_or_variant_required':
+      'A product or variant must be specified.',
+    'inventory.product_variant_not_found':
+      'The product variant does not exist.',
+    'inventory.no_attributes_defined':
+      'No attributes are defined for generating variants.',
+    'inventory.variant_barcode_duplicate':
+      'A variant with that barcode already exists.',
+    'inventory.variant_sku_duplicate':
+      'A variant with that SKU already exists.',
+    'inventory.variant_product_mismatch':
+      'The variant does not belong to the specified product.',
+    'inventory.variant_required_for_multi_variant_product':
+      'A variant must be specified for multi-variant products.',
+    'inventory.variant_inventory_tracking_required':
+      'The variant does not support inventory tracking.',
+    'inventory.variant_lot_tracking_requires_inventory':
+      'Variants with lot tracking must also track inventory.',
+    'inventory.variant_expiration_requires_lots':
+      'Variants with expiration tracking must also track lots.',
+    'inventory.inventory_lot_variant_mismatch':
+      'The lot does not belong to the specified variant.',
+    'inventory.product_serial_tracking_disabled':
+      'This product does not have serial tracking enabled.',
+    'inventory.serial_not_found':
+      'The serial number does not exist.',
+    'inventory.serial_number_duplicate':
+      'The serial number already exists.',
+    'inventory.serial_numbers_required':
+      'Serial numbers are required.',
+    'inventory.serial_variant_mismatch':
+      'The serial number does not belong to the specified variant.',
+    'inventory.serial_warehouse_mismatch':
+      'The serial number does not belong to the specified warehouse.',
+    'inventory.serial_status_not_transferable':
+      'The serial number is not in a transferable status.',
+    'inventory.serial_transfer_integer_quantity_required':
+      'Serial transfers require integer quantities.',
+    'inventory.serial_transfer_quantity_mismatch':
+      'The number of serials does not match the movement quantity.',
+    'inventory.serials_outside_business':
+      'One or more serial numbers do not belong to the active business.',
+    'inventory.serials_required_for_serial_tracked_variant':
+      'Serial numbers are required for serial-tracked variants.',
+    'inventory.transfer_warehouse_duplicate':
+      'The origin and destination warehouses cannot be the same.',
+    'inventory.route_not_found':
+      'The route does not exist.',
+    'inventory.route_name_duplicate':
+      'A route with that name already exists.',
+    'inventory.vehicle_not_found':
+      'The vehicle does not exist.',
+    'inventory.vehicle_plate_duplicate':
+      'A vehicle with that plate number already exists.',
+    'inventory.zone_not_found':
+      'The zone does not exist.',
+    'inventory.zone_name_duplicate':
+      'A zone with that name already exists.',
+    'inventory.driver_user_not_available_for_branch':
+      'The driver is not available for the specified branch.',
+    'inventory.dispatch_expense_not_found':
+      'The dispatch expense does not exist.',
+    'inventory.dispatch_stop_not_found':
+      'The dispatch stop does not exist.',
+    'inventory.dispatch_stop_already_resolved':
+      'The stop has already been resolved.',
+    'inventory.dispatch_stop_failure_reason_required':
+      'A failure reason is required for this stop.',
+    'inventory.dispatch_stop_invalid_transition':
+      'The stop status transition is not valid.',
+    'inventory.dispatch_stop_received_by_required':
+      'The name of the person who received the delivery is required.',
+    'inventory.dispatch_stop_sale_order_required':
+      'The stop requires a sale order.',
+    'inventory.dispatch_stop_status_already_set':
+      'The stop already has that status.',
+    'inventory.dispatch_stop_status_not_supported':
+      'The specified status is not valid for this stop.',
+    'inventory.sale_order_not_found':
+      'The sale order does not exist in the dispatch context.',
+    'inventory.sale_order_already_assigned_to_dispatch':
+      'The sale order is already assigned to another dispatch order.',
+    'inventory.sale_order_already_assigned_to_active_dispatch':
+      'The sale order is already assigned to an active dispatch order.',
+    'inventory.promotion_items_required':
+      'The promotion requires at least one item.',
+    'inventory.promotion_product_or_variant_required':
+      'Each promotion item requires a product or variant.',
+    'common.outbox_event_payload_invalid':
+      'The outbox event payload is not valid.',
     'sales.order_reservations_already_exist':
       'The sale order already has inventory reservations registered.',
     'sales.order_line_variant_required':
@@ -658,6 +900,22 @@ export const error_translations = {
       'Only confirmed sale orders can be scheduled for dispatch.',
     'sales.order_dispatch_branch_mismatch':
       'The sale order belongs to a different branch than the dispatch order.',
+    'sales.order_already_assigned_or_dispatched':
+      'The sale order is already assigned or dispatched.',
+    'sales.order_dispatch_requires_delivery':
+      'Only orders with delivery fulfillment can be scheduled for dispatch.',
+    'sales.order_dispatch_warehouse_mismatch':
+      'The sale order warehouse does not match the dispatch warehouse.',
+    'sales.lines_required':
+      'The order requires at least one line.',
+    'sales.electronic_document_not_found':
+      'The electronic document does not exist.',
+    'sales.electronic_document_not_submittable':
+      'The electronic document cannot be submitted in its current state.',
+    'sales.electronic_document_not_resubmittable':
+      'The electronic document cannot be resubmitted.',
+    'sales.electronic_document_sale_order_not_emittable':
+      'The sale order is not eligible for electronic document emission.',
     'sales.order_seller_required':
       'A seller is required for the selected sale mode.',
     'sales.order_route_requires_delivery':
@@ -725,6 +983,8 @@ export const error_translations = {
     'inventory.dispatch_order_stops_unresolved':
       'All stops must be resolved to complete the order.',
     'rbac.role_not_found': 'The role does not exist.',
+    'rbac.role_access_forbidden':
+      'The user does not have access to the specified role.',
     'rbac.role_key_duplicate':
       'A role with that business key already exists in the active business.',
     'rbac.system_role_delete_forbidden': 'System roles cannot be deleted.',
