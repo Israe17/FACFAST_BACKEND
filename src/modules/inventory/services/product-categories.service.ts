@@ -230,7 +230,7 @@ export class ProductCategoriesService {
     const category = await this.get_category_entity(business_id, category_id);
 
     const children =
-      await this.product_categories_repository.find_children(category_id);
+      await this.product_categories_repository.find_children(category_id, business_id);
     if (children.length > 0) {
       throw new DomainBadRequestException({
         code: 'CATEGORY_HAS_CHILDREN',
@@ -281,6 +281,7 @@ export class ProductCategoriesService {
   private async refresh_descendants(parent: ProductCategory): Promise<void> {
     const children = await this.product_categories_repository.find_children(
       parent.id,
+      parent.business_id,
     );
 
     for (const child of children) {

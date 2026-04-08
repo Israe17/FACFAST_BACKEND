@@ -118,12 +118,14 @@ export class WarehouseStockRepository {
   }
 
   async find_by_warehouse_and_product(
+    business_id: number,
     warehouse_id: number,
     product_id: number,
     product_variant_id?: number | null,
   ): Promise<WarehouseStock | null> {
     return this.warehouse_stock_repository.findOne({
       where: {
+        business_id,
         warehouse_id,
         product_id,
         ...(product_variant_id ? { product_variant_id } : {}),

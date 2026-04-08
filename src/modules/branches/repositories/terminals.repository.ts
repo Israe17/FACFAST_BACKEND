@@ -29,10 +29,14 @@ export class TerminalsRepository {
     await this.terminal_repository.remove(terminal);
   }
 
-  async find_by_id_with_branch(id: number): Promise<Terminal | null> {
+  async find_by_id_with_branch(
+    id: number,
+    business_id: number,
+  ): Promise<Terminal | null> {
     return this.terminal_repository.findOne({
       where: {
         id,
+        branch: { business_id },
       },
       relations: {
         branch: true,

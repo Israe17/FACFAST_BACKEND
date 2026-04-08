@@ -113,9 +113,12 @@ export class ProductSerialsRepository {
     });
   }
 
-  async find_events_by_serial(serial_id: number): Promise<SerialEvent[]> {
+  async find_events_by_serial(
+    serial_id: number,
+    business_id: number,
+  ): Promise<SerialEvent[]> {
     return this.event_repository.find({
-      where: { serial_id },
+      where: { serial_id, business_id },
       relations: {
         from_warehouse: true,
         to_warehouse: true,
