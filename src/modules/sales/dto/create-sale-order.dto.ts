@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsPositive,
   IsString,
@@ -74,6 +75,16 @@ export class CreateSaleOrderDto {
   @IsOptional()
   @IsString({ message: validation_messages.invalid_string() })
   delivery_district?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  delivery_latitude?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  delivery_longitude?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

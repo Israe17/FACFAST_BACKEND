@@ -16,6 +16,7 @@ import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
 import { SalesValidationService } from '../services/sales-validation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { isWithinCostaRica } from '../../common/utils/geo.utils';
 
 export type CreateSaleOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -67,6 +68,29 @@ export class CreateSaleOrderUseCase
         where: { id: dto.customer_contact_id, business_id },
       });
 
+      const has_manual_coordinates =
+        dto.delivery_latitude != null && dto.delivery_longitude != null;
+
+      if (
+        has_manual_coordinates &&
+        !isWithinCostaRica(dto.delivery_latitude!, dto.delivery_longitude!)
+      ) {
+        throw new DomainBadRequestException({
+          code: 'DELIVERY_COORDINATES_OUT_OF_BOUNDS',
+          messageKey: 'sales.delivery_coordinates_out_of_bounds',
+          details: {
+            field: 'delivery_latitude',
+          },
+        });
+      }
+
+      const delivery_latitude = has_manual_coordinates
+        ? dto.delivery_latitude!
+        : (contact?.delivery_latitude ?? null);
+      const delivery_longitude = has_manual_coordinates
+        ? dto.delivery_longitude!
+        : (contact?.delivery_longitude ?? null);
+
       const order = order_repo.create({
         business_id,
         branch_id: dto.branch_id,
@@ -83,8 +107,8 @@ export class CreateSaleOrderUseCase
         delivery_province: this.normalize_optional_string(dto.delivery_province),
         delivery_canton: this.normalize_optional_string(dto.delivery_canton),
         delivery_district: this.normalize_optional_string(dto.delivery_district),
-        delivery_latitude: contact?.delivery_latitude ?? null,
-        delivery_longitude: contact?.delivery_longitude ?? null,
+        delivery_latitude,
+        delivery_longitude,
         delivery_zone_id: dto.delivery_zone_id ?? null,
         delivery_requested_date: dto.delivery_requested_date ?? null,
         warehouse_id: dto.warehouse_id ?? null,

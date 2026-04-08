@@ -16,6 +16,8 @@ export interface ContactView {
   province: string | null;
   canton: string | null;
   district: string | null;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
   tax_condition: string | null;
   economic_activity_code: string | null;
   is_active: boolean;

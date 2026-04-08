@@ -7,7 +7,7 @@ export interface DispatchOrderView {
   dispatch_type: string;
   status: string;
   route_id: number | null;
-  route: { id: number; code: string | null; name: string } | null;
+  route: { id: number; code: string | null; name: string; waypoints: { lat: number; lng: number; label?: string }[] | null } | null;
   vehicle_id: number | null;
   vehicle:
     | {
@@ -45,6 +45,8 @@ export interface DispatchOrderView {
     delivery_province: string | null;
     delivery_canton: string | null;
     delivery_district: string | null;
+    delivery_latitude: number | null;
+    delivery_longitude: number | null;
     status: string;
     delivered_at: Date | null;
     received_by: string | null;
