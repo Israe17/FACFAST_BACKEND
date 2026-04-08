@@ -16,6 +16,7 @@ import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecyc
 import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
+import { has_previous_deliveries } from '../helpers/create-dispatch-stop-lines.helper';
 
 export type MarkDispatchOrderReadyCommand = {
   current_user: AuthenticatedUserContext;
@@ -75,7 +76,7 @@ export class MarkDispatchOrderReadyUseCase
           order,
         );
         this.dispatch_order_lifecycle_policy.assert_readyable(order);
-        this.assert_order_can_be_marked_ready(order);
+        await this.assert_order_can_be_marked_ready(order, manager, business_id);
 
         order.status = DispatchOrderStatus.READY;
         await manager.getRepository(DispatchOrder).save(order);
@@ -91,7 +92,11 @@ export class MarkDispatchOrderReadyUseCase
     );
   }
 
-  private assert_order_can_be_marked_ready(order: DispatchOrder): void {
+  private async assert_order_can_be_marked_ready(
+    order: DispatchOrder,
+    manager: import('typeorm').EntityManager,
+    business_id: number,
+  ): Promise<void> {
     if (!order.scheduled_date) {
       throw new DomainBadRequestException({
         code: 'DISPATCH_ORDER_SCHEDULED_DATE_REQUIRED',
@@ -190,10 +195,17 @@ export class MarkDispatchOrderReadyUseCase
         stop.sale_order,
         order.origin_warehouse_id,
       );
-      this.dispatch_sale_order_policy.assert_date_coherence(
-        order.scheduled_date,
-        stop.sale_order,
+      const is_re_dispatch = await has_previous_deliveries(
+        manager,
+        business_id,
+        { sale_order_id: stop.sale_order.id },
       );
+      if (!is_re_dispatch) {
+        this.dispatch_sale_order_policy.assert_date_coherence(
+          order.scheduled_date,
+          stop.sale_order,
+        );
+      }
     }
   }
 }

@@ -20,7 +20,7 @@ import { DomainBadRequestException } from '../../common/errors/exceptions/domain
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 import { DispatchStopLine } from '../entities/dispatch-stop-line.entity';
-import { create_dispatch_stop_lines } from '../helpers/create-dispatch-stop-lines.helper';
+import { create_dispatch_stop_lines, has_previous_deliveries } from '../helpers/create-dispatch-stop-lines.helper';
 
 export type UpdateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -260,10 +260,17 @@ export class UpdateDispatchOrderUseCase
         sale_order,
         effective_origin_warehouse_id,
       );
-      this.dispatch_sale_order_policy.assert_date_coherence(
-        order.scheduled_date,
-        sale_order,
+      const is_re_dispatch = await has_previous_deliveries(
+        manager,
+        business_id,
+        (sale_order.lines ?? []).map((l) => l.id),
       );
+      if (!is_re_dispatch) {
+        this.dispatch_sale_order_policy.assert_date_coherence(
+          order.scheduled_date,
+          sale_order,
+        );
+      }
 
       const stop = await dispatch_stop_repository.save(
         dispatch_stop_repository.create({
