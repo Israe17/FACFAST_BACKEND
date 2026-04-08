@@ -87,6 +87,7 @@ export class ZonesService {
         canton: this.normalize_optional_string(dto.canton),
         district: this.normalize_optional_string(dto.district),
         is_active: dto.is_active ?? true,
+        boundary: dto.boundary ?? null,
       }),
     );
     await this.sync_branch_assignments(saved_zone, assigned_branch_ids);
@@ -184,6 +185,9 @@ export class ZonesService {
     }
     if (dto.is_active !== undefined) {
       zone.is_active = dto.is_active;
+    }
+    if (dto.boundary !== undefined) {
+      zone.boundary = dto.boundary ?? null;
     }
 
     const saved_zone = await this.zones_repository.save(zone);
@@ -312,6 +316,7 @@ export class ZonesService {
       district: zone.district,
       center_latitude: zone.center_latitude ?? null,
       center_longitude: zone.center_longitude ?? null,
+      boundary: zone.boundary ?? null,
       assigned_branch_ids:
         this.dispatch_catalog_validation_service.get_active_branch_ids(zone),
       assigned_branches: (zone.branch_links ?? [])

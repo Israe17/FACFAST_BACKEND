@@ -91,6 +91,12 @@ export class Zone extends AuditedCodeEntity {
   })
   center_longitude!: number | null;
 
+  @Column({
+    type: 'jsonb',
+    nullable: true,
+  })
+  boundary!: [number, number][] | null;
+
   @OneToMany(() => ZoneBranchLink, (branch_link) => branch_link.zone)
   branch_links?: ZoneBranchLink[];
 }
