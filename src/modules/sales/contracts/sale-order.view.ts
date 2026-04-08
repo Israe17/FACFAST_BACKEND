@@ -17,6 +17,8 @@ export interface SaleOrderView {
   delivery_province: string | null;
   delivery_canton: string | null;
   delivery_district: string | null;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
   delivery_zone_id: number | null;
   delivery_zone: { id: number; name: string } | null;
   delivery_requested_date: string | null;
