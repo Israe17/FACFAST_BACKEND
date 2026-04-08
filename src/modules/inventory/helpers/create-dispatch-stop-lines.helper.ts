@@ -1,11 +1,55 @@
 import { EntityManager } from 'typeorm';
 import { DispatchStopLine } from '../entities/dispatch-stop-line.entity';
+import { SaleOrderLine } from '../../sales/entities/sale-order-line.entity';
 
 type SaleOrderLineInfo = {
   id: number;
   product_variant_id: number;
   quantity: number;
 };
+
+/**
+ * Returns true if any line of this sale order has been previously
+ * delivered (delivered_quantity > 0 in any past dispatch stop).
+ * Used to detect re-dispatch scenarios and skip date coherence
+ * validation for orders that already had a partial delivery.
+ *
+ * Accepts either explicit line IDs or a sale_order_id to look them up.
+ */
+export async function has_previous_deliveries(
+  manager: EntityManager,
+  business_id: number,
+  sale_order_line_ids_or_sale_order_id: number[] | { sale_order_id: number },
+): Promise<boolean> {
+  let line_ids: number[];
+
+  if (Array.isArray(sale_order_line_ids_or_sale_order_id)) {
+    line_ids = sale_order_line_ids_or_sale_order_id;
+  } else {
+    const lines = await manager.getRepository(SaleOrderLine).find({
+      where: {
+        sale_order_id: sale_order_line_ids_or_sale_order_id.sale_order_id,
+        business_id,
+      },
+      select: ['id'],
+    });
+    line_ids = lines.map((l) => l.id);
+  }
+
+  if (!line_ids.length) {
+    return false;
+  }
+
+  const count = await manager
+    .getRepository(DispatchStopLine)
+    .createQueryBuilder('dsl')
+    .where('dsl.business_id = :business_id', { business_id })
+    .andWhere('dsl.sale_order_line_id IN (:...ids)', { ids: line_ids })
+    .andWhere('dsl.delivered_quantity > 0')
+    .getCount();
+
+  return count > 0;
+}
 
 /**
  * Creates DispatchStopLine records for a dispatch stop, adjusting
