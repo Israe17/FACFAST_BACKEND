@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
@@ -139,4 +140,14 @@ export class UpdateContactDto {
   @Min(0, { message: validation_messages.min_value() })
   @Max(100, { message: validation_messages.max_value() })
   exoneration_percentage?: number;
+
+  @ApiPropertyOptional({ example: 9.9281, nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  delivery_latitude?: number;
+
+  @ApiPropertyOptional({ example: -84.0907, nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  delivery_longitude?: number;
 }

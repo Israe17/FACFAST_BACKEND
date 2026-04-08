@@ -17,6 +17,7 @@ import { IdempotencyKeysRepository } from './repositories/idempotency-keys.repos
 import { OutboxEventsRepository } from './repositories/outbox-events.repository';
 import { IdempotencyService } from './services/idempotency.service';
 import { PasswordHashService } from './services/password-hash.service';
+import { GeocodingService } from './services/geocoding.service';
 import { OutboxService } from './services/outbox.service';
 
 @Global()
@@ -39,6 +40,7 @@ import { OutboxService } from './services/outbox.service';
     OutboxEventsRepository,
     IdempotencyService,
     OutboxService,
+    GeocodingService,
   ],
   exports: [
     EntityCodeService,
@@ -57,6 +59,7 @@ import { OutboxService } from './services/outbox.service';
     OutboxEventsRepository,
     IdempotencyService,
     OutboxService,
+    GeocodingService,
   ],
 })
 export class CommonModule {}

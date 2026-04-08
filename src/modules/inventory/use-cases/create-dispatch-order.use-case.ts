@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
@@ -23,6 +23,8 @@ import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 import { DispatchStopLine } from '../entities/dispatch-stop-line.entity';
 import { create_dispatch_stop_lines } from '../helpers/create-dispatch-stop-lines.helper';
+import { approxDistanceKm } from '../../common/utils/geo.utils';
+import { Zone } from '../entities/zone.entity';
 
 export type CreateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -34,6 +36,8 @@ export type CreateDispatchOrderCommand = {
 export class CreateDispatchOrderUseCase
   implements CommandUseCase<CreateDispatchOrderCommand, DispatchOrderView>
 {
+  private readonly logger = new Logger(CreateDispatchOrderUseCase.name);
+
   constructor(
     private readonly data_source: DataSource,
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
@@ -61,13 +65,16 @@ export class CreateDispatchOrderUseCase
     if (dto.code) {
       this.entity_code_service.validate_code('DO', dto.code);
     }
+    let route_zone: Zone | null | undefined = null;
     if (dto.route_id !== undefined && dto.route_id !== null) {
-      await this.dispatch_catalog_validation_service.get_route_for_branch_operation(
-        current_user,
-        dto.route_id,
-        dto.branch_id,
-        { require_active: true },
-      );
+      const route =
+        await this.dispatch_catalog_validation_service.get_route_for_branch_operation(
+          current_user,
+          dto.route_id,
+          dto.branch_id,
+          { require_active: true },
+        );
+      route_zone = route.zone;
     }
     if (dto.vehicle_id !== undefined && dto.vehicle_id !== null) {
       await this.dispatch_catalog_validation_service.get_vehicle_for_branch_operation(
@@ -187,6 +194,8 @@ export class CreateDispatchOrderUseCase
                 delivery_province: sale_order.delivery_province,
                 delivery_canton: sale_order.delivery_canton,
                 delivery_district: sale_order.delivery_district,
+                delivery_latitude: sale_order.delivery_latitude ?? null,
+                delivery_longitude: sale_order.delivery_longitude ?? null,
               }),
             );
 
@@ -199,6 +208,37 @@ export class CreateDispatchOrderUseCase
 
             sale_order.dispatch_status = SaleDispatchStatus.ASSIGNED;
             await manager.getRepository(SaleOrder).save(sale_order);
+          }
+        }
+
+        // Zone distance consistency check
+        if (
+          route_zone &&
+          route_zone.center_latitude !== null &&
+          route_zone.center_longitude !== null &&
+          dto.stop_sale_order_ids?.length
+        ) {
+          const created_stops = await manager
+            .getRepository(DispatchStop)
+            .find({ where: { dispatch_order_id: order.id } });
+
+          for (const stop of created_stops) {
+            if (
+              stop.delivery_latitude !== null &&
+              stop.delivery_longitude !== null
+            ) {
+              const distance = approxDistanceKm(
+                stop.delivery_latitude,
+                stop.delivery_longitude,
+                route_zone.center_latitude,
+                route_zone.center_longitude,
+              );
+              if (distance > 50) {
+                this.logger.warn(
+                  `Stop ${stop.id} is ${Math.round(distance)}km from zone "${route_zone.name}" center`,
+                );
+              }
+            }
           }
         }
 

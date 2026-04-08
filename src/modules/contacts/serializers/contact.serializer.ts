@@ -29,6 +29,8 @@ export class ContactSerializer implements EntitySerializer<Contact, ContactView>
       province: contact.province,
       canton: contact.canton,
       district: contact.district,
+      delivery_latitude: contact.delivery_latitude ?? null,
+      delivery_longitude: contact.delivery_longitude ?? null,
       tax_condition: contact.tax_condition,
       economic_activity_code: contact.economic_activity_code,
       is_active: contact.is_active,

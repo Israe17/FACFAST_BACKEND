@@ -36,6 +36,8 @@ export class SaleOrderSerializer
       delivery_province: order.delivery_province,
       delivery_canton: order.delivery_canton,
       delivery_district: order.delivery_district,
+      delivery_latitude: order.delivery_latitude ?? null,
+      delivery_longitude: order.delivery_longitude ?? null,
       delivery_zone_id: order.delivery_zone_id,
       delivery_zone: order.delivery_zone
         ? { id: order.delivery_zone.id, name: order.delivery_zone.name }

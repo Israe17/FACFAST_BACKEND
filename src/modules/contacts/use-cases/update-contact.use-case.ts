@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { GeocodingService } from '../../common/services/geocoding.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { isWithinCostaRica } from '../../common/utils/geo.utils';
 import { ContactView } from '../contracts/contact.view';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
@@ -22,12 +25,15 @@ export type UpdateContactCommand = {
 export class UpdateContactUseCase
   implements CommandUseCase<UpdateContactCommand, ContactView>
 {
+  private readonly logger = new Logger(UpdateContactUseCase.name);
+
   constructor(
     private readonly contacts_repository: ContactsRepository,
     private readonly contacts_validation_service: ContactsValidationService,
     private readonly entity_code_service: EntityCodeService,
     private readonly contact_lifecycle_policy: ContactLifecyclePolicy,
     private readonly contact_serializer: ContactSerializer,
+    private readonly geocoding_service: GeocodingService,
   ) {}
 
   async execute({
@@ -137,7 +143,54 @@ export class UpdateContactUseCase
       contact.exoneration_percentage = dto.exoneration_percentage;
     }
 
+    if (
+      dto.delivery_latitude !== undefined &&
+      dto.delivery_longitude !== undefined
+    ) {
+      if (!isWithinCostaRica(dto.delivery_latitude, dto.delivery_longitude)) {
+        throw new DomainBadRequestException({
+          code: 'COORDINATES_OUTSIDE_COSTA_RICA',
+          messageKey: 'contacts.coordinates_outside_costa_rica',
+          details: {
+            delivery_latitude: dto.delivery_latitude,
+            delivery_longitude: dto.delivery_longitude,
+          },
+        });
+      }
+      contact.delivery_latitude = dto.delivery_latitude;
+      contact.delivery_longitude = dto.delivery_longitude;
+    }
+
+    const address_changed =
+      dto.address !== undefined ||
+      dto.district !== undefined ||
+      dto.canton !== undefined ||
+      dto.province !== undefined;
+
     const saved_contact = await this.contacts_repository.save(contact);
+
+    if (address_changed && saved_contact.delivery_latitude === null) {
+      this.geocoding_service
+        .geocode({
+          address: saved_contact.address,
+          district: saved_contact.district,
+          canton: saved_contact.canton,
+          province: saved_contact.province,
+        })
+        .then((result) => {
+          if (result) {
+            saved_contact.delivery_latitude = result.latitude;
+            saved_contact.delivery_longitude = result.longitude;
+            return this.contacts_repository.save(saved_contact);
+          }
+        })
+        .catch((error) => {
+          this.logger.warn(
+            `Geocoding failed for contact ${saved_contact.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
+    }
+
     const dependencies =
       await this.contacts_validation_service.count_contact_delete_dependencies(
         business_id,

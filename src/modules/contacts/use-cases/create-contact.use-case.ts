@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { GeocodingService } from '../../common/services/geocoding.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { isWithinCostaRica } from '../../common/utils/geo.utils';
 import { ContactView } from '../contracts/contact.view';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
@@ -20,11 +23,14 @@ export type CreateContactCommand = {
 export class CreateContactUseCase
   implements CommandUseCase<CreateContactCommand, ContactView>
 {
+  private readonly logger = new Logger(CreateContactUseCase.name);
+
   constructor(
     private readonly contacts_repository: ContactsRepository,
     private readonly entity_code_service: EntityCodeService,
     private readonly contact_lifecycle_policy: ContactLifecyclePolicy,
     private readonly contact_serializer: ContactSerializer,
+    private readonly geocoding_service: GeocodingService,
   ) {}
 
   async execute({
@@ -44,6 +50,22 @@ export class CreateContactUseCase
       dto.identification_type,
       identification_number,
     );
+
+    if (
+      dto.delivery_latitude !== undefined &&
+      dto.delivery_longitude !== undefined
+    ) {
+      if (!isWithinCostaRica(dto.delivery_latitude, dto.delivery_longitude)) {
+        throw new DomainBadRequestException({
+          code: 'COORDINATES_OUTSIDE_COSTA_RICA',
+          messageKey: 'contacts.coordinates_outside_costa_rica',
+          details: {
+            delivery_latitude: dto.delivery_latitude,
+            delivery_longitude: dto.delivery_longitude,
+          },
+        });
+      }
+    }
 
     const contact = this.contacts_repository.create({
       business_id,
@@ -75,9 +97,37 @@ export class CreateContactUseCase
         dto.exoneration_issue_date,
       ),
       exoneration_percentage: dto.exoneration_percentage ?? null,
+      delivery_latitude: dto.delivery_latitude ?? null,
+      delivery_longitude: dto.delivery_longitude ?? null,
     });
 
     const saved_contact = await this.contacts_repository.save(contact);
+
+    const has_address_fields =
+      saved_contact.address || saved_contact.district || saved_contact.canton || saved_contact.province;
+
+    if (has_address_fields && saved_contact.delivery_latitude === null) {
+      this.geocoding_service
+        .geocode({
+          address: saved_contact.address,
+          district: saved_contact.district,
+          canton: saved_contact.canton,
+          province: saved_contact.province,
+        })
+        .then((result) => {
+          if (result) {
+            saved_contact.delivery_latitude = result.latitude;
+            saved_contact.delivery_longitude = result.longitude;
+            return this.contacts_repository.save(saved_contact);
+          }
+        })
+        .catch((error) => {
+          this.logger.warn(
+            `Geocoding failed for contact ${saved_contact.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
+    }
+
     return this.contact_serializer.serialize(
       saved_contact,
       this.contact_lifecycle_policy.build_lifecycle(saved_contact, {

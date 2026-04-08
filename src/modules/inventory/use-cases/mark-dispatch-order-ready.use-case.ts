@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
@@ -27,6 +27,8 @@ export type MarkDispatchOrderReadyCommand = {
 export class MarkDispatchOrderReadyUseCase
   implements CommandUseCase<MarkDispatchOrderReadyCommand, DispatchOrderView>
 {
+  private readonly logger = new Logger(MarkDispatchOrderReadyUseCase.name);
+
   constructor(
     private readonly data_source: DataSource,
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
@@ -193,6 +195,17 @@ export class MarkDispatchOrderReadyUseCase
       this.dispatch_sale_order_policy.assert_date_coherence(
         order.scheduled_date,
         stop.sale_order,
+      );
+    }
+
+    const stops_missing_coords = order.stops.filter(
+      (stop) =>
+        stop.delivery_latitude === null || stop.delivery_longitude === null,
+    );
+    if (stops_missing_coords.length > 0) {
+      const stop_ids = stops_missing_coords.map((s) => s.id).join(', ');
+      this.logger.warn(
+        `Dispatch order ${order.id} marked ready with ${stops_missing_coords.length} stop(s) missing coordinates: [${stop_ids}]`,
       );
     }
   }
