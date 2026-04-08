@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
 import { GeocodingService } from '../../common/services/geocoding.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
+import { isWithinCostaRica } from '../../common/utils/geo.utils';
 import { ContactView } from '../contracts/contact.view';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { ContactIdentificationType } from '../enums/contact-identification-type.enum';
@@ -139,6 +141,24 @@ export class UpdateContactUseCase
     }
     if (dto.exoneration_percentage !== undefined) {
       contact.exoneration_percentage = dto.exoneration_percentage;
+    }
+
+    if (
+      dto.delivery_latitude !== undefined &&
+      dto.delivery_longitude !== undefined
+    ) {
+      if (!isWithinCostaRica(dto.delivery_latitude, dto.delivery_longitude)) {
+        throw new DomainBadRequestException({
+          code: 'COORDINATES_OUTSIDE_COSTA_RICA',
+          messageKey: 'contacts.coordinates_outside_costa_rica',
+          details: {
+            delivery_latitude: dto.delivery_latitude,
+            delivery_longitude: dto.delivery_longitude,
+          },
+        });
+      }
+      contact.delivery_latitude = dto.delivery_latitude;
+      contact.delivery_longitude = dto.delivery_longitude;
     }
 
     const address_changed =
