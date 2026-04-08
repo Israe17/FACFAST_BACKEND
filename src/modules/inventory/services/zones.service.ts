@@ -310,6 +310,8 @@ export class ZonesService {
       province: zone.province,
       canton: zone.canton,
       district: zone.district,
+      center_latitude: zone.center_latitude ?? null,
+      center_longitude: zone.center_longitude ?? null,
       assigned_branch_ids:
         this.dispatch_catalog_validation_service.get_active_branch_ids(zone),
       assigned_branches: (zone.branch_links ?? [])

@@ -51,6 +51,7 @@ export class DispatchOrderSerializer
             id: order.route.id,
             code: order.route.code,
             name: order.route.name,
+            waypoints: order.route.waypoints ?? null,
           }
         : null,
       vehicle_id: order.vehicle_id,
@@ -104,6 +105,8 @@ export class DispatchOrderSerializer
         delivery_province: stop.delivery_province,
         delivery_canton: stop.delivery_canton,
         delivery_district: stop.delivery_district,
+        delivery_latitude: stop.delivery_latitude ?? null,
+        delivery_longitude: stop.delivery_longitude ?? null,
         status: stop.status,
         delivered_at: stop.delivered_at,
         received_by: stop.received_by,
