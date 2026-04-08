@@ -122,10 +122,12 @@ export class SaleOrdersService {
   async reset_dispatch_status(
     current_user: AuthenticatedUserContext,
     order_id: number,
+    dto?: { delivery_requested_date?: string },
   ): Promise<SaleOrderView> {
     return this.reset_sale_order_dispatch_status_use_case.execute({
       current_user,
       order_id,
+      delivery_requested_date: dto?.delivery_requested_date,
     });
   }
 }

@@ -34,6 +34,7 @@ import type { AuthenticatedUserContext } from '../../common/interfaces/authentic
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CancelSaleOrderDto } from '../dto/cancel-sale-order.dto';
 import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
+import { ResetSaleOrderDispatchDto } from '../dto/reset-sale-order-dispatch.dto';
 import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
 import { SaleOrdersService } from '../services/sale-orders.service';
 
@@ -174,10 +175,12 @@ export class SaleOrdersController {
   reset_dispatch_status(
     @CurrentUser() current_user: AuthenticatedUserContext,
     @Param('sale_order_id', ParseIntPipe) order_id: number,
+    @Body() dto: ResetSaleOrderDispatchDto,
   ) {
     return this.sale_orders_service.reset_dispatch_status(
       current_user,
       order_id,
+      dto,
     );
   }
 }

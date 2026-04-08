@@ -18,6 +18,7 @@ import { DispatchOrderStatus } from '../../inventory/enums/dispatch-order-status
 export type ResetSaleOrderDispatchStatusCommand = {
   current_user: AuthenticatedUserContext;
   order_id: number;
+  delivery_requested_date?: string;
 };
 
 @Injectable()
@@ -36,6 +37,7 @@ export class ResetSaleOrderDispatchStatusUseCase
   async execute({
     current_user,
     order_id,
+    delivery_requested_date,
   }: ResetSaleOrderDispatchStatusCommand): Promise<SaleOrderView> {
     const business_id = resolve_effective_business_id(current_user);
 
@@ -87,6 +89,9 @@ export class ResetSaleOrderDispatchStatusUseCase
       }
 
       order.dispatch_status = SaleDispatchStatus.PENDING;
+      if (delivery_requested_date !== undefined) {
+        order.delivery_requested_date = delivery_requested_date || null;
+      }
       await manager.getRepository(SaleOrder).save(order);
 
       const full_order =
