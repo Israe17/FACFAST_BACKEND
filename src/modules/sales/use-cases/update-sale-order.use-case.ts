@@ -16,6 +16,7 @@ import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
 import { SalesValidationService } from '../services/sales-validation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { isWithinCostaRica } from '../../common/utils/geo.utils';
 
 export type UpdateSaleOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -177,14 +178,37 @@ export class UpdateSaleOrderUseCase
       if (dto.customer_contact_id !== undefined) {
         order.customer_contact_id = dto.customer_contact_id;
 
-        const contact = await manager.getRepository(Contact).findOne({
-          where: { id: dto.customer_contact_id, business_id },
-        });
-        if (contact) {
-          order.delivery_latitude = contact.delivery_latitude ?? null;
-          order.delivery_longitude = contact.delivery_longitude ?? null;
+        // Only copy contact coordinates when no manual override is provided
+        if (dto.delivery_latitude == null && dto.delivery_longitude == null) {
+          const contact = await manager.getRepository(Contact).findOne({
+            where: { id: dto.customer_contact_id, business_id },
+          });
+          if (contact) {
+            order.delivery_latitude = contact.delivery_latitude ?? null;
+            order.delivery_longitude = contact.delivery_longitude ?? null;
+          }
         }
       }
+
+      // Manual delivery coordinates override
+      if (dto.delivery_latitude !== undefined || dto.delivery_longitude !== undefined) {
+        const new_lat = dto.delivery_latitude !== undefined ? dto.delivery_latitude : order.delivery_latitude;
+        const new_lng = dto.delivery_longitude !== undefined ? dto.delivery_longitude : order.delivery_longitude;
+
+        if (new_lat != null && new_lng != null && !isWithinCostaRica(new_lat, new_lng)) {
+          throw new DomainBadRequestException({
+            code: 'DELIVERY_COORDINATES_OUT_OF_BOUNDS',
+            messageKey: 'sales.delivery_coordinates_out_of_bounds',
+            details: {
+              field: 'delivery_latitude',
+            },
+          });
+        }
+
+        order.delivery_latitude = new_lat ?? null;
+        order.delivery_longitude = new_lng ?? null;
+      }
+
       if (dto.seller_user_id !== undefined) {
         order.seller_user_id = dto.seller_user_id ?? null;
       }
