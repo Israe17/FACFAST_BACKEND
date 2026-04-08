@@ -15,6 +15,7 @@ import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
 import { SalesValidationService } from '../services/sales-validation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
+import { Contact } from '../../contacts/entities/contact.entity';
 
 export type CreateSaleOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -62,6 +63,10 @@ export class CreateSaleOrderUseCase
     return this.data_source.transaction(async (manager) => {
       const order_repo = manager.getRepository(SaleOrder);
 
+      const contact = await manager.getRepository(Contact).findOne({
+        where: { id: dto.customer_contact_id, business_id },
+      });
+
       const order = order_repo.create({
         business_id,
         branch_id: dto.branch_id,
@@ -78,6 +83,8 @@ export class CreateSaleOrderUseCase
         delivery_province: this.normalize_optional_string(dto.delivery_province),
         delivery_canton: this.normalize_optional_string(dto.delivery_canton),
         delivery_district: this.normalize_optional_string(dto.delivery_district),
+        delivery_latitude: contact?.delivery_latitude ?? null,
+        delivery_longitude: contact?.delivery_longitude ?? null,
         delivery_zone_id: dto.delivery_zone_id ?? null,
         delivery_requested_date: dto.delivery_requested_date ?? null,
         warehouse_id: dto.warehouse_id ?? null,

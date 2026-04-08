@@ -15,6 +15,7 @@ import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
 import { SalesValidationService } from '../services/sales-validation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
+import { Contact } from '../../contacts/entities/contact.entity';
 
 export type UpdateSaleOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -175,6 +176,14 @@ export class UpdateSaleOrderUseCase
       if (dto.branch_id !== undefined) order.branch_id = dto.branch_id;
       if (dto.customer_contact_id !== undefined) {
         order.customer_contact_id = dto.customer_contact_id;
+
+        const contact = await manager.getRepository(Contact).findOne({
+          where: { id: dto.customer_contact_id, business_id },
+        });
+        if (contact) {
+          order.delivery_latitude = contact.delivery_latitude ?? null;
+          order.delivery_longitude = contact.delivery_longitude ?? null;
+        }
       }
       if (dto.seller_user_id !== undefined) {
         order.seller_user_id = dto.seller_user_id ?? null;

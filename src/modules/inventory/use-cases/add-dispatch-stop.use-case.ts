@@ -132,6 +132,8 @@ export class AddDispatchStopUseCase
             delivery_province: sale_order.delivery_province,
             delivery_canton: sale_order.delivery_canton,
             delivery_district: sale_order.delivery_district,
+            delivery_latitude: sale_order.delivery_latitude ?? null,
+            delivery_longitude: sale_order.delivery_longitude ?? null,
             notes: this.normalize_optional_string(dto.notes),
           }),
         );
