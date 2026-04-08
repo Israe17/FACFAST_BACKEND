@@ -53,6 +53,11 @@ export class UpdateZoneDto {
   @IsBoolean()
   is_global?: boolean;
 
+  @ApiPropertyOptional({ example: [[10.0, -84.0], [10.1, -84.1], [10.0, -84.1]], nullable: true })
+  @IsOptional()
+  @IsArray()
+  boundary?: [number, number][] | null;
+
   @ApiPropertyOptional({ example: [1, 2] })
   @IsOptional()
   @IsArray()
