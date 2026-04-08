@@ -22,6 +22,7 @@ import { DispatchCatalogValidationService } from '../services/dispatch-catalog-v
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { SaleDispatchStatus } from '../../sales/enums/sale-dispatch-status.enum';
 import { DispatchStopLine } from '../entities/dispatch-stop-line.entity';
+import { create_dispatch_stop_lines } from '../helpers/create-dispatch-stop-lines.helper';
 
 export type CreateDispatchOrderCommand = {
   current_user: AuthenticatedUserContext;
@@ -189,19 +190,12 @@ export class CreateDispatchOrderUseCase
               }),
             );
 
-            // Create stop lines from sale order lines
-            const stop_line_repo = manager.getRepository(DispatchStopLine);
-            for (const line of sale_order.lines ?? []) {
-              await stop_line_repo.save(
-                stop_line_repo.create({
-                  business_id,
-                  dispatch_stop_id: stop.id,
-                  sale_order_line_id: line.id,
-                  product_variant_id: line.product_variant_id,
-                  ordered_quantity: line.quantity,
-                }),
-              );
-            }
+            // Create stop lines from sale order lines (adjusting for previous deliveries)
+            await create_dispatch_stop_lines(manager, {
+              business_id,
+              dispatch_stop_id: stop.id,
+              sale_order_lines: sale_order.lines ?? [],
+            });
 
             sale_order.dispatch_status = SaleDispatchStatus.ASSIGNED;
             await manager.getRepository(SaleOrder).save(sale_order);
