@@ -75,6 +75,8 @@ export class CreateWarehouseUseCase
         uses_locations: dto.uses_locations ?? false,
         is_default: dto.is_default ?? false,
         is_active: dto.is_active ?? true,
+        latitude: dto.latitude ?? null,
+        longitude: dto.longitude ?? null,
       }),
     );
     await this.sync_primary_branch_link(saved_warehouse, branch.id);

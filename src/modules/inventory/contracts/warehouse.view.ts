@@ -16,6 +16,8 @@ export interface WarehouseView {
   uses_locations: boolean;
   is_default: boolean;
   is_active: boolean;
+  latitude: number | null;
+  longitude: number | null;
   lifecycle: {
     can_delete: boolean;
     can_deactivate: boolean;

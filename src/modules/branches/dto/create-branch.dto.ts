@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
@@ -150,4 +151,14 @@ export class CreateBranchDto {
   @IsOptional()
   @IsBoolean({ message: validation_messages.invalid_boolean() })
   is_active?: boolean;
+
+  @ApiPropertyOptional({ example: 9.9280694 })
+  @IsOptional()
+  @IsNumber()
+  latitude?: number | null;
+
+  @ApiPropertyOptional({ example: -84.0907246 })
+  @IsOptional()
+  @IsNumber()
+  longitude?: number | null;
 }
