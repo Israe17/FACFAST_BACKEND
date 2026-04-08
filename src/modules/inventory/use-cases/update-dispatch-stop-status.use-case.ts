@@ -301,14 +301,14 @@ export class UpdateDispatchStopStatusUseCase
     if (stop.status === DispatchStopStatus.DELIVERED) {
       // Mark all stop lines as fully delivered
       await manager.getRepository(DispatchStopLine).update(
-        { dispatch_stop_id: stop.id },
+        { dispatch_stop_id: stop.id, business_id },
         { delivered_quantity: () => 'ordered_quantity' },
       );
       return;
     }
 
     let stop_lines = await manager.getRepository(DispatchStopLine).find({
-      where: { dispatch_stop_id: stop.id },
+      where: { dispatch_stop_id: stop.id, business_id },
       relations: ['product_variant'],
     });
 
@@ -332,7 +332,7 @@ export class UpdateDispatchStopStatusUseCase
           );
         }
         stop_lines = await stop_line_repo.find({
-          where: { dispatch_stop_id: stop.id },
+          where: { dispatch_stop_id: stop.id, business_id },
           relations: ['product_variant'],
         });
       }
