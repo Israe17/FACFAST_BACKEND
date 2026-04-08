@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { GeocodingService } from '../../common/services/geocoding.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { ContactView } from '../contracts/contact.view';
 import { CreateContactDto } from '../dto/create-contact.dto';
@@ -20,11 +21,14 @@ export type CreateContactCommand = {
 export class CreateContactUseCase
   implements CommandUseCase<CreateContactCommand, ContactView>
 {
+  private readonly logger = new Logger(CreateContactUseCase.name);
+
   constructor(
     private readonly contacts_repository: ContactsRepository,
     private readonly entity_code_service: EntityCodeService,
     private readonly contact_lifecycle_policy: ContactLifecyclePolicy,
     private readonly contact_serializer: ContactSerializer,
+    private readonly geocoding_service: GeocodingService,
   ) {}
 
   async execute({
@@ -78,6 +82,32 @@ export class CreateContactUseCase
     });
 
     const saved_contact = await this.contacts_repository.save(contact);
+
+    const has_address_fields =
+      saved_contact.address || saved_contact.district || saved_contact.canton || saved_contact.province;
+
+    if (has_address_fields && saved_contact.delivery_latitude === null) {
+      this.geocoding_service
+        .geocode({
+          address: saved_contact.address,
+          district: saved_contact.district,
+          canton: saved_contact.canton,
+          province: saved_contact.province,
+        })
+        .then((result) => {
+          if (result) {
+            saved_contact.delivery_latitude = result.latitude;
+            saved_contact.delivery_longitude = result.longitude;
+            return this.contacts_repository.save(saved_contact);
+          }
+        })
+        .catch((error) => {
+          this.logger.warn(
+            `Geocoding failed for contact ${saved_contact.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
+    }
+
     return this.contact_serializer.serialize(
       saved_contact,
       this.contact_lifecycle_policy.build_lifecycle(saved_contact, {

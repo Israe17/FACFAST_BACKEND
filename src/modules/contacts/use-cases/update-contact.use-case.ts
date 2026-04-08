@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { EntityCodeService } from '../../common/services/entity-code.service';
+import { GeocodingService } from '../../common/services/geocoding.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { ContactView } from '../contracts/contact.view';
 import { UpdateContactDto } from '../dto/update-contact.dto';
@@ -22,12 +23,15 @@ export type UpdateContactCommand = {
 export class UpdateContactUseCase
   implements CommandUseCase<UpdateContactCommand, ContactView>
 {
+  private readonly logger = new Logger(UpdateContactUseCase.name);
+
   constructor(
     private readonly contacts_repository: ContactsRepository,
     private readonly contacts_validation_service: ContactsValidationService,
     private readonly entity_code_service: EntityCodeService,
     private readonly contact_lifecycle_policy: ContactLifecyclePolicy,
     private readonly contact_serializer: ContactSerializer,
+    private readonly geocoding_service: GeocodingService,
   ) {}
 
   async execute({
@@ -137,7 +141,36 @@ export class UpdateContactUseCase
       contact.exoneration_percentage = dto.exoneration_percentage;
     }
 
+    const address_changed =
+      dto.address !== undefined ||
+      dto.district !== undefined ||
+      dto.canton !== undefined ||
+      dto.province !== undefined;
+
     const saved_contact = await this.contacts_repository.save(contact);
+
+    if (address_changed && saved_contact.delivery_latitude === null) {
+      this.geocoding_service
+        .geocode({
+          address: saved_contact.address,
+          district: saved_contact.district,
+          canton: saved_contact.canton,
+          province: saved_contact.province,
+        })
+        .then((result) => {
+          if (result) {
+            saved_contact.delivery_latitude = result.latitude;
+            saved_contact.delivery_longitude = result.longitude;
+            return this.contacts_repository.save(saved_contact);
+          }
+        })
+        .catch((error) => {
+          this.logger.warn(
+            `Geocoding failed for contact ${saved_contact.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
+    }
+
     const dependencies =
       await this.contacts_validation_service.count_contact_delete_dependencies(
         business_id,
