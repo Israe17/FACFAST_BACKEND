@@ -67,10 +67,14 @@ export class ProductCategoriesRepository {
     });
   }
 
-  async find_children(parent_id: number): Promise<ProductCategory[]> {
+  async find_children(
+    parent_id: number,
+    business_id: number,
+  ): Promise<ProductCategory[]> {
     return this.product_category_repository.find({
       where: {
         parent_id,
+        business_id,
       },
       order: {
         name: 'ASC',

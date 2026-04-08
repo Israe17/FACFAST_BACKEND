@@ -214,7 +214,7 @@ export class ProductSerialsService {
 
     this.assert_can_access_serial(current_user, serial);
     const events =
-      await this.product_serials_repository.find_events_by_serial(serial_id);
+      await this.product_serials_repository.find_events_by_serial(serial_id, business_id);
     return { serial, events };
   }
 

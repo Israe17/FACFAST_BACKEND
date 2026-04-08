@@ -301,16 +301,42 @@ export class UpdateDispatchStopStatusUseCase
     if (stop.status === DispatchStopStatus.DELIVERED) {
       // Mark all stop lines as fully delivered
       await manager.getRepository(DispatchStopLine).update(
-        { dispatch_stop_id: stop.id },
+        { dispatch_stop_id: stop.id, business_id },
         { delivered_quantity: () => 'ordered_quantity' },
       );
       return;
     }
 
-    const stop_lines = await manager.getRepository(DispatchStopLine).find({
-      where: { dispatch_stop_id: stop.id },
+    let stop_lines = await manager.getRepository(DispatchStopLine).find({
+      where: { dispatch_stop_id: stop.id, business_id },
       relations: ['product_variant'],
     });
+
+    // Backfill stop_lines for stops created before DispatchStopLine existed
+    if (stop_lines.length === 0) {
+      const sale_order_for_lines = await manager.getRepository(SaleOrder).findOne({
+        where: { id: stop.sale_order_id, business_id },
+        relations: ['lines', 'lines.product_variant'],
+      });
+      if (sale_order_for_lines?.lines?.length) {
+        const stop_line_repo = manager.getRepository(DispatchStopLine);
+        for (const line of sale_order_for_lines.lines) {
+          await stop_line_repo.save(
+            stop_line_repo.create({
+              business_id,
+              dispatch_stop_id: stop.id,
+              sale_order_line_id: line.id,
+              product_variant_id: line.product_variant_id,
+              ordered_quantity: line.quantity,
+            }),
+          );
+        }
+        stop_lines = await stop_line_repo.find({
+          where: { dispatch_stop_id: stop.id, business_id },
+          relations: ['product_variant'],
+        });
+      }
+    }
 
     if (stop_lines.length === 0) {
       return;

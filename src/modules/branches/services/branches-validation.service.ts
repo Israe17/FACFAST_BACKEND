@@ -67,8 +67,9 @@ export class BranchesValidationService {
     current_user: AuthenticatedUserContext,
     terminal_id: number,
   ): Promise<Terminal> {
+    const business_id = resolve_effective_business_id(current_user);
     const terminal =
-      await this.terminals_repository.find_by_id_with_branch(terminal_id);
+      await this.terminals_repository.find_by_id_with_branch(terminal_id, business_id);
     if (!terminal || !terminal.branch) {
       throw new DomainNotFoundException({
         code: 'TERMINAL_NOT_FOUND',
@@ -79,10 +80,7 @@ export class BranchesValidationService {
       });
     }
 
-    if (
-      terminal.branch.business_id !==
-      resolve_effective_business_id(current_user)
-    ) {
+    if (terminal.branch.business_id !== business_id) {
       throw new DomainNotFoundException({
         code: 'TERMINAL_NOT_FOUND',
         messageKey: 'terminals.not_found',
