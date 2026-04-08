@@ -28,6 +28,8 @@ export class WarehouseSerializer
       uses_locations: warehouse.uses_locations,
       is_default: warehouse.is_default,
       is_active: warehouse.is_active,
+      latitude: warehouse.latitude ?? null,
+      longitude: warehouse.longitude ?? null,
       lifecycle: {
         can_delete: false,
         can_deactivate: warehouse.is_active,

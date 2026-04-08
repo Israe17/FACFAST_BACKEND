@@ -34,6 +34,8 @@ export class PlatformBranchSerializer
       hacienda_username: branch.hacienda_username,
       signature_type: branch.signature_type,
       is_active: branch.is_active,
+      latitude: branch.latitude ?? null,
+      longitude: branch.longitude ?? null,
       has_crypto_key: Boolean(branch.crypto_key_encrypted),
       has_hacienda_password: Boolean(branch.hacienda_password_encrypted),
       has_mail_key: Boolean(branch.mail_key_encrypted),

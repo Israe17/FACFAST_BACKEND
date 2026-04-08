@@ -121,6 +121,12 @@ export class UpdateBranchUseCase
     if (dto.is_active !== undefined) {
       branch.is_active = dto.is_active;
     }
+    if (dto.latitude !== undefined) {
+      branch.latitude = dto.latitude ?? null;
+    }
+    if (dto.longitude !== undefined) {
+      branch.longitude = dto.longitude ?? null;
+    }
 
     const saved_branch = await this.branches_repository.save(branch);
     const dependencies =

@@ -99,6 +99,12 @@ export class UpdateWarehouseUseCase
     if (dto.is_active !== undefined) {
       warehouse.is_active = dto.is_active;
     }
+    if (dto.latitude !== undefined) {
+      warehouse.latitude = dto.latitude ?? null;
+    }
+    if (dto.longitude !== undefined) {
+      warehouse.longitude = dto.longitude ?? null;
+    }
 
     const saved_warehouse = await this.warehouses_repository.save(warehouse);
     await this.sync_primary_branch_link(

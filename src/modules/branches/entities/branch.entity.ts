@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
+import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { IdentificationType } from '../../common/enums/identification-type.enum';
 import { UserBranchAccess } from '../../users/entities/user-branch-access.entity';
 import { Terminal } from './terminal.entity';
@@ -177,6 +178,24 @@ export class Branch extends AuditedCodeEntity {
     default: true,
   })
   is_active!: boolean;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  latitude!: number | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  longitude!: number | null;
 
   @OneToMany(() => Terminal, (terminal) => terminal.branch)
   terminals?: Terminal[];

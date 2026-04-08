@@ -25,6 +25,8 @@ export interface BranchView {
   hacienda_username: string | null;
   signature_type: string | null;
   is_active: boolean;
+  latitude: number | null;
+  longitude: number | null;
   has_crypto_key: boolean;
   has_hacienda_password: boolean;
   has_mail_key: boolean;

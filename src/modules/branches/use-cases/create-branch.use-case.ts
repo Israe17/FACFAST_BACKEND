@@ -72,6 +72,8 @@ export class CreateBranchUseCase
       mail_key_encrypted: this.encryption_service.encrypt(dto.mail_key),
       signature_type: dto.signature_type?.trim() ?? null,
       is_active: dto.is_active ?? true,
+      latitude: dto.latitude ?? null,
+      longitude: dto.longitude ?? null,
     });
 
     const saved_branch = await this.branches_repository.save(branch);
