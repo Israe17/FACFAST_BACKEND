@@ -154,4 +154,22 @@ export class Contact extends AuditedCodeEntity {
     transformer: numeric_transformer,
   })
   exoneration_percentage!: number | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  delivery_latitude!: number | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  delivery_longitude!: number | null;
 }

@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { Business } from '../../common/entities/business.entity';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
@@ -106,6 +107,24 @@ export class DispatchStop {
     nullable: true,
   })
   delivery_district!: string | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  delivery_latitude!: number | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  delivery_longitude!: number | null;
 
   @Column({
     type: 'varchar',

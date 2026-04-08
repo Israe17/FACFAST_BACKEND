@@ -122,6 +122,12 @@ export class Route extends AuditedCodeEntity {
   })
   is_active!: boolean;
 
+  @Column({
+    type: 'jsonb',
+    nullable: true,
+  })
+  waypoints!: { lat: number; lng: number; label?: string }[] | null;
+
   @OneToMany(() => RouteBranchLink, (branch_link) => branch_link.route)
   branch_links?: RouteBranchLink[];
 }

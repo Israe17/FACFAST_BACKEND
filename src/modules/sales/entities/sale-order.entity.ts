@@ -9,6 +9,7 @@ import {
 import { Branch } from '../../branches/entities/branch.entity';
 import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
+import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { Warehouse } from '../../inventory/entities/warehouse.entity';
 import { Zone } from '../../inventory/entities/zone.entity';
@@ -196,6 +197,24 @@ export class SaleOrder extends AuditedCodeEntity {
     name: 'created_by_user_id',
   })
   created_by_user?: User;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  delivery_latitude!: number | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: numeric_transformer,
+  })
+  delivery_longitude!: number | null;
 
   @OneToMany(() => SaleOrderLine, (line) => line.sale_order)
   lines?: SaleOrderLine[];
