@@ -98,6 +98,7 @@ export class RoutesService {
         frequency: this.normalize_optional_string(dto.frequency),
         day_of_week: this.normalize_optional_string(dto.day_of_week),
         is_active: dto.is_active ?? true,
+        waypoints: dto.waypoints ?? null,
       }),
     );
     await this.sync_branch_assignments(saved_route, assigned_branch_ids);
@@ -222,6 +223,9 @@ export class RoutesService {
     }
     if (dto.is_active !== undefined) {
       route.is_active = dto.is_active;
+    }
+    if (dto.waypoints !== undefined) {
+      route.waypoints = dto.waypoints ?? null;
     }
 
     const saved_route = await this.routes_repository.save(route);

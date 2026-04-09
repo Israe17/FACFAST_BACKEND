@@ -3,6 +3,7 @@ import {
   ArrayUnique,
   IsArray,
   IsBoolean,
+  IsNumber,
   IsInt,
   IsOptional,
   IsString,
@@ -52,6 +53,16 @@ export class UpdateZoneDto {
   @IsOptional()
   @IsBoolean()
   is_global?: boolean;
+
+  @ApiPropertyOptional({ example: 9.9281, nullable: true })
+  @IsOptional()
+  @IsNumber()
+  center_latitude?: number | null;
+
+  @ApiPropertyOptional({ example: -84.0907, nullable: true })
+  @IsOptional()
+  @IsNumber()
+  center_longitude?: number | null;
 
   @ApiPropertyOptional({ example: [[10.0, -84.0], [10.1, -84.1], [10.0, -84.1]], nullable: true })
   @IsOptional()
