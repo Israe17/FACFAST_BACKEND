@@ -64,6 +64,11 @@ export class CreateRouteDto {
   @IsBoolean()
   is_active?: boolean;
 
+  @ApiPropertyOptional({ example: [{ lat: 9.93, lng: -84.08, label: 'Punto A' }] })
+  @IsOptional()
+  @IsArray()
+  waypoints?: { lat: number; lng: number; label?: string }[] | null;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()

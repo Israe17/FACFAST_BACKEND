@@ -4,6 +4,7 @@ import {
   IsArray,
   IsBoolean,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
@@ -51,6 +52,16 @@ export class CreateZoneDto {
   @IsOptional()
   @IsBoolean()
   is_global?: boolean;
+
+  @ApiPropertyOptional({ example: 9.9281 })
+  @IsOptional()
+  @IsNumber()
+  center_latitude?: number | null;
+
+  @ApiPropertyOptional({ example: -84.0907 })
+  @IsOptional()
+  @IsNumber()
+  center_longitude?: number | null;
 
   @ApiPropertyOptional({ example: [[10.0, -84.0], [10.1, -84.1], [10.0, -84.1]] })
   @IsOptional()

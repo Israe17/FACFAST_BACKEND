@@ -87,6 +87,8 @@ export class ZonesService {
         canton: this.normalize_optional_string(dto.canton),
         district: this.normalize_optional_string(dto.district),
         is_active: dto.is_active ?? true,
+        center_latitude: dto.center_latitude ?? null,
+        center_longitude: dto.center_longitude ?? null,
         boundary: dto.boundary ?? null,
       }),
     );
@@ -185,6 +187,12 @@ export class ZonesService {
     }
     if (dto.is_active !== undefined) {
       zone.is_active = dto.is_active;
+    }
+    if (dto.center_latitude !== undefined) {
+      zone.center_latitude = dto.center_latitude ?? null;
+    }
+    if (dto.center_longitude !== undefined) {
+      zone.center_longitude = dto.center_longitude ?? null;
     }
     if (dto.boundary !== undefined) {
       zone.boundary = dto.boundary ?? null;
