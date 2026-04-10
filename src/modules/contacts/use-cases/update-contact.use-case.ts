@@ -143,22 +143,25 @@ export class UpdateContactUseCase
       contact.exoneration_percentage = dto.exoneration_percentage;
     }
 
+    if (dto.delivery_latitude !== undefined) {
+      contact.delivery_latitude = dto.delivery_latitude ?? null;
+    }
+    if (dto.delivery_longitude !== undefined) {
+      contact.delivery_longitude = dto.delivery_longitude ?? null;
+    }
     if (
-      dto.delivery_latitude !== undefined &&
-      dto.delivery_longitude !== undefined
+      contact.delivery_latitude !== null &&
+      contact.delivery_longitude !== null &&
+      !isWithinCostaRica(contact.delivery_latitude, contact.delivery_longitude)
     ) {
-      if (!isWithinCostaRica(dto.delivery_latitude, dto.delivery_longitude)) {
-        throw new DomainBadRequestException({
-          code: 'COORDINATES_OUTSIDE_COSTA_RICA',
-          messageKey: 'contacts.coordinates_outside_costa_rica',
-          details: {
-            delivery_latitude: dto.delivery_latitude,
-            delivery_longitude: dto.delivery_longitude,
-          },
-        });
-      }
-      contact.delivery_latitude = dto.delivery_latitude;
-      contact.delivery_longitude = dto.delivery_longitude;
+      throw new DomainBadRequestException({
+        code: 'COORDINATES_OUTSIDE_COSTA_RICA',
+        messageKey: 'contacts.coordinates_outside_costa_rica',
+        details: {
+          delivery_latitude: contact.delivery_latitude,
+          delivery_longitude: contact.delivery_longitude,
+        },
+      });
     }
 
     const address_changed =
