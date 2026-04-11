@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { DispatchOrder } from '../../inventory/entities/dispatch-order.entity';
 import { InventoryReservation } from '../../inventory/entities/inventory-reservation.entity';
+import { InventoryReservationStatus } from '../../inventory/enums/inventory-reservation-status.enum';
 import { SaleOrder } from '../entities/sale-order.entity';
+import { SaleOrderLineStatus } from '../enums/sale-order-line-status.enum';
 import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
 import { SaleOrderView } from '../contracts/sale-order.view';
@@ -121,6 +123,17 @@ export class SaleOrderSerializer {
         can_delete:
           order.status === SaleOrderStatus.DRAFT ||
           order.status === SaleOrderStatus.CANCELLED,
+        can_cancel_lines:
+          order.status === SaleOrderStatus.CONFIRMED &&
+          (order.lines ?? []).some(
+            (l) =>
+              (l.status ?? SaleOrderLineStatus.ACTIVE) ===
+                SaleOrderLineStatus.ACTIVE &&
+              (() => {
+                const r = reservation_by_line_id.get(l.id);
+                return !r || r.status !== InventoryReservationStatus.CONSUMED;
+              })(),
+          ),
         can_reset_dispatch:
           order.status === SaleOrderStatus.CONFIRMED &&
           (order.dispatch_status === SaleDispatchStatus.FAILED ||

@@ -77,6 +77,7 @@ export interface SaleOrderView {
     can_edit: boolean;
     can_confirm: boolean;
     can_cancel: boolean;
+    can_cancel_lines: boolean;
     can_delete: boolean;
     can_reset_dispatch: boolean;
     reasons: string[];
