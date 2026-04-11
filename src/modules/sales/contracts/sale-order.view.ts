@@ -48,9 +48,21 @@ export interface SaleOrderView {
     discount_percent: number;
     tax_amount: number;
     line_total: number;
+    reservation?: {
+      status: string;
+      reserved_quantity: number;
+      consumed_quantity: number;
+      released_quantity: number;
+    } | null;
     notes: string | null;
     created_at: Date;
     updated_at: Date;
+  }>;
+  dispatch_orders: Array<{
+    id: number;
+    code: string | null;
+    status: string;
+    scheduled_date: string | null;
   }>;
   delivery_charges: Array<{
     id: number;

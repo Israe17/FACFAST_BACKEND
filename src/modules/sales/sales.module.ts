@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContactsModule } from '../contacts/contacts.module';
+import { DispatchStop } from '../inventory/entities/dispatch-stop.entity';
 import { SaleOrder } from './entities/sale-order.entity';
 import { SaleOrderLine } from './entities/sale-order-line.entity';
 import { SaleOrderDeliveryCharge } from './entities/sale-order-delivery-charge.entity';
@@ -49,6 +50,7 @@ import { SalesValidationService } from './services/sales-validation.service';
       SaleOrderLine,
       SaleOrderDeliveryCharge,
       ElectronicDocument,
+      DispatchStop,
     ]),
     InventoryModule,
     InventoryValidationSubModule,

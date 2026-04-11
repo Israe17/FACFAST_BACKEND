@@ -3,6 +3,7 @@ import {
   ApiCookieAuth,
   ApiForbiddenResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -49,13 +50,23 @@ export class InventoryMovementsController {
   @Get()
   @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_VIEW)
   @ApiOperation({ summary: 'Listar movimientos de inventario (paginado)' })
+  @ApiQuery({ name: 'source_document_type', required: false })
+  @ApiQuery({ name: 'source_document_id', required: false, type: Number })
   get_movements(
     @CurrentUser() current_user: AuthenticatedUserContext,
     @Query() query: PaginatedQueryDto,
+    @Query('source_document_type') source_document_type?: string,
+    @Query('source_document_id') source_document_id?: string,
   ) {
     return this.inventory_movements_service.get_movements_paginated(
       current_user,
       query,
+      {
+        source_document_type,
+        source_document_id: source_document_id
+          ? parseInt(source_document_id, 10)
+          : undefined,
+      },
     );
   }
 

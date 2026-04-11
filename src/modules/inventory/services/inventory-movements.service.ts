@@ -41,10 +41,15 @@ export class InventoryMovementsService {
   async get_movements_paginated(
     current_user: AuthenticatedUserContext,
     query: PaginatedQueryDto,
+    filters?: {
+      source_document_type?: string;
+      source_document_id?: number;
+    },
   ) {
     return this.get_inventory_movements_page_query_use_case.execute({
       current_user,
       query,
+      filters,
     });
   }
 

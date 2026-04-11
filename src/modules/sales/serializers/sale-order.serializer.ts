@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { EntitySerializer } from '../../common/application/interfaces/entity-serializer.interface';
+import { DispatchOrder } from '../../inventory/entities/dispatch-order.entity';
+import { InventoryReservation } from '../../inventory/entities/inventory-reservation.entity';
 import { SaleOrder } from '../entities/sale-order.entity';
 import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
@@ -7,10 +8,15 @@ import { SaleOrderView } from '../contracts/sale-order.view';
 import { can_cancel_sale_order_with_dispatch_status } from '../utils/sale-dispatch-status.util';
 
 @Injectable()
-export class SaleOrderSerializer
-  implements EntitySerializer<SaleOrder, SaleOrderView>
-{
-  serialize(order: SaleOrder): SaleOrderView {
+export class SaleOrderSerializer {
+  serialize(
+    order: SaleOrder,
+    reservations: InventoryReservation[] = [],
+    dispatch_orders: DispatchOrder[] = [],
+  ): SaleOrderView {
+    const reservation_by_line_id = new Map(
+      reservations.map((r) => [r.sale_order_line_id, r]),
+    );
     return {
       id: order.id,
       code: order.code,
@@ -75,9 +81,25 @@ export class SaleOrderSerializer
         discount_percent: line.discount_percent,
         tax_amount: line.tax_amount,
         line_total: line.line_total,
+        reservation: (() => {
+          const r = reservation_by_line_id.get(line.id);
+          if (!r) return null;
+          return {
+            status: r.status,
+            reserved_quantity: r.reserved_quantity,
+            consumed_quantity: r.consumed_quantity,
+            released_quantity: r.released_quantity,
+          };
+        })(),
         notes: line.notes,
         created_at: line.created_at,
         updated_at: line.updated_at,
+      })),
+      dispatch_orders: dispatch_orders.map((d) => ({
+        id: d.id,
+        code: d.code,
+        status: d.status,
+        scheduled_date: d.scheduled_date,
       })),
       delivery_charges: (order.delivery_charges ?? []).map((charge) => ({
         id: charge.id,
