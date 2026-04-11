@@ -20,6 +20,7 @@ import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.pol
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 import { InventoryLedgerService } from '../services/inventory-ledger.service';
+import { InventoryReservationsService } from '../services/inventory-reservations.service';
 import { SaleOrder } from '../../sales/entities/sale-order.entity';
 import { get_dispatch_status_for_resolved_stop } from '../../sales/utils/sale-dispatch-status.util';
 
@@ -42,6 +43,7 @@ export class UpdateDispatchStopStatusUseCase
     private readonly dispatch_order_access_policy: DispatchOrderAccessPolicy,
     private readonly dispatch_order_serializer: DispatchOrderSerializer,
     private readonly inventory_ledger_service: InventoryLedgerService,
+    private readonly inventory_reservations_service: InventoryReservationsService,
     private readonly idempotency_service: IdempotencyService,
   ) {}
 
@@ -430,6 +432,20 @@ export class UpdateDispatchStopStatusUseCase
           quantity: line.return_quantity,
           on_hand_delta: line.return_quantity,
         })),
+      );
+
+      // Sync reservations: unconsume the returned portion so re-dispatch is possible
+      const unconsume_lines = stop_lines
+        .filter((sl) => sl.product_variant && sl.ordered_quantity - (sl.delivered_quantity ?? 0) > 0)
+        .map((sl) => ({
+          sale_order_line_id: sl.sale_order_line_id,
+          quantity: sl.ordered_quantity - (sl.delivered_quantity ?? 0),
+        }));
+      await this.inventory_reservations_service.partial_unconsume_for_sale_order(
+        manager,
+        unconsume_lines,
+        business_id,
+        stop.sale_order_id,
       );
     }
   }

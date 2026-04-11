@@ -4,13 +4,17 @@ import { DomainBadRequestException } from '../../common/errors/exceptions/domain
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { InventoryMovementStatus } from '../enums/inventory-movement-status.enum';
 
+type MovementForLifecycle = {
+  status: InventoryMovementStatus;
+  source_document_type?: string | null;
+};
+
 @Injectable()
 export class InventoryMovementLifecyclePolicy
-  implements
-    TransitionPolicy<{ status: InventoryMovementStatus }, 'cancel'>
+  implements TransitionPolicy<MovementForLifecycle, 'cancel'>
 {
   assert_transition_allowed(
-    movement: { status: InventoryMovementStatus },
+    movement: MovementForLifecycle,
     transition: 'cancel',
   ): void {
     if (transition !== 'cancel') {
@@ -34,7 +38,17 @@ export class InventoryMovementLifecyclePolicy
     }
   }
 
-  assert_cancellable(movement: { status: InventoryMovementStatus }): void {
+  assert_cancellable(movement: MovementForLifecycle): void {
     this.assert_transition_allowed(movement, 'cancel');
+
+    if (
+      movement.source_document_type === 'SaleOrder' ||
+      movement.source_document_type === 'DispatchOrder'
+    ) {
+      throw new DomainBadRequestException({
+        code: 'MOVEMENT_MANAGED_BY_DOCUMENT',
+        messageKey: 'inventory.movement_managed_by_document',
+      });
+    }
   }
 }
