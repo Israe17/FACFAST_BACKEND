@@ -133,6 +133,10 @@ export class InventoryMovementHeadersRepository {
     branch_ids: number[] | undefined,
     query: PaginatedQueryDto,
     mapper: (header: InventoryMovementHeader) => R,
+    filters?: {
+      source_document_type?: string;
+      source_document_id?: number;
+    },
   ): Promise<PaginatedResponseDto<R>> {
     if (branch_ids && branch_ids.length === 0) {
       return new PaginatedResponseDto(
@@ -158,6 +162,17 @@ export class InventoryMovementHeadersRepository {
 
     if (branch_ids?.length) {
       qb.andWhere('header.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    if (filters?.source_document_type) {
+      qb.andWhere('header.source_document_type = :source_document_type', {
+        source_document_type: filters.source_document_type,
+      });
+    }
+    if (filters?.source_document_id) {
+      qb.andWhere('header.source_document_id = :source_document_id', {
+        source_document_id: filters.source_document_id,
+      });
     }
 
     apply_search(qb, query.search, MOVEMENT_SEARCH_COLUMNS);

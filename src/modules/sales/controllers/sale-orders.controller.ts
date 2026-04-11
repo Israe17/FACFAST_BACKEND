@@ -33,6 +33,7 @@ import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CancelSaleOrderDto } from '../dto/cancel-sale-order.dto';
+import { CancelSaleOrderLineDto } from '../dto/cancel-sale-order-line.dto';
 import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
 import { ResetSaleOrderDispatchDto } from '../dto/reset-sale-order-dispatch.dto';
 import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
@@ -147,6 +148,27 @@ export class SaleOrdersController {
     @Param('sale_order_id', ParseIntPipe) order_id: number,
   ) {
     return this.sale_orders_service.delete_sale_order(current_user, order_id);
+  }
+
+  @Post(':sale_order_id/lines/:line_id/cancel')
+  @RequirePermissions(PermissionKey.SALE_ORDERS_CANCEL)
+  @ApiOperation({ summary: 'Cancelar linea individual de orden de venta' })
+  @ApiParam({ name: 'sale_order_id', type: Number })
+  @ApiParam({ name: 'line_id', type: Number })
+  @ApiBody({ type: CancelSaleOrderLineDto })
+  @ApiOkResponse({ description: 'Linea cancelada exitosamente.' })
+  cancel_sale_order_line(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('sale_order_id', ParseIntPipe) order_id: number,
+    @Param('line_id', ParseIntPipe) line_id: number,
+    @Body() dto: CancelSaleOrderLineDto,
+  ) {
+    return this.sale_orders_service.cancel_sale_order_line(
+      current_user,
+      order_id,
+      line_id,
+      dto,
+    );
   }
 
   @Post(':sale_order_id/cancel')

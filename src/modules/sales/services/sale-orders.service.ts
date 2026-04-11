@@ -4,10 +4,12 @@ import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { CancelSaleOrderDto } from '../dto/cancel-sale-order.dto';
+import { CancelSaleOrderLineDto } from '../dto/cancel-sale-order-line.dto';
 import { CreateSaleOrderDto } from '../dto/create-sale-order.dto';
 import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { CancelSaleOrderUseCase } from '../use-cases/cancel-sale-order.use-case';
+import { CancelSaleOrderLineUseCase } from '../use-cases/cancel-sale-order-line.use-case';
 import { ConfirmSaleOrderUseCase } from '../use-cases/confirm-sale-order.use-case';
 import { CreateSaleOrderUseCase } from '../use-cases/create-sale-order.use-case';
 import {
@@ -28,6 +30,7 @@ export class SaleOrdersService {
     private readonly update_sale_order_use_case: UpdateSaleOrderUseCase,
     private readonly confirm_sale_order_use_case: ConfirmSaleOrderUseCase,
     private readonly cancel_sale_order_use_case: CancelSaleOrderUseCase,
+    private readonly cancel_sale_order_line_use_case: CancelSaleOrderLineUseCase,
     private readonly delete_sale_order_use_case: DeleteSaleOrderUseCase,
     private readonly get_sale_orders_list_query_use_case: GetSaleOrdersListQueryUseCase,
     private readonly get_sale_orders_page_query_use_case: GetSaleOrdersPageQueryUseCase,
@@ -108,6 +111,20 @@ export class SaleOrdersService {
     return this.cancel_sale_order_use_case.execute({
       current_user,
       order_id,
+      dto,
+    });
+  }
+
+  async cancel_sale_order_line(
+    current_user: AuthenticatedUserContext,
+    order_id: number,
+    line_id: number,
+    dto: CancelSaleOrderLineDto,
+  ) {
+    return this.cancel_sale_order_line_use_case.execute({
+      current_user,
+      order_id,
+      line_id,
       dto,
     });
   }

@@ -42,6 +42,16 @@ export class InventoryReservationsRepository {
     });
   }
 
+  async find_by_sale_order_id(
+    business_id: number,
+    sale_order_id: number,
+  ): Promise<InventoryReservation[]> {
+    return this.inventory_reservation_repository.find({
+      where: { business_id, sale_order_id },
+      order: { sale_order_line_id: 'ASC' },
+    });
+  }
+
   async find_by_sale_order_id_for_update(
     manager: EntityManager,
     business_id: number,

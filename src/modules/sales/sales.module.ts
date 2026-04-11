@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContactsModule } from '../contacts/contacts.module';
+import { DispatchStop } from '../inventory/entities/dispatch-stop.entity';
+import { DispatchStopLine } from '../inventory/entities/dispatch-stop-line.entity';
 import { SaleOrder } from './entities/sale-order.entity';
 import { SaleOrderLine } from './entities/sale-order-line.entity';
 import { SaleOrderDeliveryCharge } from './entities/sale-order-delivery-charge.entity';
@@ -27,6 +29,7 @@ import { SaleOrderSerializer } from './serializers/sale-order.serializer';
 import { CreateSaleOrderUseCase } from './use-cases/create-sale-order.use-case';
 import { ConfirmSaleOrderUseCase } from './use-cases/confirm-sale-order.use-case';
 import { CancelSaleOrderUseCase } from './use-cases/cancel-sale-order.use-case';
+import { CancelSaleOrderLineUseCase } from './use-cases/cancel-sale-order-line.use-case';
 import { DeleteSaleOrderUseCase } from './use-cases/delete-sale-order.use-case';
 import { ResetSaleOrderDispatchStatusUseCase } from './use-cases/reset-sale-order-dispatch-status.use-case';
 import { EmitElectronicDocumentUseCase } from './use-cases/emit-electronic-document.use-case';
@@ -49,6 +52,8 @@ import { SalesValidationService } from './services/sales-validation.service';
       SaleOrderLine,
       SaleOrderDeliveryCharge,
       ElectronicDocument,
+      DispatchStop,
+      DispatchStopLine,
     ]),
     InventoryModule,
     InventoryValidationSubModule,
@@ -73,6 +78,7 @@ import { SalesValidationService } from './services/sales-validation.service';
     UpdateSaleOrderUseCase,
     ConfirmSaleOrderUseCase,
     CancelSaleOrderUseCase,
+    CancelSaleOrderLineUseCase,
     DeleteSaleOrderUseCase,
     ResetSaleOrderDispatchStatusUseCase,
     GetSaleOrderQueryUseCase,

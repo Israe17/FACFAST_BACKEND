@@ -11,6 +11,7 @@ import {
 import { Business } from '../../common/entities/business.entity';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { ProductVariant } from '../../inventory/entities/product-variant.entity';
+import { SaleOrderLineStatus } from '../enums/sale-order-line-status.enum';
 import { SaleOrder } from './sale-order.entity';
 
 @Entity('sale_order_lines')
@@ -104,6 +105,13 @@ export class SaleOrderLine {
     transformer: numeric_transformer,
   })
   line_total!: number;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: SaleOrderLineStatus.ACTIVE,
+  })
+  status!: SaleOrderLineStatus;
 
   @Column({
     type: 'text',

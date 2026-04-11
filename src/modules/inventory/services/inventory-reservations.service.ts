@@ -164,6 +164,60 @@ export class InventoryReservationsService {
     return this.aggregate_delta_lines(released_lines);
   }
 
+  async release_for_sale_order_line(
+    manager: EntityManager,
+    current_user: AuthenticatedUserContext,
+    order: SaleOrder,
+    sale_order_line_id: number,
+  ): Promise<ReservationDeltaLine[]> {
+    const reservations =
+      await this.inventory_reservations_repository.find_by_sale_order_id_for_update(
+        manager,
+        order.business_id,
+        order.id,
+      );
+
+    const reservation = reservations.find(
+      (r) => r.sale_order_line_id === sale_order_line_id,
+    );
+
+    if (!reservation) {
+      return [];
+    }
+
+    if (reservation.status === InventoryReservationStatus.CONSUMED) {
+      throw new DomainBadRequestException({
+        code: 'LINE_ALREADY_DISPATCHED',
+        messageKey: 'sales.line_already_dispatched',
+      });
+    }
+
+    if (reservation.status === InventoryReservationStatus.RELEASED) {
+      return [];
+    }
+
+    const remaining_quantity = this.get_remaining_quantity(reservation);
+    if (remaining_quantity <= 0) {
+      return [];
+    }
+
+    reservation.released_quantity =
+      Number(reservation.released_quantity) + remaining_quantity;
+    reservation.released_by_user_id = current_user.id;
+    reservation.status = InventoryReservationStatus.RELEASED;
+
+    const reservation_repository = manager.getRepository(InventoryReservation);
+    await reservation_repository.save(reservation);
+
+    return this.aggregate_delta_lines([
+      {
+        warehouse: reservation.warehouse!,
+        product_variant: reservation.product_variant!,
+        quantity: remaining_quantity,
+      },
+    ]);
+  }
+
   async consume_for_sale_order(
     manager: EntityManager,
     current_user: AuthenticatedUserContext,
@@ -287,6 +341,57 @@ export class InventoryReservationsService {
     }
 
     return this.aggregate_delta_lines(restored_lines);
+  }
+
+  /**
+   * Partially reverses consumed quantities for specific lines.
+   * Used when a dispatch stop is marked as PARTIAL, FAILED, or SKIPPED —
+   * the undelivered portion needs to be "unconsumed" so the reservation
+   * reflects reality and allows re-dispatch.
+   */
+  async partial_unconsume_for_sale_order(
+    manager: EntityManager,
+    unconsume_lines: { sale_order_line_id: number; quantity: number }[],
+    business_id: number,
+    sale_order_id: number,
+  ): Promise<void> {
+    if (!unconsume_lines.length) {
+      return;
+    }
+
+    const reservations =
+      await this.inventory_reservations_repository.find_by_sale_order_id_for_update(
+        manager,
+        business_id,
+        sale_order_id,
+      );
+    const reservation_by_line_id = new Map(
+      reservations.map((r) => [r.sale_order_line_id, r]),
+    );
+    const reservation_repository = manager.getRepository(InventoryReservation);
+    const reservations_to_update: InventoryReservation[] = [];
+
+    for (const line of unconsume_lines) {
+      const reservation = reservation_by_line_id.get(line.sale_order_line_id);
+      if (!reservation) {
+        continue;
+      }
+
+      const new_consumed = Math.max(
+        0,
+        Number(reservation.consumed_quantity) - line.quantity,
+      );
+      reservation.consumed_quantity = new_consumed;
+      reservation.status =
+        this.get_remaining_quantity(reservation) > 0
+          ? InventoryReservationStatus.ACTIVE
+          : InventoryReservationStatus.CONSUMED;
+      reservations_to_update.push(reservation);
+    }
+
+    if (reservations_to_update.length > 0) {
+      await reservation_repository.save(reservations_to_update);
+    }
   }
 
   private get_trackable_lines(order: SaleOrder): SaleOrderLine[] {

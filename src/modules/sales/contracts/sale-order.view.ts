@@ -48,9 +48,22 @@ export interface SaleOrderView {
     discount_percent: number;
     tax_amount: number;
     line_total: number;
+    status: string;
+    reservation?: {
+      status: string;
+      reserved_quantity: number;
+      consumed_quantity: number;
+      released_quantity: number;
+    } | null;
     notes: string | null;
     created_at: Date;
     updated_at: Date;
+  }>;
+  dispatch_orders: Array<{
+    id: number;
+    code: string | null;
+    status: string;
+    scheduled_date: string | null;
   }>;
   delivery_charges: Array<{
     id: number;
@@ -64,6 +77,7 @@ export interface SaleOrderView {
     can_edit: boolean;
     can_confirm: boolean;
     can_cancel: boolean;
+    can_cancel_lines: boolean;
     can_delete: boolean;
     can_reset_dispatch: boolean;
     reasons: string[];

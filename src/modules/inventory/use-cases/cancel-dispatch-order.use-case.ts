@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -78,6 +79,16 @@ export class CancelDispatchOrderUseCase
           order,
         );
         this.dispatch_order_lifecycle_policy.assert_cancellable(order);
+
+        const has_delivered_stops = (order.stops ?? []).some(
+          (stop) => stop.status === DispatchStopStatus.DELIVERED,
+        );
+        if (has_delivered_stops) {
+          throw new DomainBadRequestException({
+            code: 'DISPATCH_ORDER_HAS_DELIVERED_STOPS',
+            messageKey: 'inventory.dispatch_order_has_delivered_stops',
+          });
+        }
 
         const was_dispatched =
           order.status === DispatchOrderStatus.DISPATCHED ||
