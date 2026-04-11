@@ -48,6 +48,7 @@ export interface SaleOrderView {
     discount_percent: number;
     tax_amount: number;
     line_total: number;
+    status: string;
     reservation?: {
       status: string;
       reserved_quantity: number;

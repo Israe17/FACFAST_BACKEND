@@ -81,6 +81,7 @@ export class SaleOrderSerializer {
         discount_percent: line.discount_percent,
         tax_amount: line.tax_amount,
         line_total: line.line_total,
+        status: line.status ?? 'active',
         reservation: (() => {
           const r = reservation_by_line_id.get(line.id);
           if (!r) return null;

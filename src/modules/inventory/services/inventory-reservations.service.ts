@@ -164,6 +164,60 @@ export class InventoryReservationsService {
     return this.aggregate_delta_lines(released_lines);
   }
 
+  async release_for_sale_order_line(
+    manager: EntityManager,
+    current_user: AuthenticatedUserContext,
+    order: SaleOrder,
+    sale_order_line_id: number,
+  ): Promise<ReservationDeltaLine[]> {
+    const reservations =
+      await this.inventory_reservations_repository.find_by_sale_order_id_for_update(
+        manager,
+        order.business_id,
+        order.id,
+      );
+
+    const reservation = reservations.find(
+      (r) => r.sale_order_line_id === sale_order_line_id,
+    );
+
+    if (!reservation) {
+      return [];
+    }
+
+    if (reservation.status === InventoryReservationStatus.CONSUMED) {
+      throw new DomainBadRequestException({
+        code: 'LINE_ALREADY_DISPATCHED',
+        messageKey: 'sales.line_already_dispatched',
+      });
+    }
+
+    if (reservation.status === InventoryReservationStatus.RELEASED) {
+      return [];
+    }
+
+    const remaining_quantity = this.get_remaining_quantity(reservation);
+    if (remaining_quantity <= 0) {
+      return [];
+    }
+
+    reservation.released_quantity =
+      Number(reservation.released_quantity) + remaining_quantity;
+    reservation.released_by_user_id = current_user.id;
+    reservation.status = InventoryReservationStatus.RELEASED;
+
+    const reservation_repository = manager.getRepository(InventoryReservation);
+    await reservation_repository.save(reservation);
+
+    return this.aggregate_delta_lines([
+      {
+        warehouse: reservation.warehouse!,
+        product_variant: reservation.product_variant!,
+        quantity: remaining_quantity,
+      },
+    ]);
+  }
+
   async consume_for_sale_order(
     manager: EntityManager,
     current_user: AuthenticatedUserContext,
