@@ -13,6 +13,7 @@ import { InventoryMovementHeaderType } from '../../inventory/enums/inventory-mov
 import { SerialEventType } from '../../inventory/enums/serial-event-type.enum';
 import { SerialStatus } from '../../inventory/enums/serial-status.enum';
 import { InventoryLedgerService } from '../../inventory/services/inventory-ledger.service';
+import { InventoryReservationsRepository } from '../../inventory/repositories/inventory-reservations.repository';
 import { InventoryReservationsService } from '../../inventory/services/inventory-reservations.service';
 import { CancelSaleOrderLineDto } from '../dto/cancel-sale-order-line.dto';
 import { SaleOrderView } from '../contracts/sale-order.view';
@@ -41,6 +42,7 @@ export class CancelSaleOrderLineUseCase
     private readonly sale_orders_repository: SaleOrdersRepository,
     private readonly sale_order_access_policy: SaleOrderAccessPolicy,
     private readonly inventory_reservations_service: InventoryReservationsService,
+    private readonly inventory_reservations_repository: InventoryReservationsRepository,
     private readonly inventory_ledger_service: InventoryLedgerService,
     private readonly sale_order_serializer: SaleOrderSerializer,
   ) {}
@@ -70,6 +72,10 @@ export class CancelSaleOrderLineUseCase
 
       this.sale_order_access_policy.assert_can_access_order(current_user, order);
 
+      // Unlike full-order cancellation (which uses SaleOrderLifecyclePolicy.assert_cancellable
+      // and blocks when dispatch_status != PENDING), line cancellation is allowed at any
+      // dispatch_status as long as the line's reservation is still ACTIVE (pre-dispatch).
+      // The reservation status check in release_for_sale_order_line() is the definitive guard.
       if (order.status !== SaleOrderStatus.CONFIRMED) {
         throw new DomainBadRequestException({
           code: 'SALE_ORDER_NOT_CONFIRMED',
@@ -166,7 +172,14 @@ export class CancelSaleOrderLineUseCase
         business_id,
         manager,
       );
-      return this.sale_order_serializer.serialize(full_order!);
+
+      const reservations =
+        await this.inventory_reservations_repository.find_by_sale_order_id(
+          business_id,
+          order.id,
+        );
+
+      return this.sale_order_serializer.serialize(full_order!, reservations);
     });
   }
 

@@ -63,9 +63,10 @@ export class InventoryMovementsController {
       query,
       {
         source_document_type,
-        source_document_id: source_document_id
-          ? parseInt(source_document_id, 10)
-          : undefined,
+        source_document_id:
+          source_document_id && !isNaN(Number(source_document_id))
+            ? Number(source_document_id)
+            : undefined,
       },
     );
   }
