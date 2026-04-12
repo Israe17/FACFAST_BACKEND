@@ -91,6 +91,23 @@ export class CreateSaleOrderUseCase
         ? dto.delivery_longitude!
         : (contact?.delivery_longitude ?? null);
 
+      const delivery_address =
+        this.normalize_optional_string(dto.delivery_address) ??
+        contact?.address ??
+        null;
+      const delivery_province =
+        this.normalize_optional_string(dto.delivery_province) ??
+        contact?.province ??
+        null;
+      const delivery_canton =
+        this.normalize_optional_string(dto.delivery_canton) ??
+        contact?.canton ??
+        null;
+      const delivery_district =
+        this.normalize_optional_string(dto.delivery_district) ??
+        contact?.district ??
+        null;
+
       const order = order_repo.create({
         business_id,
         branch_id: dto.branch_id,
@@ -103,10 +120,10 @@ export class CreateSaleOrderUseCase
           dto.fulfillment_mode,
         ),
         order_date: new Date(dto.order_date),
-        delivery_address: this.normalize_optional_string(dto.delivery_address),
-        delivery_province: this.normalize_optional_string(dto.delivery_province),
-        delivery_canton: this.normalize_optional_string(dto.delivery_canton),
-        delivery_district: this.normalize_optional_string(dto.delivery_district),
+        delivery_address,
+        delivery_province,
+        delivery_canton,
+        delivery_district,
         delivery_latitude,
         delivery_longitude,
         delivery_zone_id: dto.delivery_zone_id ?? null,
