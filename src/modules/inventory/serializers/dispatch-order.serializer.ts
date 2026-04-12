@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { EntitySerializer } from '../../common/application/interfaces/entity-serializer.interface';
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
+import { InventoryMovementHeader } from '../entities/inventory-movement-header.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
 import { DispatchStopStatus } from '../enums/dispatch-stop-status.enum';
 
 @Injectable()
-export class DispatchOrderSerializer
-  implements EntitySerializer<DispatchOrder, DispatchOrderView>
-{
-  serialize(order: DispatchOrder): DispatchOrderView {
+export class DispatchOrderSerializer {
+  serialize(
+    order: DispatchOrder,
+    movements: InventoryMovementHeader[] = [],
+  ): DispatchOrderView {
     const can_ready = order.status === DispatchOrderStatus.DRAFT;
     const can_edit =
       order.status === DispatchOrderStatus.DRAFT ||
@@ -148,6 +149,13 @@ export class DispatchOrderSerializer
           : null,
         created_at: expense.created_at,
         updated_at: expense.updated_at,
+      })),
+      movements: movements.map((m) => ({
+        id: m.id,
+        code: m.code,
+        movement_type: m.movement_type,
+        status: m.status,
+        occurred_at: m.occurred_at,
       })),
       lifecycle: {
         can_ready,

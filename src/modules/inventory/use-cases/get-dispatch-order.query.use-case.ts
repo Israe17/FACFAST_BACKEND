@@ -6,6 +6,7 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrdersRepository } from '../repositories/dispatch-orders.repository';
+import { InventoryMovementHeadersRepository } from '../repositories/inventory-movement-headers.repository';
 import { DispatchOrderSerializer } from '../serializers/dispatch-order.serializer';
 
 export type GetDispatchOrderQuery = {
@@ -21,15 +22,17 @@ export class GetDispatchOrderQueryUseCase
     private readonly dispatch_orders_repository: DispatchOrdersRepository,
     private readonly dispatch_order_access_policy: DispatchOrderAccessPolicy,
     private readonly dispatch_order_serializer: DispatchOrderSerializer,
+    private readonly inventory_movement_headers_repository: InventoryMovementHeadersRepository,
   ) {}
 
   async execute({
     current_user,
     dispatch_order_id,
   }: GetDispatchOrderQuery): Promise<DispatchOrderView> {
+    const business_id = resolve_effective_business_id(current_user);
     const order = await this.dispatch_orders_repository.find_by_id_in_business(
       dispatch_order_id,
-      resolve_effective_business_id(current_user),
+      business_id,
     );
     if (!order) {
       throw new DomainNotFoundException({
@@ -40,6 +43,14 @@ export class GetDispatchOrderQueryUseCase
     }
 
     this.dispatch_order_access_policy.assert_can_access_order(current_user, order);
-    return this.dispatch_order_serializer.serialize(order);
+
+    const movements =
+      await this.inventory_movement_headers_repository.find_by_source_document(
+        business_id,
+        'DispatchOrder',
+        order.id,
+      );
+
+    return this.dispatch_order_serializer.serialize(order, movements);
   }
 }

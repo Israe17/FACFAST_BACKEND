@@ -27,10 +27,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CancelInventoryMovementDto } from '../dto/cancel-inventory-movement.dto';
 import { CreateInventoryAdjustmentDto } from '../dto/create-inventory-adjustment.dto';
 import { CreateInventoryTransferDto } from '../dto/create-inventory-transfer.dto';
-import { ListInventoryMovementsQueryDto } from '../dto/list-inventory-movements-query.dto';
 import { InventoryMovementsService } from '../services/inventory-movements.service';
 
 @ApiTags('inventory-movements')
@@ -51,15 +51,11 @@ export class InventoryMovementsController {
   @ApiOperation({ summary: 'Listar movimientos de inventario (paginado)' })
   get_movements(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Query() query: ListInventoryMovementsQueryDto,
+    @Query() query: PaginatedQueryDto,
   ) {
     return this.inventory_movements_service.get_movements_paginated(
       current_user,
       query,
-      {
-        source_document_type: query.source_document_type,
-        source_document_id: query.source_document_id,
-      },
     );
   }
 
