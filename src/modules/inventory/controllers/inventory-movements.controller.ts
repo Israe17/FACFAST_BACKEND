@@ -3,7 +3,6 @@ import {
   ApiCookieAuth,
   ApiForbiddenResponse,
   ApiOperation,
-  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -28,10 +27,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
-import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CancelInventoryMovementDto } from '../dto/cancel-inventory-movement.dto';
 import { CreateInventoryAdjustmentDto } from '../dto/create-inventory-adjustment.dto';
 import { CreateInventoryTransferDto } from '../dto/create-inventory-transfer.dto';
+import { ListInventoryMovementsQueryDto } from '../dto/list-inventory-movements-query.dto';
 import { InventoryMovementsService } from '../services/inventory-movements.service';
 
 @ApiTags('inventory-movements')
@@ -50,23 +49,16 @@ export class InventoryMovementsController {
   @Get()
   @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_VIEW)
   @ApiOperation({ summary: 'Listar movimientos de inventario (paginado)' })
-  @ApiQuery({ name: 'source_document_type', required: false })
-  @ApiQuery({ name: 'source_document_id', required: false, type: Number })
   get_movements(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Query() query: PaginatedQueryDto,
-    @Query('source_document_type') source_document_type?: string,
-    @Query('source_document_id') source_document_id?: string,
+    @Query() query: ListInventoryMovementsQueryDto,
   ) {
     return this.inventory_movements_service.get_movements_paginated(
       current_user,
       query,
       {
-        source_document_type,
-        source_document_id:
-          source_document_id && !isNaN(Number(source_document_id))
-            ? Number(source_document_id)
-            : undefined,
+        source_document_type: query.source_document_type,
+        source_document_id: query.source_document_id,
       },
     );
   }
