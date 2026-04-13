@@ -9,7 +9,9 @@ import { IdempotencyService } from '../../common/services/idempotency.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
+import { DispatchStop } from '../entities/dispatch-stop.entity';
 import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
+import { DispatchStopStatus } from '../enums/dispatch-stop-status.enum';
 import { DispatchType } from '../enums/dispatch-type.enum';
 import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
@@ -88,6 +90,15 @@ export class MarkDispatchOrderDispatchedUseCase
         order.status = DispatchOrderStatus.DISPATCHED;
         order.dispatched_at = new Date();
         await manager.getRepository(DispatchOrder).save(order);
+
+        // Transition pending stops to in_transit
+        const stop_repo = manager.getRepository(DispatchStop);
+        for (const stop of order.stops ?? []) {
+          if (stop.status === DispatchStopStatus.PENDING) {
+            stop.status = DispatchStopStatus.IN_TRANSIT;
+          }
+        }
+        await stop_repo.save(order.stops ?? []);
 
         for (const stop of order.stops ?? []) {
           const sale_order = await manager
