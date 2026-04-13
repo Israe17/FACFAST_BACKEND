@@ -12,10 +12,6 @@ import { InventoryValidationService } from '../services/inventory-validation.ser
 export type GetInventoryMovementsPageQuery = {
   current_user: AuthenticatedUserContext;
   query: PaginatedQueryDto;
-  filters?: {
-    source_document_type?: string;
-    source_document_id?: number;
-  };
 };
 
 @Injectable()
@@ -35,7 +31,6 @@ export class GetInventoryMovementsPageQueryUseCase
   async execute({
     current_user,
     query,
-    filters,
   }: GetInventoryMovementsPageQuery): Promise<
     PaginatedResponseDto<InventoryMovementRecordView>
   > {
@@ -46,7 +41,6 @@ export class GetInventoryMovementsPageQueryUseCase
       ),
       query,
       (header) => this.inventory_movement_serializer.serialize(header),
-      filters,
     );
   }
 }

@@ -80,6 +80,13 @@ export interface DispatchOrderView {
     created_at: Date;
     updated_at: Date;
   }>;
+  movements: Array<{
+    id: number;
+    code: string | null;
+    movement_type: string;
+    status: string;
+    occurred_at: Date;
+  }>;
   lifecycle: {
     can_ready: boolean;
     can_edit: boolean;
