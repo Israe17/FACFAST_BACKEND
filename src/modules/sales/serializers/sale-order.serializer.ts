@@ -94,6 +94,13 @@ export class SaleOrderSerializer {
             released_quantity: r.released_quantity,
           };
         })(),
+        assigned_serials: (line.assigned_serials ?? []).map((as) => ({
+          id: as.id,
+          product_serial_id: as.product_serial_id,
+          serial_number: as.product_serial?.serial_number ?? '',
+          status: as.product_serial?.status ?? '',
+          assigned_at: as.assigned_at,
+        })),
         notes: line.notes,
         created_at: line.created_at,
         updated_at: line.updated_at,

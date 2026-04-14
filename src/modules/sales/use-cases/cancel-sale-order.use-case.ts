@@ -7,7 +7,12 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { InventoryLedgerService } from '../../inventory/services/inventory-ledger.service';
 import { InventoryReservationsService } from '../../inventory/services/inventory-reservations.service';
 import { InventoryMovementHeaderType } from '../../inventory/enums/inventory-movement-header-type.enum';
+import { ProductSerial } from '../../inventory/entities/product-serial.entity';
+import { SerialEvent } from '../../inventory/entities/serial-event.entity';
+import { SerialStatus } from '../../inventory/enums/serial-status.enum';
+import { SerialEventType } from '../../inventory/enums/serial-event-type.enum';
 import { CancelSaleOrderDto } from '../dto/cancel-sale-order.dto';
+import { SaleOrderLineSerial } from '../entities/sale-order-line-serial.entity';
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { SaleOrder } from '../entities/sale-order.entity';
 import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
@@ -69,6 +74,45 @@ export class CancelSaleOrderUseCase
           current_user,
           order,
         );
+
+      // Release assigned serials back to AVAILABLE
+      for (const line of order.lines ?? []) {
+        const line_serials = (line.assigned_serials ?? []).filter(
+          (as) => as.assigned_at !== null,
+        );
+        for (const as of line_serials) {
+          const serial = await manager
+            .getRepository(ProductSerial)
+            .findOneBy({ id: as.product_serial_id });
+          if (serial && serial.status === SerialStatus.RESERVED) {
+            serial.status = SerialStatus.AVAILABLE;
+            serial.sold_at = null;
+            await manager.getRepository(ProductSerial).save(serial);
+
+            await manager.getRepository(SerialEvent).save(
+              manager.getRepository(SerialEvent).create({
+                business_id,
+                serial_id: serial.id,
+                event_type: SerialEventType.RELEASED_FROM_SALE,
+                performed_by_user_id: current_user.id,
+                notes: `Liberado por cancelacion de orden ${order.code}`,
+                occurred_at: new Date(),
+              }),
+            );
+          }
+        }
+      }
+
+      // Delete all serial junction records for the order
+      const all_line_ids = (order.lines ?? []).map((l) => l.id);
+      if (all_line_ids.length > 0) {
+        await manager
+          .getRepository(SaleOrderLineSerial)
+          .createQueryBuilder()
+          .delete()
+          .where('sale_order_line_id IN (:...ids)', { ids: all_line_ids })
+          .execute();
+      }
 
       order.status = SaleOrderStatus.CANCELLED;
       order.dispatch_status = SaleDispatchStatus.CANCELLED;

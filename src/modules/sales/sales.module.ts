@@ -5,6 +5,7 @@ import { DispatchStop } from '../inventory/entities/dispatch-stop.entity';
 import { DispatchStopLine } from '../inventory/entities/dispatch-stop-line.entity';
 import { SaleOrder } from './entities/sale-order.entity';
 import { SaleOrderLine } from './entities/sale-order-line.entity';
+import { SaleOrderLineSerial } from './entities/sale-order-line-serial.entity';
 import { SaleOrderDeliveryCharge } from './entities/sale-order-delivery-charge.entity';
 import { ElectronicDocument } from './entities/electronic-document.entity';
 import { SaleOrdersRepository } from './repositories/sale-orders.repository';
@@ -50,6 +51,7 @@ import { SalesValidationService } from './services/sales-validation.service';
     TypeOrmModule.forFeature([
       SaleOrder,
       SaleOrderLine,
+      SaleOrderLineSerial,
       SaleOrderDeliveryCharge,
       ElectronicDocument,
       DispatchStop,

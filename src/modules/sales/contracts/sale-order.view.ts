@@ -55,6 +55,13 @@ export interface SaleOrderView {
       consumed_quantity: number;
       released_quantity: number;
     } | null;
+    assigned_serials?: Array<{
+      id: number;
+      product_serial_id: number;
+      serial_number: string;
+      status: string;
+      assigned_at: Date | null;
+    }>;
     notes: string | null;
     created_at: Date;
     updated_at: Date;
