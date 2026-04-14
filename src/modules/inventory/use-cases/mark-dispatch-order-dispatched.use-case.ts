@@ -14,6 +14,11 @@ import { DispatchOrderStatus } from '../enums/dispatch-order-status.enum';
 import { DispatchStopStatus } from '../enums/dispatch-stop-status.enum';
 import { DispatchType } from '../enums/dispatch-type.enum';
 import { InventoryMovementHeaderType } from '../enums/inventory-movement-header-type.enum';
+import { ProductSerial } from '../entities/product-serial.entity';
+import { SerialEvent } from '../entities/serial-event.entity';
+import { SerialStatus } from '../enums/serial-status.enum';
+import { SerialEventType } from '../enums/serial-event-type.enum';
+import { SaleOrderLineSerial } from '../../sales/entities/sale-order-line-serial.entity';
 import { DispatchOrderAccessPolicy } from '../policies/dispatch-order-access.policy';
 import { DispatchOrderLifecyclePolicy } from '../policies/dispatch-order-lifecycle.policy';
 import { DispatchSaleOrderPolicy } from '../policies/dispatch-sale-order.policy';
@@ -134,6 +139,38 @@ export class MarkDispatchOrderDispatchedUseCase
             );
           sale_order.dispatch_status = SaleDispatchStatus.OUT_FOR_DELIVERY;
           await manager.getRepository(SaleOrder).save(sale_order);
+
+          // Mark assigned serials as SOLD
+          for (const line of sale_order.lines ?? []) {
+            const line_serials = await manager
+              .getRepository(SaleOrderLineSerial)
+              .find({
+                where: { sale_order_line_id: line.id },
+                relations: { product_serial: true },
+              });
+
+            for (const as of line_serials) {
+              const serial = as.product_serial;
+              if (serial && serial.status === SerialStatus.RESERVED) {
+                serial.status = SerialStatus.SOLD;
+                serial.sold_at = new Date();
+                await manager.getRepository(ProductSerial).save(serial);
+
+                await manager.getRepository(SerialEvent).save(
+                  manager.getRepository(SerialEvent).create({
+                    business_id,
+                    serial_id: serial.id,
+                    event_type: SerialEventType.SOLD,
+                    contact_id: sale_order.customer_contact_id,
+                    from_warehouse_id: sale_order.warehouse_id,
+                    performed_by_user_id: current_user.id,
+                    notes: `Vendido por despacho de orden ${sale_order.code}`,
+                    occurred_at: new Date(),
+                  }),
+                );
+              }
+            }
+          }
 
           if (consumed_deltas.length > 0) {
             await this.inventory_ledger_service.post_posted_movement(

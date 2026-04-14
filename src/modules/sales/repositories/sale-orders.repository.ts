@@ -47,6 +47,8 @@ const SALE_ORDER_DETAIL_RELATIONS = [
   'lines',
   'lines.product_variant',
   'lines.product_variant.product',
+  'lines.assigned_serials',
+  'lines.assigned_serials.product_serial',
   'delivery_charges',
 ];
 
@@ -192,6 +194,8 @@ export class SaleOrdersRepository {
       .leftJoinAndSelect('sale_order.lines', 'line')
       .leftJoinAndSelect('line.product_variant', 'product_variant')
       .leftJoinAndSelect('product_variant.product', 'product')
+      .leftJoinAndSelect('line.assigned_serials', 'line_serial')
+      .leftJoinAndSelect('line_serial.product_serial', 'assigned_serial')
       .leftJoinAndSelect('sale_order.delivery_charges', 'delivery_charge')
       .where('sale_order.id = :id', { id })
       .andWhere('sale_order.business_id = :business_id', { business_id })

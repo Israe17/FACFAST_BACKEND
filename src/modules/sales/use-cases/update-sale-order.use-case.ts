@@ -8,6 +8,8 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { UpdateSaleOrderDto } from '../dto/update-sale-order.dto';
 import { SaleOrder } from '../entities/sale-order.entity';
+import { SaleOrderLine } from '../entities/sale-order-line.entity';
+import { SaleOrderLineSerial } from '../entities/sale-order-line-serial.entity';
 import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
 import { SaleOrderLifecyclePolicy } from '../policies/sale-order-lifecycle.policy';
 import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
@@ -283,6 +285,44 @@ export class UpdateSaleOrderUseCase
           }),
           manager,
         );
+
+        // Re-create serial selections (old ones cascade-deleted with lines)
+        const lines_with_serials = dto.lines.filter(
+          (l) => l.serial_ids && l.serial_ids.length > 0,
+        );
+        if (lines_with_serials.length > 0) {
+          const saved_lines = await manager
+            .getRepository(SaleOrderLine)
+            .find({
+              where: { sale_order_id: order.id },
+              order: { line_no: 'ASC' },
+            });
+
+          const serial_records: Partial<SaleOrderLineSerial>[] = [];
+          for (const line_dto of lines_with_serials) {
+            const line_index = dto.lines.indexOf(line_dto);
+            const saved_line = saved_lines.find(
+              (l) => l.line_no === line_index + 1,
+            );
+            if (!saved_line) continue;
+
+            for (const serial_id of line_dto.serial_ids!) {
+              serial_records.push({
+                business_id,
+                sale_order_line_id: saved_line.id,
+                product_serial_id: serial_id,
+                assigned_at: null,
+              });
+            }
+          }
+
+          if (serial_records.length > 0) {
+            const serial_repo = manager.getRepository(SaleOrderLineSerial);
+            await serial_repo.save(
+              serial_records.map((r) => serial_repo.create(r)),
+            );
+          }
+        }
       }
 
       if (dto.delivery_charges !== undefined) {

@@ -5,6 +5,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,6 +14,7 @@ import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { ProductVariant } from '../../inventory/entities/product-variant.entity';
 import { SaleOrderLineStatus } from '../enums/sale-order-line-status.enum';
 import { SaleOrder } from './sale-order.entity';
+import { SaleOrderLineSerial } from './sale-order-line-serial.entity';
 
 @Entity('sale_order_lines')
 @Index(['business_id', 'sale_order_id', 'line_no'], { unique: true })
@@ -128,4 +130,7 @@ export class SaleOrderLine {
     type: 'timestamptz',
   })
   updated_at!: Date;
+
+  @OneToMany(() => SaleOrderLineSerial, (s) => s.sale_order_line)
+  assigned_serials?: SaleOrderLineSerial[];
 }

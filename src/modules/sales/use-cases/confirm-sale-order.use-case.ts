@@ -8,6 +8,11 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { InventoryLedgerService } from '../../inventory/services/inventory-ledger.service';
 import { InventoryReservationsService } from '../../inventory/services/inventory-reservations.service';
 import { InventoryMovementHeaderType } from '../../inventory/enums/inventory-movement-header-type.enum';
+import { ProductSerial } from '../../inventory/entities/product-serial.entity';
+import { SerialEvent } from '../../inventory/entities/serial-event.entity';
+import { SerialStatus } from '../../inventory/enums/serial-status.enum';
+import { SerialEventType } from '../../inventory/enums/serial-event-type.enum';
+import { SaleOrderLineSerial } from '../entities/sale-order-line-serial.entity';
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { SaleOrder } from '../entities/sale-order.entity';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
@@ -105,6 +110,81 @@ export class ConfirmSaleOrderUseCase
             order,
           );
 
+        // Validate and reserve assigned serials
+        for (const line of order.lines ?? []) {
+          const line_serials = (line.assigned_serials ?? []).filter(
+            (as) => as.assigned_at === null,
+          );
+          if (line_serials.length === 0) continue;
+
+          const track_serials =
+            line.product_variant?.product?.track_serials ?? false;
+          if (!track_serials) continue;
+
+          const serial_ids = line_serials.map((as) => as.product_serial_id);
+          const serials = await manager
+            .getRepository(ProductSerial)
+            .findByIds(serial_ids);
+
+          for (const serial of serials) {
+            if (serial.status !== SerialStatus.AVAILABLE) {
+              throw new DomainNotFoundException({
+                code: 'SERIAL_NOT_AVAILABLE',
+                messageKey: 'sales.serial_not_available',
+                details: {
+                  serial_number: serial.serial_number,
+                  current_status: serial.status,
+                },
+              });
+            }
+            if (
+              order.warehouse_id &&
+              serial.warehouse_id !== order.warehouse_id
+            ) {
+              throw new DomainNotFoundException({
+                code: 'SERIAL_WRONG_WAREHOUSE',
+                messageKey: 'sales.serial_wrong_warehouse',
+                details: {
+                  serial_number: serial.serial_number,
+                },
+              });
+            }
+
+            serial.status = SerialStatus.RESERVED;
+            await manager.getRepository(ProductSerial).save(serial);
+
+            await manager.getRepository(SerialEvent).save(
+              manager.getRepository(SerialEvent).create({
+                business_id,
+                serial_id: serial.id,
+                event_type: SerialEventType.RESERVED_FOR_SALE,
+                performed_by_user_id: current_user.id,
+                notes: `Reservado para orden de venta ${order.code}`,
+                occurred_at: new Date(),
+              }),
+            );
+          }
+
+          // Mark junction records as assigned
+          for (const as of line_serials) {
+            as.assigned_at = new Date();
+            await manager.getRepository(SaleOrderLineSerial).save(as);
+          }
+
+          // Validate quantity matches serial count
+          if (Math.round(line.quantity) !== serial_ids.length) {
+            throw new DomainNotFoundException({
+              code: 'SERIAL_QUANTITY_MISMATCH',
+              messageKey: 'sales.serial_quantity_mismatch',
+              details: {
+                line_no: line.line_no,
+                expected: Math.round(line.quantity),
+                actual: serial_ids.length,
+              },
+            });
+          }
+        }
+
         order.status = SaleOrderStatus.CONFIRMED;
         order.dispatch_status = get_dispatch_status_for_fulfillment_mode(
           order.fulfillment_mode,
@@ -150,6 +230,9 @@ export class ConfirmSaleOrderUseCase
               lines: {
                 product_variant: {
                   product: true,
+                },
+                assigned_serials: {
+                  product_serial: true,
                 },
               },
               delivery_charges: true,

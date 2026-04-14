@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsInt,
   IsNumber,
   IsOptional,
@@ -49,4 +50,11 @@ export class CreateSaleOrderLineDto {
   @IsOptional()
   @IsString({ message: validation_messages.invalid_string() })
   notes?: string;
+
+  @ApiPropertyOptional({ type: [Number] })
+  @IsOptional()
+  @IsArray({ message: validation_messages.array_required() })
+  @IsInt({ each: true, message: validation_messages.invalid_number() })
+  @IsPositive({ each: true, message: validation_messages.positive_number() })
+  serial_ids?: number[];
 }

@@ -46,6 +46,7 @@ import { DispatchStopLine } from '../modules/inventory/entities/dispatch-stop-li
 import { DispatchExpense } from '../modules/inventory/entities/dispatch-expense.entity';
 import { SaleOrder } from '../modules/sales/entities/sale-order.entity';
 import { SaleOrderLine } from '../modules/sales/entities/sale-order-line.entity';
+import { SaleOrderLineSerial } from '../modules/sales/entities/sale-order-line-serial.entity';
 import { SaleOrderDeliveryCharge } from '../modules/sales/entities/sale-order-delivery-charge.entity';
 import { ElectronicDocument } from '../modules/sales/entities/electronic-document.entity';
 import { Permission } from '../modules/rbac/entities/permission.entity';
@@ -110,6 +111,7 @@ export const database_entities = [
   DispatchExpense,
   SaleOrder,
   SaleOrderLine,
+  SaleOrderLineSerial,
   SaleOrderDeliveryCharge,
   ElectronicDocument,
 ];
