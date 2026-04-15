@@ -19,6 +19,7 @@ import { CancelSaleOrderLineDto } from '../dto/cancel-sale-order-line.dto';
 import { SaleOrderView } from '../contracts/sale-order.view';
 import { SaleOrder } from '../entities/sale-order.entity';
 import { SaleOrderLine } from '../entities/sale-order-line.entity';
+import { SaleOrderLineSerial } from '../entities/sale-order-line-serial.entity';
 import { SaleDispatchStatus } from '../enums/sale-dispatch-status.enum';
 import { SaleOrderLineStatus } from '../enums/sale-order-line-status.enum';
 import { SaleOrderStatus } from '../enums/sale-order-status.enum';
@@ -143,17 +144,36 @@ export class CancelSaleOrderLineUseCase
       // Sync DO: remove dispatch stop line if exists
       await this.remove_dispatch_stop_line(manager, line_id);
 
-      // Mark serials as DEFECTIVE if this is a serial-tracked product
-      if (line.product_variant?.track_serials && order.warehouse_id) {
-        await this.mark_serials_defective(
-          manager,
-          business_id,
-          line.product_variant_id,
-          order.warehouse_id,
-          Number(line.quantity),
-          current_user.id,
-          reason_text,
-        );
+      // Mark assigned serials as DEFECTIVE using junction table
+      const line_serial_assignments = await manager
+        .getRepository(SaleOrderLineSerial)
+        .find({
+          where: { sale_order_line_id: line_id },
+          relations: { product_serial: true },
+        });
+      for (const as of line_serial_assignments) {
+        const serial = as.product_serial;
+        if (serial && serial.status === SerialStatus.RESERVED) {
+          serial.status = SerialStatus.DEFECTIVE;
+          serial.sold_at = null;
+          await manager.getRepository(ProductSerial).save(serial);
+
+          await manager.getRepository(SerialEvent).save(
+            manager.getRepository(SerialEvent).create({
+              business_id,
+              serial_id: serial.id,
+              event_type: SerialEventType.STATUS_CHANGE,
+              performed_by_user_id: current_user.id,
+              notes: `reserved -> defective: Linea cancelada por daño${reason_text ? ' - ' + reason_text : ''}`,
+              occurred_at: new Date(),
+            }),
+          );
+        }
+      }
+      if (line_serial_assignments.length > 0) {
+        await manager
+          .getRepository(SaleOrderLineSerial)
+          .remove(line_serial_assignments);
       }
 
       // Auto-cancel SO if all lines are cancelled
@@ -210,45 +230,4 @@ export class CancelSaleOrderLineUseCase
     }
   }
 
-  private async mark_serials_defective(
-    manager: EntityManager,
-    business_id: number,
-    product_variant_id: number,
-    warehouse_id: number,
-    quantity: number,
-    performed_by_user_id: number,
-    reason: string,
-  ): Promise<void> {
-    const serial_repo = manager.getRepository(ProductSerial);
-    const serials = await serial_repo.find({
-      where: {
-        business_id,
-        product_variant_id,
-        warehouse_id,
-        status: SerialStatus.RESERVED,
-      },
-      take: quantity,
-    });
-
-    if (serials.length === 0) return;
-
-    const event_repo = manager.getRepository(SerialEvent);
-    for (const serial of serials) {
-      const old_status = serial.status;
-      serial.status = SerialStatus.DEFECTIVE;
-      serial.sold_at = null;
-
-      await serial_repo.save(serial);
-
-      const event = event_repo.create({
-        business_id,
-        serial_id: serial.id,
-        event_type: SerialEventType.STATUS_CHANGE,
-        performed_by_user_id,
-        notes: `${old_status} -> ${SerialStatus.DEFECTIVE}: Linea cancelada por daño${reason ? ' - ' + reason : ''}`,
-        occurred_at: new Date(),
-      });
-      await event_repo.save(event);
-    }
-  }
 }

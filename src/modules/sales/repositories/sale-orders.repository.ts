@@ -200,6 +200,7 @@ export class SaleOrdersRepository {
       .where('sale_order.id = :id', { id })
       .andWhere('sale_order.business_id = :business_id', { business_id })
       .orderBy('line.line_no', 'ASC')
+      .addOrderBy('line_serial.id', 'ASC')
       .addOrderBy('delivery_charge.id', 'ASC')
       .getOne();
   }

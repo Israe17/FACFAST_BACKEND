@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -110,7 +111,12 @@ export class ConfirmSaleOrderUseCase
             order,
           );
 
-        // Validate and reserve assigned serials
+        // --- Validate assigned serials (all validation BEFORE any mutation) ---
+        const serial_line_entries: Array<{
+          serials: ProductSerial[];
+          junction_records: SaleOrderLineSerial[];
+        }> = [];
+
         for (const line of order.lines ?? []) {
           const line_serials = (line.assigned_serials ?? []).filter(
             (as) => as.assigned_at === null,
@@ -121,14 +127,27 @@ export class ConfirmSaleOrderUseCase
             line.product_variant?.product?.track_serials ?? false;
           if (!track_serials) continue;
 
+          // Validate quantity matches serial count
           const serial_ids = line_serials.map((as) => as.product_serial_id);
+          if (Math.round(line.quantity) !== serial_ids.length) {
+            throw new DomainBadRequestException({
+              code: 'SERIAL_QUANTITY_MISMATCH',
+              messageKey: 'sales.serial_quantity_mismatch',
+              details: {
+                line_no: line.line_no,
+                expected: Math.round(line.quantity),
+                actual: serial_ids.length,
+              },
+            });
+          }
+
           const serials = await manager
             .getRepository(ProductSerial)
             .findByIds(serial_ids);
 
           for (const serial of serials) {
             if (serial.status !== SerialStatus.AVAILABLE) {
-              throw new DomainNotFoundException({
+              throw new DomainBadRequestException({
                 code: 'SERIAL_NOT_AVAILABLE',
                 messageKey: 'sales.serial_not_available',
                 details: {
@@ -141,7 +160,7 @@ export class ConfirmSaleOrderUseCase
               order.warehouse_id &&
               serial.warehouse_id !== order.warehouse_id
             ) {
-              throw new DomainNotFoundException({
+              throw new DomainBadRequestException({
                 code: 'SERIAL_WRONG_WAREHOUSE',
                 messageKey: 'sales.serial_wrong_warehouse',
                 details: {
@@ -149,7 +168,14 @@ export class ConfirmSaleOrderUseCase
                 },
               });
             }
+          }
 
+          serial_line_entries.push({ serials, junction_records: line_serials });
+        }
+
+        // --- Mutate serials (only after all validation passes) ---
+        for (const { serials, junction_records } of serial_line_entries) {
+          for (const serial of serials) {
             serial.status = SerialStatus.RESERVED;
             await manager.getRepository(ProductSerial).save(serial);
 
@@ -165,23 +191,9 @@ export class ConfirmSaleOrderUseCase
             );
           }
 
-          // Mark junction records as assigned
-          for (const as of line_serials) {
+          for (const as of junction_records) {
             as.assigned_at = new Date();
             await manager.getRepository(SaleOrderLineSerial).save(as);
-          }
-
-          // Validate quantity matches serial count
-          if (Math.round(line.quantity) !== serial_ids.length) {
-            throw new DomainNotFoundException({
-              code: 'SERIAL_QUANTITY_MISMATCH',
-              messageKey: 'sales.serial_quantity_mismatch',
-              details: {
-                line_no: line.line_no,
-                expected: Math.round(line.quantity),
-                actual: serial_ids.length,
-              },
-            });
           }
         }
 
