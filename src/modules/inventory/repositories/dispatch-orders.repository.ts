@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, In, Repository } from 'typeorm';
 import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { EntityCodeService } from '../../common/services/entity-code.service';
-import { apply_cursor, apply_search } from '../../common/utils/query-builder.util';
+import { apply_cursor, apply_pagination, apply_search, apply_sorting } from '../../common/utils/query-builder.util';
 import { DispatchOrder } from '../entities/dispatch-order.entity';
 
 const DISPATCH_ORDER_LIST_RELATIONS = [
@@ -36,6 +38,14 @@ const DISPATCH_ORDER_SEARCH_COLUMNS = [
   'vehicle.name',
   'vehicle.plate_number',
 ];
+
+const DISPATCH_ORDER_SORT_COLUMNS: Record<string, string> = {
+  code: 'dispatch_order.code',
+  status: 'dispatch_order.status',
+  dispatch_type: 'dispatch_order.dispatch_type',
+  scheduled_date: 'dispatch_order.scheduled_date',
+  created_at: 'dispatch_order.created_at',
+};
 
 @Injectable()
 export class DispatchOrdersRepository {
@@ -78,6 +88,36 @@ export class DispatchOrdersRepository {
       relations: DISPATCH_ORDER_LIST_RELATIONS,
       order: { scheduled_date: 'DESC' },
     });
+  }
+
+  async find_paginated_by_business_in_scope<T>(
+    business_id: number,
+    branch_ids: number[] | undefined,
+    query: PaginatedQueryDto,
+    mapper: (dispatch_order: DispatchOrder) => T,
+  ): Promise<PaginatedResponseDto<T>> {
+    if (branch_ids && branch_ids.length === 0) {
+      return new PaginatedResponseDto([], 0, query.page ?? 1, query.limit ?? 20);
+    }
+
+    const qb = this.dispatch_order_repository
+      .createQueryBuilder('dispatch_order')
+      .leftJoinAndSelect('dispatch_order.route', 'route')
+      .leftJoinAndSelect('dispatch_order.vehicle', 'vehicle')
+      .leftJoinAndSelect('dispatch_order.driver_user', 'driver_user')
+      .leftJoinAndSelect('dispatch_order.branch', 'branch')
+      .leftJoinAndSelect('dispatch_order.origin_warehouse', 'origin_warehouse')
+      .leftJoinAndSelect('dispatch_order.created_by_user', 'created_by_user')
+      .where('dispatch_order.business_id = :business_id', { business_id });
+
+    if (branch_ids?.length) {
+      qb.andWhere('dispatch_order.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    apply_search(qb, query.search, DISPATCH_ORDER_SEARCH_COLUMNS);
+    apply_sorting(qb, query.sort_by, query.sort_order, DISPATCH_ORDER_SORT_COLUMNS, 'dispatch_order.scheduled_date', 'DESC');
+
+    return apply_pagination(qb, query, mapper);
   }
 
   async find_cursor_by_business_in_scope<T>(
