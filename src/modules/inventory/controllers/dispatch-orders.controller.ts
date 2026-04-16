@@ -53,15 +53,12 @@ export class DispatchOrdersController {
 
   @Get()
   @RequirePermissions(PermissionKey.DISPATCH_ORDERS_VIEW)
-  @ApiOperation({ summary: 'Listar ordenes de despacho' })
+  @ApiOperation({ summary: 'Listar ordenes de despacho (paginado)' })
   get_dispatch_orders(
     @CurrentUser() current_user: AuthenticatedUserContext,
     @Query() query: PaginatedQueryDto,
   ) {
-    if (query.page || query.limit || query.search || query.sort_by) {
-      return this.dispatch_orders_service.get_dispatch_orders_paginated(current_user, query);
-    }
-    return this.dispatch_orders_service.get_dispatch_orders(current_user);
+    return this.dispatch_orders_service.get_dispatch_orders_paginated(current_user, query);
   }
 
   @Get('cursor')
