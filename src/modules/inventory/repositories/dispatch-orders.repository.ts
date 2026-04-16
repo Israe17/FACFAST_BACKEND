@@ -108,6 +108,7 @@ export class DispatchOrdersRepository {
       .leftJoinAndSelect('dispatch_order.branch', 'branch')
       .leftJoinAndSelect('dispatch_order.origin_warehouse', 'origin_warehouse')
       .leftJoinAndSelect('dispatch_order.created_by_user', 'created_by_user')
+      .leftJoinAndSelect('dispatch_order.stops', 'stop')
       .where('dispatch_order.business_id = :business_id', { business_id });
 
     if (branch_ids?.length) {
