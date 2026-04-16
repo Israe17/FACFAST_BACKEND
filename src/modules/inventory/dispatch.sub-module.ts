@@ -29,6 +29,7 @@ import { CreateDispatchOrderUseCase } from './use-cases/create-dispatch-order.us
 import { GetDispatchOrderQueryUseCase } from './use-cases/get-dispatch-order.query.use-case';
 import { GetDispatchOrdersCursorQueryUseCase } from './use-cases/get-dispatch-orders-cursor.query.use-case';
 import { GetDispatchOrdersListQueryUseCase } from './use-cases/get-dispatch-orders-list.query.use-case';
+import { GetDispatchOrdersPageQueryUseCase } from './use-cases/get-dispatch-orders-page.query.use-case';
 import { MarkDispatchOrderReadyUseCase } from './use-cases/mark-dispatch-order-ready.use-case';
 import { MarkDispatchOrderCompletedUseCase } from './use-cases/mark-dispatch-order-completed.use-case';
 import { MarkDispatchOrderDispatchedUseCase } from './use-cases/mark-dispatch-order-dispatched.use-case';
@@ -68,6 +69,7 @@ import { UpdateDispatchStopStatusUseCase } from './use-cases/update-dispatch-sto
     VehiclesService,
     GetDispatchOrdersListQueryUseCase,
     GetDispatchOrdersCursorQueryUseCase,
+    GetDispatchOrdersPageQueryUseCase,
     GetDispatchOrderQueryUseCase,
     CreateDispatchOrderUseCase,
     UpdateDispatchOrderUseCase,

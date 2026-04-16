@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { DispatchOrderView } from '../contracts/dispatch-order.view';
 import { CreateDispatchExpenseDto } from '../dto/create-dispatch-expense.dto';
@@ -15,6 +17,7 @@ import { CreateDispatchOrderUseCase } from '../use-cases/create-dispatch-order.u
 import { GetDispatchOrderQueryUseCase } from '../use-cases/get-dispatch-order.query.use-case';
 import { GetDispatchOrdersCursorQueryUseCase } from '../use-cases/get-dispatch-orders-cursor.query.use-case';
 import { GetDispatchOrdersListQueryUseCase } from '../use-cases/get-dispatch-orders-list.query.use-case';
+import { GetDispatchOrdersPageQueryUseCase } from '../use-cases/get-dispatch-orders-page.query.use-case';
 import { MarkDispatchOrderReadyUseCase } from '../use-cases/mark-dispatch-order-ready.use-case';
 import { MarkDispatchOrderCompletedUseCase } from '../use-cases/mark-dispatch-order-completed.use-case';
 import { MarkDispatchOrderDispatchedUseCase } from '../use-cases/mark-dispatch-order-dispatched.use-case';
@@ -29,6 +32,7 @@ export class DispatchOrdersService {
   constructor(
     private readonly get_dispatch_orders_list_query_use_case: GetDispatchOrdersListQueryUseCase,
     private readonly get_dispatch_orders_cursor_query_use_case: GetDispatchOrdersCursorQueryUseCase,
+    private readonly get_dispatch_orders_page_query_use_case: GetDispatchOrdersPageQueryUseCase,
     private readonly get_dispatch_order_query_use_case: GetDispatchOrderQueryUseCase,
     private readonly create_dispatch_order_use_case: CreateDispatchOrderUseCase,
     private readonly update_dispatch_order_use_case: UpdateDispatchOrderUseCase,
@@ -48,6 +52,16 @@ export class DispatchOrdersService {
     current_user: AuthenticatedUserContext,
   ): Promise<DispatchOrderView[]> {
     return this.get_dispatch_orders_list_query_use_case.execute({ current_user });
+  }
+
+  async get_dispatch_orders_paginated(
+    current_user: AuthenticatedUserContext,
+    query: PaginatedQueryDto,
+  ): Promise<PaginatedResponseDto<DispatchOrderView>> {
+    return this.get_dispatch_orders_page_query_use_case.execute({
+      current_user,
+      query,
+    });
   }
 
   async get_dispatch_orders_cursor(

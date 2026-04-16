@@ -25,6 +25,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { IdempotencyKey } from '../../common/decorators/idempotency-key.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -55,7 +56,11 @@ export class DispatchOrdersController {
   @ApiOperation({ summary: 'Listar ordenes de despacho' })
   get_dispatch_orders(
     @CurrentUser() current_user: AuthenticatedUserContext,
+    @Query() query: PaginatedQueryDto,
   ) {
+    if (query.page || query.limit || query.search || query.sort_by) {
+      return this.dispatch_orders_service.get_dispatch_orders_paginated(current_user, query);
+    }
     return this.dispatch_orders_service.get_dispatch_orders(current_user);
   }
 
