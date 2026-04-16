@@ -61,15 +61,6 @@ export class DispatchOrdersController {
     return this.dispatch_orders_service.get_dispatch_orders_paginated(current_user, query);
   }
 
-  @Get('list')
-  @RequirePermissions(PermissionKey.DISPATCH_ORDERS_VIEW)
-  @ApiOperation({ summary: 'Listar todas las ordenes de despacho con relaciones' })
-  get_dispatch_orders_list(
-    @CurrentUser() current_user: AuthenticatedUserContext,
-  ) {
-    return this.dispatch_orders_service.get_dispatch_orders(current_user);
-  }
-
   @Get('cursor')
   @RequirePermissions(PermissionKey.DISPATCH_ORDERS_VIEW)
   @ApiOperation({ summary: 'Listar ordenes de despacho (cursor)' })
