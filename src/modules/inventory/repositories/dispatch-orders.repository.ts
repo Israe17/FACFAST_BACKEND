@@ -17,6 +17,9 @@ const DISPATCH_ORDER_LIST_RELATIONS = [
   'origin_warehouse',
   'created_by_user',
   'stops',
+  'stops.lines',
+  'stops.lines.product_variant',
+  'stops.lines.product_variant.product',
 ];
 
 const DISPATCH_ORDER_DETAIL_RELATIONS = [
@@ -109,6 +112,9 @@ export class DispatchOrdersRepository {
       .leftJoinAndSelect('dispatch_order.origin_warehouse', 'origin_warehouse')
       .leftJoinAndSelect('dispatch_order.created_by_user', 'created_by_user')
       .leftJoinAndSelect('dispatch_order.stops', 'stop')
+      .leftJoinAndSelect('stop.lines', 'stop_line')
+      .leftJoinAndSelect('stop_line.product_variant', 'stop_line_variant')
+      .leftJoinAndSelect('stop_line_variant.product', 'stop_line_product')
       .where('dispatch_order.business_id = :business_id', { business_id });
 
     if (branch_ids?.length) {
