@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-interface CabysResult {
+export interface CabysResult {
   codigo: string;
   descripcion: string;
   impuesto: number;
