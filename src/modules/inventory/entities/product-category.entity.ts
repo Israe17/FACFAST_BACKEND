@@ -9,6 +9,7 @@ import {
 import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
 import { Product } from './product.entity';
+import { TaxProfile } from './tax-profile.entity';
 
 @Entity('product_categories')
 @Index(['business_id', 'parent_id', 'name'], { unique: true })
@@ -71,24 +72,18 @@ export class ProductCategory extends AuditedCodeEntity {
   path!: string | null;
 
   @Column({
-    type: 'varchar',
-    length: 32,
-    nullable: true,
-  })
-  cabys_code!: string | null;
-
-  @Column({
-    type: 'varchar',
-    length: 500,
-    nullable: true,
-  })
-  cabys_descripcion!: string | null;
-
-  @Column({
     type: 'int',
     nullable: true,
   })
-  cabys_impuesto!: number | null;
+  default_tax_profile_id!: number | null;
+
+  @ManyToOne(() => TaxProfile, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'default_tax_profile_id',
+  })
+  default_tax_profile?: TaxProfile | null;
 
   @Column({
     type: 'boolean',

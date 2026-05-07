@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainConflictException } from '../../common/errors/exceptions/domain-conflict.exception';
 import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
@@ -8,15 +8,31 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { CreateProductCategoryDto } from '../dto/create-product-category.dto';
 import { UpdateProductCategoryDto } from '../dto/update-product-category.dto';
 import { ProductCategory } from '../entities/product-category.entity';
+import { TaxProfile } from '../entities/tax-profile.entity';
+import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
+import { TaxType } from '../enums/tax-type.enum';
 import { ProductCategoriesRepository } from '../repositories/product-categories.repository';
 import { ProductsRepository } from '../repositories/products.repository';
+import { TaxProfilesRepository } from '../repositories/tax-profiles.repository';
+
+const HACIENDA_IVA_RATE_CODES: Record<number, string> = {
+  0: '01',
+  1: '02',
+  2: '03',
+  4: '04',
+  8: '07',
+  13: '08',
+};
 
 @Injectable()
 export class ProductCategoriesService {
+  private readonly logger = new Logger(ProductCategoriesService.name);
+
   constructor(
     private readonly product_categories_repository: ProductCategoriesRepository,
     private readonly entity_code_service: EntityCodeService,
     private readonly products_repository: ProductsRepository,
+    private readonly tax_profiles_repository: TaxProfilesRepository,
   ) {}
 
   async get_categories(current_user: AuthenticatedUserContext) {
@@ -94,6 +110,19 @@ export class ProductCategoriesService {
       this.entity_code_service.validate_code('CG', dto.code);
     }
 
+    const cabys_code = this.normalize_optional_string(dto.cabys_code);
+    const default_tax_profile_id = cabys_code
+      ? (
+          await this.ensure_tax_profile_for_cabys(
+            business_id,
+            cabys_code,
+            this.normalize_optional_string(dto.cabys_descripcion),
+            dto.cabys_impuesto ?? null,
+            dto.item_kind ?? TaxProfileItemKind.GOODS,
+          )
+        )?.id ?? null
+      : null;
+
     let category = this.product_categories_repository.create({
       business_id,
       code: dto.code?.trim() ?? null,
@@ -102,9 +131,7 @@ export class ProductCategoriesService {
       parent_id: parent?.id ?? null,
       level: null,
       path: null,
-      cabys_code: this.normalize_optional_string(dto.cabys_code),
-      cabys_descripcion: this.normalize_optional_string(dto.cabys_descripcion),
-      cabys_impuesto: dto.cabys_impuesto ?? null,
+      default_tax_profile_id,
       is_active: dto.is_active ?? true,
     });
 
@@ -114,8 +141,11 @@ export class ProductCategoriesService {
       ? `${parent.path}${category.id}/`
       : `/${category.id}/`;
 
+    const saved_category =
+      await this.product_categories_repository.save(category);
+
     return this.serialize_category(
-      await this.product_categories_repository.save(category),
+      await this.get_category_entity(business_id, saved_category.id),
     );
   }
 
@@ -211,13 +241,19 @@ export class ProductCategoriesService {
       category.parent_id = parent?.id ?? null;
     }
     if (dto.cabys_code !== undefined) {
-      category.cabys_code = this.normalize_optional_string(dto.cabys_code);
-    }
-    if (dto.cabys_descripcion !== undefined) {
-      category.cabys_descripcion = this.normalize_optional_string(dto.cabys_descripcion);
-    }
-    if (dto.cabys_impuesto !== undefined) {
-      category.cabys_impuesto = dto.cabys_impuesto ?? null;
+      const next_cabys_code = this.normalize_optional_string(dto.cabys_code);
+      if (next_cabys_code) {
+        const tax_profile = await this.ensure_tax_profile_for_cabys(
+          business_id,
+          next_cabys_code,
+          this.normalize_optional_string(dto.cabys_descripcion),
+          dto.cabys_impuesto ?? null,
+          dto.item_kind ?? TaxProfileItemKind.GOODS,
+        );
+        category.default_tax_profile_id = tax_profile?.id ?? null;
+      } else {
+        category.default_tax_profile_id = null;
+      }
     }
     if (dto.is_active !== undefined) {
       category.is_active = dto.is_active;
@@ -231,7 +267,10 @@ export class ProductCategoriesService {
     const saved_category =
       await this.product_categories_repository.save(category);
     await this.refresh_descendants(saved_category);
-    return this.serialize_category(saved_category);
+
+    return this.serialize_category(
+      await this.get_category_entity(business_id, saved_category.id),
+    );
   }
 
   async delete_category(
@@ -309,6 +348,67 @@ export class ProductCategoriesService {
     return normalized ? normalized : null;
   }
 
+  private async ensure_tax_profile_for_cabys(
+    business_id: number,
+    cabys_code: string,
+    cabys_descripcion: string | null,
+    cabys_impuesto: number | null,
+    item_kind: TaxProfileItemKind = TaxProfileItemKind.GOODS,
+  ): Promise<TaxProfile | null> {
+    const existing =
+      await this.tax_profiles_repository.find_active_by_cabys_in_business(
+        business_id,
+        cabys_code,
+      );
+    if (existing) {
+      return existing;
+    }
+
+    const rate = cabys_impuesto ?? 13;
+    const tax_type = rate === 0 ? TaxType.EXENTO : TaxType.IVA;
+    const base_label =
+      cabys_descripcion?.trim().substring(0, 80) || `CABYS ${cabys_code}`;
+    let name = `IVA ${rate}% - ${base_label}`;
+    if (
+      await this.tax_profiles_repository.exists_name_in_business(
+        business_id,
+        name,
+      )
+    ) {
+      name = `${name} [${cabys_code}]`;
+    }
+
+    const tax_profile = this.tax_profiles_repository.create({
+      business_id,
+      code: null,
+      name,
+      description: cabys_descripcion ?? null,
+      cabys_code,
+      item_kind,
+      tax_type,
+      iva_rate_code:
+        tax_type === TaxType.IVA ? HACIENDA_IVA_RATE_CODES[rate] ?? '08' : null,
+      iva_rate: tax_type === TaxType.IVA ? rate : null,
+      requires_cabys: true,
+      allows_exoneration: true,
+      has_specific_tax: false,
+      specific_tax_name: null,
+      specific_tax_rate: null,
+      is_active: true,
+    });
+
+    try {
+      return await this.tax_profiles_repository.save(tax_profile);
+    } catch (error) {
+      this.logger.warn(
+        `Auto-creation of tax profile for CABYS ${cabys_code} failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+  }
+
   private serialize_category(category: ProductCategory) {
     return {
       id: category.id,
@@ -319,9 +419,17 @@ export class ProductCategoriesService {
       parent_id: category.parent_id,
       level: category.level,
       path: category.path,
-      cabys_code: category.cabys_code,
-      cabys_descripcion: category.cabys_descripcion,
-      cabys_impuesto: category.cabys_impuesto,
+      default_tax_profile_id: category.default_tax_profile_id,
+      default_tax_profile: category.default_tax_profile
+        ? {
+            id: category.default_tax_profile.id,
+            name: category.default_tax_profile.name,
+            cabys_code: category.default_tax_profile.cabys_code,
+            description: category.default_tax_profile.description,
+            iva_rate: category.default_tax_profile.iva_rate,
+            item_kind: category.default_tax_profile.item_kind,
+          }
+        : null,
       is_active: category.is_active,
       lifecycle: {
         can_delete: true,

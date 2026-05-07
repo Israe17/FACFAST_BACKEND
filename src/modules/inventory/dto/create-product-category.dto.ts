@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -8,6 +9,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { GENERIC_ENTITY_CODE_PATTERN } from '../../common/utils/validation-patterns.util';
+import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 
 export class CreateProductCategoryDto {
   @ApiPropertyOptional({ example: 'CG-0001' })
@@ -44,6 +46,11 @@ export class CreateProductCategoryDto {
   @IsOptional()
   @IsInt()
   cabys_impuesto?: number | null;
+
+  @ApiPropertyOptional({ enum: TaxProfileItemKind, example: TaxProfileItemKind.GOODS })
+  @IsOptional()
+  @IsEnum(TaxProfileItemKind)
+  item_kind?: TaxProfileItemKind;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
