@@ -1,4 +1,5 @@
 import { TaxProfile } from '../entities/tax-profile.entity';
+import { TaxInclusionMode } from '../enums/tax-inclusion-mode.enum';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { TaxType } from '../enums/tax-type.enum';
 import { TaxProfilesRepository } from '../repositories/tax-profiles.repository';
@@ -59,6 +60,7 @@ describe('EnsureTaxProfileForCabysUseCase', () => {
     expect(result!.iva_rate).toBe(13);
     expect(result!.iva_rate_code).toBe('08');
     expect(result!.item_kind).toBe(TaxProfileItemKind.SERVICE);
+    expect(result!.tax_inclusion_mode).toBe(TaxInclusionMode.ADDED);
   });
 
   it('creates an EXENTO profile when rate is zero', async () => {

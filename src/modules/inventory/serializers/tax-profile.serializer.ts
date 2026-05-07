@@ -16,6 +16,7 @@ export class TaxProfileSerializer {
       tax_type: tax_profile.tax_type,
       iva_rate_code: tax_profile.iva_rate_code,
       iva_rate: tax_profile.iva_rate,
+      tax_inclusion_mode: tax_profile.tax_inclusion_mode,
       requires_cabys: tax_profile.requires_cabys,
       allows_exoneration: tax_profile.allows_exoneration,
       has_specific_tax: tax_profile.has_specific_tax,

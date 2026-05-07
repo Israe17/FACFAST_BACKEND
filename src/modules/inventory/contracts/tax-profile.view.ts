@@ -1,3 +1,4 @@
+import { TaxInclusionMode } from '../enums/tax-inclusion-mode.enum';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { TaxType } from '../enums/tax-type.enum';
 
@@ -12,6 +13,7 @@ export interface TaxProfileView {
   tax_type: TaxType;
   iva_rate_code: string | null;
   iva_rate: number | null;
+  tax_inclusion_mode: TaxInclusionMode;
   requires_cabys: boolean;
   allows_exoneration: boolean;
   has_specific_tax: boolean;

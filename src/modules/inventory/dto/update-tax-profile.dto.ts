@@ -14,6 +14,7 @@ import {
   GENERIC_ENTITY_CODE_PATTERN,
   NUMERIC_STRING_PATTERN,
 } from '../../common/utils/validation-patterns.util';
+import { TaxInclusionMode } from '../enums/tax-inclusion-mode.enum';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { TaxType } from '../enums/tax-type.enum';
 
@@ -66,6 +67,11 @@ export class UpdateTaxProfileDto {
   @Min(0)
   @Max(100)
   iva_rate?: number | null;
+
+  @ApiPropertyOptional({ enum: TaxInclusionMode })
+  @IsOptional()
+  @IsEnum(TaxInclusionMode)
+  tax_inclusion_mode?: TaxInclusionMode;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()

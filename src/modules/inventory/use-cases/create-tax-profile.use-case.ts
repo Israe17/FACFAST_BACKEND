@@ -6,6 +6,7 @@ import { EntityCodeService } from '../../common/services/entity-code.service';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { TaxProfileView } from '../contracts/tax-profile.view';
 import { CreateTaxProfileDto } from '../dto/create-tax-profile.dto';
+import { TaxInclusionMode } from '../enums/tax-inclusion-mode.enum';
 import { TaxProfileRulesPolicy } from '../policies/tax-profile-rules.policy';
 import { TaxProfilesRepository } from '../repositories/tax-profiles.repository';
 import { TaxProfileSerializer } from '../serializers/tax-profile.serializer';
@@ -58,6 +59,7 @@ export class CreateTaxProfileUseCase
       tax_type: dto.tax_type,
       iva_rate_code: this.normalize_optional_string(dto.iva_rate_code),
       iva_rate: dto.iva_rate ?? null,
+      tax_inclusion_mode: dto.tax_inclusion_mode ?? TaxInclusionMode.ADDED,
       requires_cabys: dto.requires_cabys ?? true,
       allows_exoneration: dto.allows_exoneration ?? false,
       has_specific_tax: dto.has_specific_tax ?? false,

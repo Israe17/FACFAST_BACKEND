@@ -81,6 +81,9 @@ export class UpdateTaxProfileUseCase
     if (dto.iva_rate !== undefined) {
       tax_profile.iva_rate = dto.iva_rate;
     }
+    if (dto.tax_inclusion_mode !== undefined) {
+      tax_profile.tax_inclusion_mode = dto.tax_inclusion_mode;
+    }
     if (dto.requires_cabys !== undefined) {
       tax_profile.requires_cabys = dto.requires_cabys;
     }
