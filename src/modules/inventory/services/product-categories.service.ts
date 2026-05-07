@@ -118,6 +118,7 @@ export class ProductCategoriesService {
             cabys_code,
             this.normalize_optional_string(dto.cabys_descripcion),
             dto.cabys_impuesto ?? null,
+            dto.item_kind ?? TaxProfileItemKind.GOODS,
           )
         )?.id ?? null
       : null;
@@ -247,6 +248,7 @@ export class ProductCategoriesService {
           next_cabys_code,
           this.normalize_optional_string(dto.cabys_descripcion),
           dto.cabys_impuesto ?? null,
+          dto.item_kind ?? TaxProfileItemKind.GOODS,
         );
         category.default_tax_profile_id = tax_profile?.id ?? null;
       } else {
@@ -351,6 +353,7 @@ export class ProductCategoriesService {
     cabys_code: string,
     cabys_descripcion: string | null,
     cabys_impuesto: number | null,
+    item_kind: TaxProfileItemKind = TaxProfileItemKind.GOODS,
   ): Promise<TaxProfile | null> {
     const existing =
       await this.tax_profiles_repository.find_active_by_cabys_in_business(
@@ -381,7 +384,7 @@ export class ProductCategoriesService {
       name,
       description: cabys_descripcion ?? null,
       cabys_code,
-      item_kind: TaxProfileItemKind.GOODS,
+      item_kind,
       tax_type,
       iva_rate_code:
         tax_type === TaxType.IVA ? HACIENDA_IVA_RATE_CODES[rate] ?? '08' : null,
@@ -424,6 +427,7 @@ export class ProductCategoriesService {
             cabys_code: category.default_tax_profile.cabys_code,
             description: category.default_tax_profile.description,
             iva_rate: category.default_tax_profile.iva_rate,
+            item_kind: category.default_tax_profile.item_kind,
           }
         : null,
       is_active: category.is_active,
