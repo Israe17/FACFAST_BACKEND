@@ -24,6 +24,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import { TaxpayerService } from '../services/taxpayer.service';
 import { ExonerationService } from '../services/exoneration.service';
+import { ContactEmailService } from '../services/contact-email.service';
 
 @ApiTags('hacienda')
 @ApiCookieAuth('access-cookie')
@@ -37,6 +38,7 @@ export class HaciendaController {
   constructor(
     private readonly taxpayer_service: TaxpayerService,
     private readonly exoneration_service: ExonerationService,
+    private readonly contact_email_service: ContactEmailService,
   ) {}
 
   @Get('taxpayer')
@@ -55,6 +57,30 @@ export class HaciendaController {
       throw new NotFoundException('Taxpayer not found');
     }
     return { taxpayer: result };
+  }
+
+  @Get('email')
+  @RequirePermissions(PermissionKey.CONTACTS_VIEW)
+  @ApiOperation({
+    summary:
+      'Consultar correo del contribuyente registrado en Yo Contribuyo (Hacienda)',
+  })
+  @ApiQuery({
+    name: 'identification',
+    required: true,
+    description: 'Numero de identificacion sin guiones',
+  })
+  @ApiOkResponse({ description: 'Correo electronico del contribuyente.' })
+  @ApiNotFoundResponse({
+    description:
+      'El contribuyente no tiene correo registrado en Yo Contribuyo.',
+  })
+  async lookup_contact_email(@Query('identification') identification: string) {
+    const email = await this.contact_email_service.lookup(identification);
+    if (!email) {
+      throw new NotFoundException('Contact email not found');
+    }
+    return { email };
   }
 
   @Get('exoneration')
