@@ -35,6 +35,9 @@ export class ProductCategoriesRepository {
         level: 'ASC',
         name: 'ASC',
       },
+      relations: {
+        default_tax_profile: true,
+      },
     });
   }
 
@@ -48,6 +51,9 @@ export class ProductCategoriesRepository {
       },
       order: {
         name: 'ASC',
+      },
+      relations: {
+        default_tax_profile: true,
       },
     });
   }
@@ -63,6 +69,7 @@ export class ProductCategoriesRepository {
       },
       relations: {
         parent: true,
+        default_tax_profile: true,
       },
     });
   }
@@ -78,6 +85,9 @@ export class ProductCategoriesRepository {
       },
       order: {
         name: 'ASC',
+      },
+      relations: {
+        default_tax_profile: true,
       },
     });
   }

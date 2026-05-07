@@ -8,6 +8,7 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { CreateProductCategoryDto } from '../dto/create-product-category.dto';
 import { UpdateProductCategoryDto } from '../dto/update-product-category.dto';
 import { ProductCategory } from '../entities/product-category.entity';
+import { TaxProfile } from '../entities/tax-profile.entity';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { TaxType } from '../enums/tax-type.enum';
 import { ProductCategoriesRepository } from '../repositories/product-categories.repository';
@@ -109,6 +110,18 @@ export class ProductCategoriesService {
       this.entity_code_service.validate_code('CG', dto.code);
     }
 
+    const cabys_code = this.normalize_optional_string(dto.cabys_code);
+    const default_tax_profile_id = cabys_code
+      ? (
+          await this.ensure_tax_profile_for_cabys(
+            business_id,
+            cabys_code,
+            this.normalize_optional_string(dto.cabys_descripcion),
+            dto.cabys_impuesto ?? null,
+          )
+        )?.id ?? null
+      : null;
+
     let category = this.product_categories_repository.create({
       business_id,
       code: dto.code?.trim() ?? null,
@@ -117,9 +130,7 @@ export class ProductCategoriesService {
       parent_id: parent?.id ?? null,
       level: null,
       path: null,
-      cabys_code: this.normalize_optional_string(dto.cabys_code),
-      cabys_descripcion: this.normalize_optional_string(dto.cabys_descripcion),
-      cabys_impuesto: dto.cabys_impuesto ?? null,
+      default_tax_profile_id,
       is_active: dto.is_active ?? true,
     });
 
@@ -132,16 +143,9 @@ export class ProductCategoriesService {
     const saved_category =
       await this.product_categories_repository.save(category);
 
-    if (saved_category.cabys_code) {
-      await this.ensure_tax_profile_for_cabys(
-        business_id,
-        saved_category.cabys_code,
-        saved_category.cabys_descripcion,
-        saved_category.cabys_impuesto,
-      );
-    }
-
-    return this.serialize_category(saved_category);
+    return this.serialize_category(
+      await this.get_category_entity(business_id, saved_category.id),
+    );
   }
 
   async get_category(
@@ -236,13 +240,18 @@ export class ProductCategoriesService {
       category.parent_id = parent?.id ?? null;
     }
     if (dto.cabys_code !== undefined) {
-      category.cabys_code = this.normalize_optional_string(dto.cabys_code);
-    }
-    if (dto.cabys_descripcion !== undefined) {
-      category.cabys_descripcion = this.normalize_optional_string(dto.cabys_descripcion);
-    }
-    if (dto.cabys_impuesto !== undefined) {
-      category.cabys_impuesto = dto.cabys_impuesto ?? null;
+      const next_cabys_code = this.normalize_optional_string(dto.cabys_code);
+      if (next_cabys_code) {
+        const tax_profile = await this.ensure_tax_profile_for_cabys(
+          business_id,
+          next_cabys_code,
+          this.normalize_optional_string(dto.cabys_descripcion),
+          dto.cabys_impuesto ?? null,
+        );
+        category.default_tax_profile_id = tax_profile?.id ?? null;
+      } else {
+        category.default_tax_profile_id = null;
+      }
     }
     if (dto.is_active !== undefined) {
       category.is_active = dto.is_active;
@@ -257,16 +266,9 @@ export class ProductCategoriesService {
       await this.product_categories_repository.save(category);
     await this.refresh_descendants(saved_category);
 
-    if (saved_category.cabys_code) {
-      await this.ensure_tax_profile_for_cabys(
-        business_id,
-        saved_category.cabys_code,
-        saved_category.cabys_descripcion,
-        saved_category.cabys_impuesto,
-      );
-    }
-
-    return this.serialize_category(saved_category);
+    return this.serialize_category(
+      await this.get_category_entity(business_id, saved_category.id),
+    );
   }
 
   async delete_category(
@@ -349,14 +351,14 @@ export class ProductCategoriesService {
     cabys_code: string,
     cabys_descripcion: string | null,
     cabys_impuesto: number | null,
-  ): Promise<void> {
+  ): Promise<TaxProfile | null> {
     const existing =
       await this.tax_profiles_repository.find_active_by_cabys_in_business(
         business_id,
         cabys_code,
       );
     if (existing) {
-      return;
+      return existing;
     }
 
     const rate = cabys_impuesto ?? 13;
@@ -393,13 +395,14 @@ export class ProductCategoriesService {
     });
 
     try {
-      await this.tax_profiles_repository.save(tax_profile);
+      return await this.tax_profiles_repository.save(tax_profile);
     } catch (error) {
       this.logger.warn(
         `Auto-creation of tax profile for CABYS ${cabys_code} failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
+      return null;
     }
   }
 
@@ -413,9 +416,16 @@ export class ProductCategoriesService {
       parent_id: category.parent_id,
       level: category.level,
       path: category.path,
-      cabys_code: category.cabys_code,
-      cabys_descripcion: category.cabys_descripcion,
-      cabys_impuesto: category.cabys_impuesto,
+      default_tax_profile_id: category.default_tax_profile_id,
+      default_tax_profile: category.default_tax_profile
+        ? {
+            id: category.default_tax_profile.id,
+            name: category.default_tax_profile.name,
+            cabys_code: category.default_tax_profile.cabys_code,
+            description: category.default_tax_profile.description,
+            iva_rate: category.default_tax_profile.iva_rate,
+          }
+        : null,
       is_active: category.is_active,
       lifecycle: {
         can_delete: true,
