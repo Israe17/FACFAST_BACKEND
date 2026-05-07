@@ -42,6 +42,16 @@ export class TaxProfilesRepository {
     });
   }
 
+  async find_active_by_cabys_in_business(
+    business_id: number,
+    cabys_code: string,
+  ): Promise<TaxProfile | null> {
+    return this.tax_profile_repository.findOne({
+      where: { business_id, cabys_code, is_active: true },
+      order: { id: 'ASC' },
+    });
+  }
+
   async exists_name_in_business(
     business_id: number,
     name: string,
