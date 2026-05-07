@@ -3,12 +3,18 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
+  Max,
+  Min,
   MinLength,
 } from 'class-validator';
-import { GENERIC_ENTITY_CODE_PATTERN } from '../../common/utils/validation-patterns.util';
+import {
+  GENERIC_ENTITY_CODE_PATTERN,
+  NUMERIC_STRING_PATTERN,
+} from '../../common/utils/validation-patterns.util';
 import { ProductType } from '../enums/product-type.enum';
 
 export class CreateProductDto {
@@ -61,9 +67,46 @@ export class CreateProductDto {
   @IsInt()
   sale_unit_id?: number | null;
 
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({
+    example: 1,
+    description:
+      'Perfil fiscal asignado. Opcional si se envia cabys_code: el sistema buscara o creara un perfil fiscal a partir del CABYS.',
+  })
+  @IsOptional()
   @IsInt()
-  tax_profile_id!: number;
+  tax_profile_id?: number;
+
+  @ApiPropertyOptional({
+    example: '4481606020000',
+    description:
+      'Codigo CABYS de Hacienda (13 digitos). Si se envia y no hay tax_profile_id, el sistema asigna el perfil fiscal asociado al CABYS (lo crea si no existe).',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(NUMERIC_STRING_PATTERN)
+  cabys_code?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'Servicios de software a la medida',
+    description:
+      'Descripcion del CABYS, usada solo si se autocreara el perfil fiscal.',
+  })
+  @IsOptional()
+  @IsString()
+  cabys_descripcion?: string | null;
+
+  @ApiPropertyOptional({
+    example: 13,
+    description:
+      'Tasa de impuesto del CABYS reportada por Hacienda. Solo se usa al autocrear el perfil fiscal.',
+    minimum: 0,
+    maximum: 100,
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  @Max(100)
+  cabys_impuesto?: number | null;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
