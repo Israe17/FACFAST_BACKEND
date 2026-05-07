@@ -14,6 +14,7 @@ import { BusinessesModule } from './modules/businesses/businesses.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { CommonModule } from './modules/common/common.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
+import { HaciendaModule } from './modules/hacienda/hacienda.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { PlatformModule } from './modules/platform/platform.module';
@@ -64,6 +65,7 @@ import { UsersModule } from './modules/users/users.module';
     BusinessesModule,
     BranchesModule,
     ContactsModule,
+    HaciendaModule,
     InventoryModule,
     SalesModule,
     PlatformModule,

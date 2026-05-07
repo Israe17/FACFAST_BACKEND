@@ -31,6 +31,21 @@ export class UpdateProductCategoryDto {
   @IsInt()
   parent_id?: number | null;
 
+  @ApiPropertyOptional({ example: '2132100000100' })
+  @IsOptional()
+  @IsString()
+  cabys_code?: string | null;
+
+  @ApiPropertyOptional({ example: 'Lavadoras de ropa' })
+  @IsOptional()
+  @IsString()
+  cabys_descripcion?: string | null;
+
+  @ApiPropertyOptional({ example: 13 })
+  @IsOptional()
+  @IsInt()
+  cabys_impuesto?: number | null;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()

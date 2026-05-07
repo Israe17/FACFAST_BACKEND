@@ -102,6 +102,9 @@ export class ProductCategoriesService {
       parent_id: parent?.id ?? null,
       level: null,
       path: null,
+      cabys_code: this.normalize_optional_string(dto.cabys_code),
+      cabys_descripcion: this.normalize_optional_string(dto.cabys_descripcion),
+      cabys_impuesto: dto.cabys_impuesto ?? null,
       is_active: dto.is_active ?? true,
     });
 
@@ -207,6 +210,15 @@ export class ProductCategoriesService {
     if (dto.parent_id !== undefined) {
       category.parent_id = parent?.id ?? null;
     }
+    if (dto.cabys_code !== undefined) {
+      category.cabys_code = this.normalize_optional_string(dto.cabys_code);
+    }
+    if (dto.cabys_descripcion !== undefined) {
+      category.cabys_descripcion = this.normalize_optional_string(dto.cabys_descripcion);
+    }
+    if (dto.cabys_impuesto !== undefined) {
+      category.cabys_impuesto = dto.cabys_impuesto ?? null;
+    }
     if (dto.is_active !== undefined) {
       category.is_active = dto.is_active;
     }
@@ -307,6 +319,9 @@ export class ProductCategoriesService {
       parent_id: category.parent_id,
       level: category.level,
       path: category.path,
+      cabys_code: category.cabys_code,
+      cabys_descripcion: category.cabys_descripcion,
+      cabys_impuesto: category.cabys_impuesto,
       is_active: category.is_active,
       lifecycle: {
         can_delete: true,
