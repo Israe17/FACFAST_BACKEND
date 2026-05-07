@@ -11,7 +11,6 @@ import {
 import {
   Controller,
   Get,
-  NotFoundException,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +18,7 @@ import { AllowPlatformPermissionOverride } from '../../common/decorators/allow-p
 import { AllowPlatformTenantContext } from '../../common/decorators/allow-platform-tenant-context.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
+import { DomainNotFoundException } from '../../common/errors/exceptions/domain-not-found.exception';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
@@ -54,7 +54,11 @@ export class HaciendaController {
   async lookup_taxpayer(@Query('identification') identification: string) {
     const result = await this.taxpayer_service.lookup(identification);
     if (!result) {
-      throw new NotFoundException('Taxpayer not found');
+      throw new DomainNotFoundException({
+        code: 'HACIENDA_TAXPAYER_NOT_FOUND',
+        messageKey: 'hacienda.taxpayer_not_found',
+        details: { identification },
+      });
     }
     return { taxpayer: result };
   }
@@ -78,7 +82,11 @@ export class HaciendaController {
   async lookup_contact_email(@Query('identification') identification: string) {
     const email = await this.contact_email_service.lookup(identification);
     if (!email) {
-      throw new NotFoundException('Contact email not found');
+      throw new DomainNotFoundException({
+        code: 'HACIENDA_CONTACT_EMAIL_NOT_FOUND',
+        messageKey: 'hacienda.contact_email_not_found',
+        details: { identification },
+      });
     }
     return { email };
   }
@@ -96,7 +104,11 @@ export class HaciendaController {
   async verify_exoneration(@Query('authorization') authorization: string) {
     const result = await this.exoneration_service.verify(authorization);
     if (!result) {
-      throw new NotFoundException('Exoneration document not found');
+      throw new DomainNotFoundException({
+        code: 'HACIENDA_EXONERATION_NOT_FOUND',
+        messageKey: 'hacienda.exoneration_not_found',
+        details: { authorization },
+      });
     }
     return { exoneration: result };
   }
