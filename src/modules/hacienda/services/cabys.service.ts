@@ -22,9 +22,9 @@ export class CabysService {
   private readonly cache = new Map<string, CabysResult[]>();
   private last_request_time = 0;
 
-  async search(query: string, top: number): Promise<CabysResult[]> {
+  async search(query: string | undefined, top: number): Promise<CabysResult[]> {
     try {
-      const trimmed = query.trim();
+      const trimmed = query?.trim() ?? '';
       if (trimmed.length < 3) {
         return [];
       }
