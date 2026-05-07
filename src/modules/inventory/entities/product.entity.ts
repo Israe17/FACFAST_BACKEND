@@ -140,16 +140,17 @@ export class Product extends AuditedCodeEntity {
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  tax_profile_id!: number;
+  tax_profile_id!: number | null;
 
   @ManyToOne(() => TaxProfile, (tax_profile) => tax_profile.products, {
-    onDelete: 'RESTRICT',
+    onDelete: 'SET NULL',
   })
   @JoinColumn({
     name: 'tax_profile_id',
   })
-  tax_profile?: TaxProfile;
+  tax_profile?: TaxProfile | null;
 
   @Column({
     type: 'boolean',

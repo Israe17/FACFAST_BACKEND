@@ -115,10 +115,12 @@ export class ProductsService {
       dto.type,
       dto,
     );
-    this.inventory_validation_service.assert_product_tax_profile_compatibility(
-      dto.type,
-      tax_profile,
-    );
+    if (tax_profile) {
+      this.inventory_validation_service.assert_product_tax_profile_compatibility(
+        dto.type,
+        tax_profile,
+      );
+    }
 
     const category =
       dto.category_id !== undefined && dto.category_id !== null
@@ -186,7 +188,7 @@ export class ProductsService {
       barcode: normalized_barcode,
       stock_unit_id,
       sale_unit_id,
-      tax_profile_id: tax_profile.id,
+      tax_profile_id: tax_profile?.id ?? null,
       track_inventory: dto.track_inventory ?? true,
       track_lots: dto.track_lots ?? false,
       track_expiration: dto.track_expiration ?? false,
@@ -277,20 +279,13 @@ export class ProductsService {
       product.tax_profile,
       dto,
     );
-    if (!tax_profile) {
-      throw new DomainNotFoundException({
-        code: 'TAX_PROFILE_NOT_FOUND',
-        messageKey: 'inventory.tax_profile_not_found',
-        details: {
-          tax_profile_id: dto.tax_profile_id ?? null,
-        },
-      });
-    }
 
-    this.inventory_validation_service.assert_product_tax_profile_compatibility(
-      next_type,
-      tax_profile,
-    );
+    if (tax_profile) {
+      this.inventory_validation_service.assert_product_tax_profile_compatibility(
+        next_type,
+        tax_profile,
+      );
+    }
 
     if (dto.category_id !== undefined) {
       product.category_id =
@@ -384,8 +379,8 @@ export class ProductsService {
     if (dto.barcode !== undefined) {
       product.barcode = next_barcode;
     }
-    if (dto.tax_profile_id !== undefined) {
-      product.tax_profile_id = tax_profile.id;
+    if (dto.tax_profile_id !== undefined || dto.cabys_code !== undefined) {
+      product.tax_profile_id = tax_profile?.id ?? null;
     }
     if (dto.track_inventory !== undefined) {
       product.track_inventory = dto.track_inventory;
@@ -503,7 +498,7 @@ export class ProductsService {
     business_id: number,
     product_type: ProductType,
     dto: CreateProductDto,
-  ): Promise<TaxProfile> {
+  ): Promise<TaxProfile | null> {
     if (dto.tax_profile_id !== undefined && dto.tax_profile_id !== null) {
       return this.inventory_validation_service.get_tax_profile_in_business(
         business_id,
@@ -537,11 +532,10 @@ export class ProductsService {
       return tax_profile;
     }
 
-    throw new DomainBadRequestException({
-      code: 'TAX_PROFILE_REQUIRED',
-      messageKey: 'inventory.tax_profile_required',
-      details: { hint: 'Provide tax_profile_id or cabys_code' },
-    });
+    // Neither tax_profile_id nor cabys_code provided: allow creating the
+    // product without fiscal data (operator will complete it later).
+    // Sales/invoicing will reject the product at sale time if still missing.
+    return null;
   }
 
   private async resolve_tax_profile_for_update(
