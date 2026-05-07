@@ -31,7 +31,10 @@ import { ProductVariantsRepository } from './repositories/product-variants.repos
 import { ProductsRepository } from './repositories/products.repository';
 import { TaxProfilesRepository } from './repositories/tax-profiles.repository';
 import { WarrantyProfilesRepository } from './repositories/warranty-profiles.repository';
+import { TaxProfileRulesPolicy } from './policies/tax-profile-rules.policy';
+import { ProductCategorySerializer } from './serializers/product-category.serializer';
 import { ProductSerializer } from './serializers/product.serializer';
+import { TaxProfileSerializer } from './serializers/tax-profile.serializer';
 import { BrandsService } from './services/brands.service';
 import { MeasurementUnitsService } from './services/measurement-units.service';
 import { ProductCategoriesService } from './services/product-categories.service';
@@ -42,7 +45,18 @@ import { TaxProfilesService } from './services/tax-profiles.service';
 import { VariantAttributesService } from './services/variant-attributes.service';
 import { WarrantyProfilesService } from './services/warranty-profiles.service';
 import { PricingSubModule } from './pricing.sub-module';
+import { CreateProductCategoryUseCase } from './use-cases/create-product-category.use-case';
+import { CreateTaxProfileUseCase } from './use-cases/create-tax-profile.use-case';
+import { DeleteProductCategoryUseCase } from './use-cases/delete-product-category.use-case';
+import { EnsureTaxProfileForCabysUseCase } from './use-cases/ensure-tax-profile-for-cabys.use-case';
+import { GetProductCategoriesQueryUseCase } from './use-cases/get-product-categories.query.use-case';
+import { GetProductCategoryQueryUseCase } from './use-cases/get-product-category.query.use-case';
+import { GetProductCategoryTreeQueryUseCase } from './use-cases/get-product-category-tree.query.use-case';
 import { GetProductsCursorQueryUseCase } from './use-cases/get-products-cursor.query.use-case';
+import { GetTaxProfileQueryUseCase } from './use-cases/get-tax-profile.query.use-case';
+import { GetTaxProfilesQueryUseCase } from './use-cases/get-tax-profiles.query.use-case';
+import { UpdateProductCategoryUseCase } from './use-cases/update-product-category.use-case';
+import { UpdateTaxProfileUseCase } from './use-cases/update-tax-profile.use-case';
 
 @Module({
   imports: [
@@ -84,7 +98,10 @@ import { GetProductsCursorQueryUseCase } from './use-cases/get-products-cursor.q
     ProductsRepository,
     TaxProfilesRepository,
     WarrantyProfilesRepository,
+    ProductCategorySerializer,
     ProductSerializer,
+    TaxProfileSerializer,
+    TaxProfileRulesPolicy,
     BrandsService,
     MeasurementUnitsService,
     ProductCategoriesService,
@@ -94,6 +111,17 @@ import { GetProductsCursorQueryUseCase } from './use-cases/get-products-cursor.q
     TaxProfilesService,
     VariantAttributesService,
     WarrantyProfilesService,
+    EnsureTaxProfileForCabysUseCase,
+    GetTaxProfilesQueryUseCase,
+    GetTaxProfileQueryUseCase,
+    CreateTaxProfileUseCase,
+    UpdateTaxProfileUseCase,
+    GetProductCategoriesQueryUseCase,
+    GetProductCategoryQueryUseCase,
+    GetProductCategoryTreeQueryUseCase,
+    CreateProductCategoryUseCase,
+    UpdateProductCategoryUseCase,
+    DeleteProductCategoryUseCase,
     GetProductsCursorQueryUseCase,
   ],
   exports: [
