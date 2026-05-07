@@ -71,6 +71,26 @@ export class ProductCategory extends AuditedCodeEntity {
   path!: string | null;
 
   @Column({
+    type: 'varchar',
+    length: 32,
+    nullable: true,
+  })
+  cabys_code!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  cabys_descripcion!: string | null;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  cabys_impuesto!: number | null;
+
+  @Column({
     type: 'boolean',
     default: true,
   })
