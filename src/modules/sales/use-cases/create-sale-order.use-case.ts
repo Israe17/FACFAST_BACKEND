@@ -54,7 +54,10 @@ export class CreateSaleOrderUseCase
       current_user,
       {
         branch_id: dto.branch_id,
-        customer_contact_id: dto.customer_contact_id,
+        is_final_consumer: dto.is_final_consumer,
+        customer_contact_id: dto.is_final_consumer
+          ? null
+          : dto.customer_contact_id,
         seller_user_id: dto.seller_user_id,
         delivery_zone_id: dto.delivery_zone_id,
         warehouse_id: dto.warehouse_id,
@@ -66,9 +69,12 @@ export class CreateSaleOrderUseCase
     return this.data_source.transaction(async (manager) => {
       const order_repo = manager.getRepository(SaleOrder);
 
-      const contact = await manager.getRepository(Contact).findOne({
-        where: { id: dto.customer_contact_id, business_id },
-      });
+      const is_final = dto.is_final_consumer === true;
+      const contact = is_final
+        ? null
+        : await manager.getRepository(Contact).findOne({
+            where: { id: dto.customer_contact_id, business_id },
+          });
 
       const has_manual_coordinates =
         dto.delivery_latitude != null && dto.delivery_longitude != null;
@@ -113,7 +119,8 @@ export class CreateSaleOrderUseCase
       const order = order_repo.create({
         business_id,
         branch_id: dto.branch_id,
-        customer_contact_id: dto.customer_contact_id,
+        customer_contact_id: is_final ? null : dto.customer_contact_id ?? null,
+        is_final_consumer: is_final,
         seller_user_id: dto.seller_user_id ?? null,
         sale_mode: dto.sale_mode,
         fulfillment_mode: dto.fulfillment_mode,

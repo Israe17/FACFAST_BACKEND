@@ -12,6 +12,7 @@ import { ElectronicDocumentView } from '../contracts/electronic-document.view';
 import { CreateElectronicDocumentDto } from '../dto/create-electronic-document.dto';
 import { ElectronicDocument } from '../entities/electronic-document.entity';
 import { HaciendaStatus } from '../enums/hacienda-status.enum';
+import { ContactInvoiceReadinessPolicy } from '../policies/contact-invoice-readiness.policy';
 import { ElectronicDocumentAccessPolicy } from '../policies/electronic-document-access.policy';
 import { ElectronicDocumentLifecyclePolicy } from '../policies/electronic-document-lifecycle.policy';
 import { SaleOrderAccessPolicy } from '../policies/sale-order-access.policy';
@@ -39,6 +40,7 @@ export class EmitElectronicDocumentUseCase
     private readonly sale_order_access_policy: SaleOrderAccessPolicy,
     private readonly electronic_document_access_policy: ElectronicDocumentAccessPolicy,
     private readonly electronic_document_lifecycle_policy: ElectronicDocumentLifecyclePolicy,
+    private readonly contact_invoice_readiness_policy: ContactInvoiceReadinessPolicy,
     private readonly electronic_document_serializer: ElectronicDocumentSerializer,
     private readonly outbox_service: OutboxService,
     private readonly idempotency_service: IdempotencyService,
@@ -91,6 +93,15 @@ export class EmitElectronicDocumentUseCase
         this.electronic_document_lifecycle_policy.assert_order_emittable(
           sale_order,
         );
+
+        if (
+          !sale_order.is_final_consumer &&
+          sale_order.customer_contact
+        ) {
+          this.contact_invoice_readiness_policy.assert_is_invoice_ready(
+            sale_order.customer_contact,
+          );
+        }
 
         const lines = sale_order.lines ?? [];
         if (lines.length === 0) {
