@@ -38,7 +38,7 @@ export interface DispatchOrderView {
           dispatch_status: string;
         }
       | null;
-    customer_contact_id: number;
+    customer_contact_id: number | null;
     customer_contact: { id: number; name: string } | null;
     delivery_sequence: number;
     delivery_address: string | null;
