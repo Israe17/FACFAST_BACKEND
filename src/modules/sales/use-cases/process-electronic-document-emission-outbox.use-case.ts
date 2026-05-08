@@ -18,6 +18,41 @@ export type ProcessElectronicDocumentEmissionOutboxCommand = {
   outbox_event: OutboxEvent;
 };
 
+/**
+ * STUB — does not actually submit to Hacienda yet.
+ *
+ * Today this use-case marks the document as SUBMITTED locally. The real
+ * Hacienda submission flow still needs:
+ *
+ * 1. **Document key (50 chars)**: build_document_key currently returns a
+ *    placeholder. Hacienda format is:
+ *      [3]country=506 + [2]day + [2]month + [2]year +
+ *      [12]emisor_identification + [3]branch + [5]terminal + [2]doctype +
+ *      [10]sequence + [1]situation + [8]security_code
+ *
+ * 2. **XML 4.4**: build_placeholder_xml needs to be replaced with a real
+ *    generator that matches the official XSD for FacturaElectronica /
+ *    TiqueteElectronico / NotaCredito / NotaDebito. Includes Emisor,
+ *    Receptor (skip when is_final_consumer), DetalleServicio (one per
+ *    line with CABYS, IVA breakdown), ResumenFactura, NormativaReferencia.
+ *
+ * 3. **XML signing**: Hacienda requires XAdES-BES signature using the
+ *    business's certificate (cryptographic key + password from the
+ *    Llave Criptográfica issued by Hacienda). Suggested lib: xml-crypto.
+ *    Certificates need encrypted storage per business.
+ *
+ * 4. **TRIBU-CR OAuth**: get token from
+ *    idp.comprobanteselectronicos.go.cr/auth/realms/rut-stag/protocol/openid-connect/token
+ *    using the business's user/password.
+ *
+ * 5. **Submission**: POST to
+ *    api.comprobanteselectronicos.go.cr/recepcion/v1/recepcion with the
+ *    signed XML. Response is async — Hacienda accepts/rejects later via
+ *    GET /recepcion/v1/recepcion/{clave}/estado.
+ *
+ * 6. **Status polling / webhook**: separate worker that polls accepted /
+ *    rejected documents and updates hacienda_status + hacienda_message.
+ */
 @Injectable()
 export class ProcessElectronicDocumentEmissionOutboxUseCase
   implements

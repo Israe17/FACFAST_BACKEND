@@ -68,7 +68,11 @@ export class UpdateTaxProfileDto {
   @Max(100)
   iva_rate?: number | null;
 
-  @ApiPropertyOptional({ enum: TaxInclusionMode })
+  @ApiPropertyOptional({
+    enum: TaxInclusionMode,
+    description:
+      'Indica si el precio ya incluye IVA (included) o si se suma al vender (added).',
+  })
   @IsOptional()
   @IsEnum(TaxInclusionMode)
   tax_inclusion_mode?: TaxInclusionMode;
