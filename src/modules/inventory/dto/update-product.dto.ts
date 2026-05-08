@@ -3,12 +3,18 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
+  Max,
+  Min,
   MinLength,
 } from 'class-validator';
-import { GENERIC_ENTITY_CODE_PATTERN } from '../../common/utils/validation-patterns.util';
+import {
+  GENERIC_ENTITY_CODE_PATTERN,
+  NUMERIC_STRING_PATTERN,
+} from '../../common/utils/validation-patterns.util';
 import { ProductType } from '../enums/product-type.enum';
 
 export class UpdateProductDto {
@@ -67,6 +73,28 @@ export class UpdateProductDto {
   @IsOptional()
   @IsInt()
   tax_profile_id?: number;
+
+  @ApiPropertyOptional({
+    example: '4481606020000',
+    description:
+      'Codigo CABYS de Hacienda. Si se envia y no se cambia tax_profile_id, el sistema busca o crea el perfil fiscal correspondiente.',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(NUMERIC_STRING_PATTERN)
+  cabys_code?: string | null;
+
+  @ApiPropertyOptional({ example: 'Servicios de software' })
+  @IsOptional()
+  @IsString()
+  cabys_descripcion?: string | null;
+
+  @ApiPropertyOptional({ example: 13, minimum: 0, maximum: 100 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  @Max(100)
+  cabys_impuesto?: number | null;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()

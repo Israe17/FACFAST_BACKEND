@@ -10,6 +10,7 @@ import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { Product } from './product.entity';
+import { TaxInclusionMode } from '../enums/tax-inclusion-mode.enum';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { TaxType } from '../enums/tax-type.enum';
 
@@ -76,6 +77,13 @@ export class TaxProfile extends AuditedCodeEntity {
     transformer: numeric_transformer,
   })
   iva_rate!: number | null;
+
+  @Column({
+    type: 'enum',
+    enum: TaxInclusionMode,
+    default: TaxInclusionMode.ADDED,
+  })
+  tax_inclusion_mode!: TaxInclusionMode;
 
   @Column({
     type: 'boolean',

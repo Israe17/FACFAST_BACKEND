@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TaxProfile } from '../entities/tax-profile.entity';
+import { TaxInclusionMode } from '../enums/tax-inclusion-mode.enum';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { TaxType } from '../enums/tax-type.enum';
 import { TaxProfilesRepository } from '../repositories/tax-profiles.repository';
@@ -74,6 +75,7 @@ export class EnsureTaxProfileForCabysUseCase {
       iva_rate_code:
         tax_type === TaxType.IVA ? HACIENDA_IVA_RATE_CODES[rate] ?? '08' : null,
       iva_rate: tax_type === TaxType.IVA ? rate : null,
+      tax_inclusion_mode: TaxInclusionMode.ADDED,
       requires_cabys: true,
       allows_exoneration: true,
       has_specific_tax: false,

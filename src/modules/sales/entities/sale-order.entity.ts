@@ -55,8 +55,9 @@ export class SaleOrder extends AuditedCodeEntity {
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  customer_contact_id!: number;
+  customer_contact_id!: number | null;
 
   @ManyToOne(() => Contact, {
     onDelete: 'RESTRICT',
@@ -64,7 +65,13 @@ export class SaleOrder extends AuditedCodeEntity {
   @JoinColumn({
     name: 'customer_contact_id',
   })
-  customer_contact?: Contact;
+  customer_contact?: Contact | null;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
+  is_final_consumer!: boolean;
 
   @Column({
     type: 'int',

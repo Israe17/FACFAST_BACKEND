@@ -74,21 +74,13 @@ export class HaciendaController {
     required: true,
     description: 'Numero de identificacion sin guiones',
   })
-  @ApiOkResponse({ description: 'Correo electronico del contribuyente.' })
-  @ApiNotFoundResponse({
+  @ApiOkResponse({
     description:
-      'El contribuyente no tiene correo registrado en Yo Contribuyo.',
+      'Correo electronico del contribuyente, o null si no esta registrado en Yo Contribuyo (caso comun, no es un error).',
   })
   async lookup_contact_email(@Query('identification') identification: string) {
     const email = await this.contact_email_service.lookup(identification);
-    if (!email) {
-      throw new DomainNotFoundException({
-        code: 'HACIENDA_CONTACT_EMAIL_NOT_FOUND',
-        messageKey: 'hacienda.contact_email_not_found',
-        details: { identification },
-      });
-    }
-    return { email };
+    return { email: email ?? null };
   }
 
   @Get('exoneration')

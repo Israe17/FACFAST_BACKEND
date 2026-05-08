@@ -16,8 +16,10 @@ import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
 import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
 import { SalesValidationService } from '../services/sales-validation.service';
+import { TaxCalculationService } from '../services/tax-calculation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { ProductVariant } from '../../inventory/entities/product-variant.entity';
 import { isWithinCostaRica } from '../../common/utils/geo.utils';
 
 export type CreateSaleOrderCommand = {
@@ -36,6 +38,7 @@ export class CreateSaleOrderUseCase
     private readonly sale_order_access_policy: SaleOrderAccessPolicy,
     private readonly sale_order_mode_policy: SaleOrderModePolicy,
     private readonly sales_validation_service: SalesValidationService,
+    private readonly tax_calculation_service: TaxCalculationService,
     private readonly sale_order_serializer: SaleOrderSerializer,
   ) {}
 
@@ -54,7 +57,10 @@ export class CreateSaleOrderUseCase
       current_user,
       {
         branch_id: dto.branch_id,
-        customer_contact_id: dto.customer_contact_id,
+        is_final_consumer: dto.is_final_consumer,
+        customer_contact_id: dto.is_final_consumer
+          ? null
+          : dto.customer_contact_id,
         seller_user_id: dto.seller_user_id,
         delivery_zone_id: dto.delivery_zone_id,
         warehouse_id: dto.warehouse_id,
@@ -66,9 +72,12 @@ export class CreateSaleOrderUseCase
     return this.data_source.transaction(async (manager) => {
       const order_repo = manager.getRepository(SaleOrder);
 
-      const contact = await manager.getRepository(Contact).findOne({
-        where: { id: dto.customer_contact_id, business_id },
-      });
+      const is_final = dto.is_final_consumer === true;
+      const contact = is_final
+        ? null
+        : await manager.getRepository(Contact).findOne({
+            where: { id: dto.customer_contact_id, business_id },
+          });
 
       const has_manual_coordinates =
         dto.delivery_latitude != null && dto.delivery_longitude != null;
@@ -113,7 +122,8 @@ export class CreateSaleOrderUseCase
       const order = order_repo.create({
         business_id,
         branch_id: dto.branch_id,
-        customer_contact_id: dto.customer_contact_id,
+        customer_contact_id: is_final ? null : dto.customer_contact_id ?? null,
+        is_final_consumer: is_final,
         seller_user_id: dto.seller_user_id ?? null,
         sale_mode: dto.sale_mode,
         fulfillment_mode: dto.fulfillment_mode,
@@ -140,14 +150,34 @@ export class CreateSaleOrderUseCase
       const saved_order = await order_repo.save(order);
       await this.entity_code_service.ensure_code(order_repo, saved_order, 'SO');
 
+      // Server-side tax computation. We never trust the client's tax_amount.
+      // Hacienda compliance requires the server to derive tax from the
+      // product's tax profile and the customer's exoneration (if any).
+      const variant_ids = dto.lines.map((l) => l.product_variant_id);
+      const variants = await manager.getRepository(ProductVariant).find({
+        where: variant_ids.map((id) => ({ id, business_id })),
+        relations: { product: { tax_profile: true } },
+      });
+      const variants_by_id = new Map(variants.map((v) => [v.id, v]));
+
+      const customer_exoneration_percentage = contact?.exoneration_percentage ?? null;
+      const customer_allows_exoneration =
+        customer_exoneration_percentage !== null &&
+        customer_exoneration_percentage > 0;
+
       await this.sale_orders_repository.replace_lines(
         saved_order.id,
         dto.lines.map((line_dto, index) => {
-          const discount = line_dto.discount_percent ?? 0;
-          const subtotal = line_dto.quantity * line_dto.unit_price;
-          const discounted = subtotal * (1 - discount / 100);
-          const tax = line_dto.tax_amount ?? 0;
-          const total = line_dto.line_total ?? discounted + tax;
+          const variant = variants_by_id.get(line_dto.product_variant_id);
+          const tax_profile = variant?.product?.tax_profile ?? null;
+          const breakdown = this.tax_calculation_service.calculate_line_tax({
+            quantity: line_dto.quantity,
+            unit_price: line_dto.unit_price,
+            discount_percent: line_dto.discount_percent ?? 0,
+            tax_profile,
+            customer_allows_exoneration,
+            customer_exoneration_percentage,
+          });
 
           return {
             business_id,
@@ -156,9 +186,11 @@ export class CreateSaleOrderUseCase
             product_variant_id: line_dto.product_variant_id,
             quantity: line_dto.quantity,
             unit_price: line_dto.unit_price,
-            discount_percent: discount,
-            tax_amount: tax,
-            line_total: total,
+            discount_percent: breakdown.discount_amount > 0
+              ? line_dto.discount_percent ?? 0
+              : 0,
+            tax_amount: breakdown.tax_net,
+            line_total: breakdown.line_total,
             notes: this.normalize_optional_string(line_dto.notes),
           };
         }),

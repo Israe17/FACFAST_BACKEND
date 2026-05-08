@@ -526,6 +526,19 @@ export class InventoryValidationService {
     );
   }
 
+  assert_product_can_be_invoiced(product: Product): void {
+    if (product.tax_profile_id === null || product.tax_profile_id === undefined) {
+      throw new DomainBadRequestException({
+        code: 'PRODUCT_FISCAL_DATA_REQUIRED',
+        messageKey: 'inventory.product_fiscal_data_required',
+        details: {
+          product_id: product.id,
+          product_name: product.name,
+        },
+      });
+    }
+  }
+
   assert_variant_belongs_to_product(
     product: Product,
     product_variant: { id: number; product_id: number },

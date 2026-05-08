@@ -19,6 +19,7 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { InventoryValidationSubModule } from '../inventory/inventory-validation.sub-module';
 import { BranchesModule } from '../branches/branches.module';
 import { UsersModule } from '../users/users.module';
+import { ContactInvoiceReadinessPolicy } from './policies/contact-invoice-readiness.policy';
 import { ElectronicDocumentAccessPolicy } from './policies/electronic-document-access.policy';
 import { ElectronicDocumentLifecyclePolicy } from './policies/electronic-document-lifecycle.policy';
 import { SaleOrderAccessPolicy } from './policies/sale-order-access.policy';
@@ -45,6 +46,7 @@ import { GetSaleOrdersListQueryUseCase } from './use-cases/get-sale-orders-list.
 import { GetSaleOrdersPageQueryUseCase } from './use-cases/get-sale-orders-page.query.use-case';
 import { UpdateSaleOrderUseCase } from './use-cases/update-sale-order.use-case';
 import { SalesValidationService } from './services/sales-validation.service';
+import { TaxCalculationService } from './services/tax-calculation.service';
 
 @Module({
   imports: [
@@ -67,6 +69,7 @@ import { SalesValidationService } from './services/sales-validation.service';
   providers: [
     SaleOrdersRepository,
     ElectronicDocumentsRepository,
+    ContactInvoiceReadinessPolicy,
     ElectronicDocumentAccessPolicy,
     ElectronicDocumentLifecyclePolicy,
     SaleOrderAccessPolicy,
@@ -74,6 +77,7 @@ import { SalesValidationService } from './services/sales-validation.service';
     SaleOrderInventoryPolicy,
     SaleOrderModePolicy,
     SalesValidationService,
+    TaxCalculationService,
     ElectronicDocumentSerializer,
     SaleOrderSerializer,
     CreateSaleOrderUseCase,

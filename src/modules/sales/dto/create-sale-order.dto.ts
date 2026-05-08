@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -33,10 +34,19 @@ export class CreateSaleOrderDto {
   @IsPositive({ message: validation_messages.positive_number() })
   branch_id!: number;
 
-  @ApiProperty()
+  @ApiPropertyOptional({
+    description:
+      'Si es true, la orden es para consumidor final (sin receptor identificado). customer_contact_id no es requerido.',
+  })
+  @IsOptional()
+  @IsBoolean({ message: validation_messages.invalid_boolean?.() ?? 'Invalid boolean' })
+  is_final_consumer?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsInt({ message: validation_messages.invalid_number() })
   @IsPositive({ message: validation_messages.positive_number() })
-  customer_contact_id!: number;
+  customer_contact_id?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

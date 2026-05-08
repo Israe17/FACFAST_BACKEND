@@ -14,7 +14,8 @@ import { UsersRepository } from '../../users/repositories/users.repository';
 
 type SaleOrderReferenceValidationInput = {
   branch_id: number;
-  customer_contact_id: number;
+  is_final_consumer?: boolean;
+  customer_contact_id?: number | null;
   seller_user_id?: number | null;
   delivery_zone_id?: number | null;
   warehouse_id?: number | null;
@@ -37,10 +38,20 @@ export class SalesValidationService {
   ): Promise<void> {
     const business_id = resolve_effective_business_id(current_user);
 
-    await this.assert_customer_contact_in_business(
-      business_id,
-      input.customer_contact_id,
-    );
+    const is_final = input.is_final_consumer === true;
+    if (!is_final) {
+      if (!input.customer_contact_id) {
+        throw new DomainBadRequestException({
+          code: 'SALE_ORDER_CUSTOMER_CONTACT_REQUIRED',
+          messageKey: 'sales.order_customer_contact_required',
+          details: {},
+        });
+      }
+      await this.assert_customer_contact_in_business(
+        business_id,
+        input.customer_contact_id,
+      );
+    }
 
     if (input.seller_user_id !== undefined && input.seller_user_id !== null) {
       await this.assert_seller_user_in_business(
@@ -159,6 +170,9 @@ export class SalesValidationService {
         product_variant.product,
       );
       this.inventory_validation_service.assert_variant_is_active(product_variant);
+      this.inventory_validation_service.assert_product_can_be_invoiced(
+        product_variant.product,
+      );
     }
   }
 

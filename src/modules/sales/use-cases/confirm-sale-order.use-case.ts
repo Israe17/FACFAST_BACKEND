@@ -90,6 +90,7 @@ export class ConfirmSaleOrderUseCase
           current_user,
           {
             branch_id: order.branch_id,
+            is_final_consumer: order.is_final_consumer,
             customer_contact_id: order.customer_contact_id,
             seller_user_id: order.seller_user_id,
             delivery_zone_id: order.delivery_zone_id,

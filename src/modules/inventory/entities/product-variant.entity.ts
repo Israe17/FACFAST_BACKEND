@@ -106,16 +106,17 @@ export class ProductVariant {
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  fiscal_profile_id!: number;
+  fiscal_profile_id!: number | null;
 
   @ManyToOne(() => TaxProfile, {
-    onDelete: 'RESTRICT',
+    onDelete: 'SET NULL',
   })
   @JoinColumn({
     name: 'fiscal_profile_id',
   })
-  fiscal_profile?: TaxProfile;
+  fiscal_profile?: TaxProfile | null;
 
   @Column({
     type: 'int',

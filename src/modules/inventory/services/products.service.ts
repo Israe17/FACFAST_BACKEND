@@ -17,8 +17,11 @@ import { ProductSerialsRepository } from '../repositories/product-serials.reposi
 import { ProductVariantsRepository } from '../repositories/product-variants.repository';
 import { ProductsRepository } from '../repositories/products.repository';
 import { ProductSerializer } from '../serializers/product.serializer';
+import { TaxProfile } from '../entities/tax-profile.entity';
+import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { InventoryValidationService } from './inventory-validation.service';
 import { ProductVariantsService } from './product-variants.service';
+import { EnsureTaxProfileForCabysUseCase } from '../use-cases/ensure-tax-profile-for-cabys.use-case';
 import { GetProductsCursorQueryUseCase } from '../use-cases/get-products-cursor.query.use-case';
 
 @Injectable()
@@ -31,6 +34,7 @@ export class ProductsService {
     private readonly product_variants_repository: ProductVariantsRepository,
     private readonly product_serials_repository: ProductSerialsRepository,
     private readonly product_serializer: ProductSerializer,
+    private readonly ensure_tax_profile_for_cabys_use_case: EnsureTaxProfileForCabysUseCase,
     private readonly get_products_cursor_query_use_case: GetProductsCursorQueryUseCase,
   ) {}
 
@@ -106,18 +110,17 @@ export class ProductsService {
       this.entity_code_service.validate_code('PD', dto.code);
     }
 
-    const tax_profile =
-      await this.inventory_validation_service.get_tax_profile_in_business(
-        business_id,
-        dto.tax_profile_id,
-        {
-          require_active: true,
-        },
-      );
-    this.inventory_validation_service.assert_product_tax_profile_compatibility(
+    const tax_profile = await this.resolve_tax_profile_for_create(
+      business_id,
       dto.type,
-      tax_profile,
+      dto,
     );
+    if (tax_profile) {
+      this.inventory_validation_service.assert_product_tax_profile_compatibility(
+        dto.type,
+        tax_profile,
+      );
+    }
 
     const category =
       dto.category_id !== undefined && dto.category_id !== null
@@ -185,7 +188,7 @@ export class ProductsService {
       barcode: normalized_barcode,
       stock_unit_id,
       sale_unit_id,
-      tax_profile_id: tax_profile.id,
+      tax_profile_id: tax_profile?.id ?? null,
       track_inventory: dto.track_inventory ?? true,
       track_lots: dto.track_lots ?? false,
       track_expiration: dto.track_expiration ?? false,
@@ -271,30 +274,18 @@ export class ProductsService {
     }
 
     const next_type = dto.type ?? product.type;
-    const tax_profile =
-      dto.tax_profile_id !== undefined
-        ? await this.inventory_validation_service.get_tax_profile_in_business(
-            business_id,
-            dto.tax_profile_id,
-            {
-              require_active: true,
-            },
-          )
-        : product.tax_profile;
-    if (!tax_profile) {
-      throw new DomainNotFoundException({
-        code: 'TAX_PROFILE_NOT_FOUND',
-        messageKey: 'inventory.tax_profile_not_found',
-        details: {
-          tax_profile_id: dto.tax_profile_id ?? null,
-        },
-      });
-    }
-
-    this.inventory_validation_service.assert_product_tax_profile_compatibility(
-      next_type,
-      tax_profile,
+    const tax_profile = await this.resolve_tax_profile_for_update(
+      business_id,
+      product.tax_profile,
+      dto,
     );
+
+    if (tax_profile) {
+      this.inventory_validation_service.assert_product_tax_profile_compatibility(
+        next_type,
+        tax_profile,
+      );
+    }
 
     if (dto.category_id !== undefined) {
       product.category_id =
@@ -388,8 +379,8 @@ export class ProductsService {
     if (dto.barcode !== undefined) {
       product.barcode = next_barcode;
     }
-    if (dto.tax_profile_id !== undefined) {
-      product.tax_profile_id = tax_profile.id;
+    if (dto.tax_profile_id !== undefined || dto.cabys_code !== undefined) {
+      product.tax_profile_id = tax_profile?.id ?? null;
     }
     if (dto.track_inventory !== undefined) {
       product.track_inventory = dto.track_inventory;
@@ -501,6 +492,80 @@ export class ProductsService {
     }
 
     return product;
+  }
+
+  private async resolve_tax_profile_for_create(
+    business_id: number,
+    product_type: ProductType,
+    dto: CreateProductDto,
+  ): Promise<TaxProfile | null> {
+    if (dto.tax_profile_id !== undefined && dto.tax_profile_id !== null) {
+      return this.inventory_validation_service.get_tax_profile_in_business(
+        business_id,
+        dto.tax_profile_id,
+        { require_active: true },
+      );
+    }
+
+    const cabys_code = this.normalize_optional_string(dto.cabys_code);
+    if (cabys_code) {
+      const tax_profile =
+        await this.ensure_tax_profile_for_cabys_use_case.execute({
+          business_id,
+          cabys_code,
+          cabys_descripcion: this.normalize_optional_string(
+            dto.cabys_descripcion,
+          ),
+          cabys_impuesto: dto.cabys_impuesto ?? null,
+          item_kind:
+            product_type === ProductType.SERVICE
+              ? TaxProfileItemKind.SERVICE
+              : TaxProfileItemKind.GOODS,
+        });
+      if (!tax_profile) {
+        throw new DomainBadRequestException({
+          code: 'TAX_PROFILE_RESOLUTION_FAILED',
+          messageKey: 'inventory.tax_profile_resolution_failed',
+          details: { cabys_code },
+        });
+      }
+      return tax_profile;
+    }
+
+    // Neither tax_profile_id nor cabys_code provided: allow creating the
+    // product without fiscal data (operator will complete it later).
+    // Sales/invoicing will reject the product at sale time if still missing.
+    return null;
+  }
+
+  private async resolve_tax_profile_for_update(
+    business_id: number,
+    current_tax_profile: TaxProfile | null | undefined,
+    dto: UpdateProductDto,
+  ): Promise<TaxProfile | null> {
+    if (dto.tax_profile_id !== undefined) {
+      return this.inventory_validation_service.get_tax_profile_in_business(
+        business_id,
+        dto.tax_profile_id,
+        { require_active: true },
+      );
+    }
+
+    const cabys_code = this.normalize_optional_string(dto.cabys_code);
+    if (cabys_code && cabys_code !== current_tax_profile?.cabys_code) {
+      return this.ensure_tax_profile_for_cabys_use_case.execute({
+        business_id,
+        cabys_code,
+        cabys_descripcion: this.normalize_optional_string(
+          dto.cabys_descripcion,
+        ),
+        cabys_impuesto: dto.cabys_impuesto ?? null,
+        item_kind:
+          current_tax_profile?.item_kind ?? TaxProfileItemKind.GOODS,
+      });
+    }
+
+    return current_tax_profile ?? null;
   }
 
   private apply_product_rules(product: Product): void {

@@ -14,6 +14,7 @@ import {
   GENERIC_ENTITY_CODE_PATTERN,
   NUMERIC_STRING_PATTERN,
 } from '../../common/utils/validation-patterns.util';
+import { TaxInclusionMode } from '../enums/tax-inclusion-mode.enum';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { TaxType } from '../enums/tax-type.enum';
 
@@ -57,6 +58,16 @@ export class CreateTaxProfileDto {
   @Min(0)
   @Max(100)
   iva_rate?: number | null;
+
+  @ApiPropertyOptional({
+    enum: TaxInclusionMode,
+    example: TaxInclusionMode.ADDED,
+    description:
+      'Indica si el precio del producto ya incluye el IVA (included) o si el IVA se suma al vender (added). Default: added.',
+  })
+  @IsOptional()
+  @IsEnum(TaxInclusionMode)
+  tax_inclusion_mode?: TaxInclusionMode;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
