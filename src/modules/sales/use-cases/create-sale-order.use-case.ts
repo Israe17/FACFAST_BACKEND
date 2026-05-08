@@ -16,8 +16,10 @@ import { SaleOrderModePolicy } from '../policies/sale-order-mode.policy';
 import { SaleOrdersRepository } from '../repositories/sale-orders.repository';
 import { SaleOrderSerializer } from '../serializers/sale-order.serializer';
 import { SalesValidationService } from '../services/sales-validation.service';
+import { TaxCalculationService } from '../services/tax-calculation.service';
 import { get_dispatch_status_for_fulfillment_mode } from '../utils/sale-dispatch-status.util';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { ProductVariant } from '../../inventory/entities/product-variant.entity';
 import { isWithinCostaRica } from '../../common/utils/geo.utils';
 
 export type CreateSaleOrderCommand = {
@@ -36,6 +38,7 @@ export class CreateSaleOrderUseCase
     private readonly sale_order_access_policy: SaleOrderAccessPolicy,
     private readonly sale_order_mode_policy: SaleOrderModePolicy,
     private readonly sales_validation_service: SalesValidationService,
+    private readonly tax_calculation_service: TaxCalculationService,
     private readonly sale_order_serializer: SaleOrderSerializer,
   ) {}
 
@@ -147,14 +150,34 @@ export class CreateSaleOrderUseCase
       const saved_order = await order_repo.save(order);
       await this.entity_code_service.ensure_code(order_repo, saved_order, 'SO');
 
+      // Server-side tax computation. We never trust the client's tax_amount.
+      // Hacienda compliance requires the server to derive tax from the
+      // product's tax profile and the customer's exoneration (if any).
+      const variant_ids = dto.lines.map((l) => l.product_variant_id);
+      const variants = await manager.getRepository(ProductVariant).find({
+        where: variant_ids.map((id) => ({ id, business_id })),
+        relations: { product: { tax_profile: true } },
+      });
+      const variants_by_id = new Map(variants.map((v) => [v.id, v]));
+
+      const customer_exoneration_percentage = contact?.exoneration_percentage ?? null;
+      const customer_allows_exoneration =
+        customer_exoneration_percentage !== null &&
+        customer_exoneration_percentage > 0;
+
       await this.sale_orders_repository.replace_lines(
         saved_order.id,
         dto.lines.map((line_dto, index) => {
-          const discount = line_dto.discount_percent ?? 0;
-          const subtotal = line_dto.quantity * line_dto.unit_price;
-          const discounted = subtotal * (1 - discount / 100);
-          const tax = line_dto.tax_amount ?? 0;
-          const total = line_dto.line_total ?? discounted + tax;
+          const variant = variants_by_id.get(line_dto.product_variant_id);
+          const tax_profile = variant?.product?.tax_profile ?? null;
+          const breakdown = this.tax_calculation_service.calculate_line_tax({
+            quantity: line_dto.quantity,
+            unit_price: line_dto.unit_price,
+            discount_percent: line_dto.discount_percent ?? 0,
+            tax_profile,
+            customer_allows_exoneration,
+            customer_exoneration_percentage,
+          });
 
           return {
             business_id,
@@ -163,9 +186,11 @@ export class CreateSaleOrderUseCase
             product_variant_id: line_dto.product_variant_id,
             quantity: line_dto.quantity,
             unit_price: line_dto.unit_price,
-            discount_percent: discount,
-            tax_amount: tax,
-            line_total: total,
+            discount_percent: breakdown.discount_amount > 0
+              ? line_dto.discount_percent ?? 0
+              : 0,
+            tax_amount: breakdown.tax_net,
+            line_total: breakdown.line_total,
             notes: this.normalize_optional_string(line_dto.notes),
           };
         }),

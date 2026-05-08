@@ -46,6 +46,7 @@ import { GetSaleOrdersListQueryUseCase } from './use-cases/get-sale-orders-list.
 import { GetSaleOrdersPageQueryUseCase } from './use-cases/get-sale-orders-page.query.use-case';
 import { UpdateSaleOrderUseCase } from './use-cases/update-sale-order.use-case';
 import { SalesValidationService } from './services/sales-validation.service';
+import { TaxCalculationService } from './services/tax-calculation.service';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { SalesValidationService } from './services/sales-validation.service';
     SaleOrderInventoryPolicy,
     SaleOrderModePolicy,
     SalesValidationService,
+    TaxCalculationService,
     ElectronicDocumentSerializer,
     SaleOrderSerializer,
     CreateSaleOrderUseCase,
