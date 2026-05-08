@@ -30,7 +30,8 @@ export class SaleOrderSerializer {
       customer_contact_id: order.customer_contact_id,
       customer_contact: order.customer_contact
         ? { id: order.customer_contact.id, name: order.customer_contact.name }
-        : undefined,
+        : null,
+      is_final_consumer: order.is_final_consumer,
       seller_user_id: order.seller_user_id,
       seller: order.seller
         ? { id: order.seller.id, name: order.seller.name }

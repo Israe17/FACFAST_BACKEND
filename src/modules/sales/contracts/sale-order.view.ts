@@ -4,8 +4,9 @@ export interface SaleOrderView {
   business_id: number;
   branch_id: number;
   branch?: { id: number; name: string | null };
-  customer_contact_id: number;
-  customer_contact?: { id: number; name: string };
+  customer_contact_id: number | null;
+  customer_contact?: { id: number; name: string } | null;
+  is_final_consumer: boolean;
   seller_user_id: number | null;
   seller: { id: number; name: string } | null;
   sale_mode: string;
