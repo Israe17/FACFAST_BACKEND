@@ -104,6 +104,7 @@ export class UpdateSaleOrderUseCase
         current_user,
         {
           branch_id: effective_branch_id,
+          is_final_consumer: order.is_final_consumer,
           customer_contact_id: dto.customer_contact_id,
         },
       );
@@ -118,6 +119,7 @@ export class UpdateSaleOrderUseCase
         current_user,
         {
           branch_id: effective_branch_id,
+          is_final_consumer: order.is_final_consumer,
           customer_contact_id: order.customer_contact_id,
           seller_user_id: effective_seller_user_id,
         },
@@ -129,6 +131,7 @@ export class UpdateSaleOrderUseCase
         current_user,
         {
           branch_id: effective_branch_id,
+          is_final_consumer: order.is_final_consumer,
           customer_contact_id: order.customer_contact_id,
           delivery_zone_id: effective_delivery_zone_id,
         },
@@ -140,6 +143,7 @@ export class UpdateSaleOrderUseCase
         current_user,
         {
           branch_id: effective_branch_id,
+          is_final_consumer: order.is_final_consumer,
           customer_contact_id: order.customer_contact_id,
           warehouse_id: effective_warehouse_id,
         },
@@ -152,6 +156,7 @@ export class UpdateSaleOrderUseCase
         current_user,
         {
           branch_id: effective_branch_id,
+          is_final_consumer: order.is_final_consumer,
           customer_contact_id: order.customer_contact_id,
           product_variant_ids: dto.lines.map((line) => line.product_variant_id),
         },
