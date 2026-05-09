@@ -1,5 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -10,12 +13,33 @@ import {
   Max,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import {
   GENERIC_ENTITY_CODE_PATTERN,
   NUMERIC_STRING_PATTERN,
 } from '../../common/utils/validation-patterns.util';
 import { ProductType } from '../enums/product-type.enum';
+
+export class InitialProductSerialsDto {
+  @ApiProperty({
+    description:
+      'Lista de seriales (IMEI, VIN, placa, etc.) a registrar en la variante por defecto al crear el producto.',
+    type: [String],
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  serial_numbers!: string[];
+
+  @ApiProperty({
+    description: 'Bodega donde se reciben inicialmente los seriales.',
+    type: Number,
+  })
+  @IsInt()
+  @Min(1)
+  warehouse_id!: number;
+}
 
 export class CreateProductDto {
   @ApiPropertyOptional({ example: 'PD-0001' })
@@ -152,4 +176,14 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
+
+  @ApiPropertyOptional({
+    type: InitialProductSerialsDto,
+    description:
+      'Seriales iniciales para registrar en la variante por defecto. Solo se aceptan si track_serials esta activo.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InitialProductSerialsDto)
+  initial_serials?: InitialProductSerialsDto;
 }

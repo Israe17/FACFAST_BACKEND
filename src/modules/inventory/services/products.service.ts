@@ -20,6 +20,7 @@ import { ProductSerializer } from '../serializers/product.serializer';
 import { TaxProfile } from '../entities/tax-profile.entity';
 import { TaxProfileItemKind } from '../enums/tax-profile-item-kind.enum';
 import { InventoryValidationService } from './inventory-validation.service';
+import { ProductSerialsService } from './product-serials.service';
 import { ProductVariantsService } from './product-variants.service';
 import { EnsureTaxProfileForCabysUseCase } from '../use-cases/ensure-tax-profile-for-cabys.use-case';
 import { GetProductsCursorQueryUseCase } from '../use-cases/get-products-cursor.query.use-case';
@@ -33,6 +34,7 @@ export class ProductsService {
     private readonly product_variants_service: ProductVariantsService,
     private readonly product_variants_repository: ProductVariantsRepository,
     private readonly product_serials_repository: ProductSerialsRepository,
+    private readonly product_serials_service: ProductSerialsService,
     private readonly product_serializer: ProductSerializer,
     private readonly ensure_tax_profile_for_cabys_use_case: EnsureTaxProfileForCabysUseCase,
     private readonly get_products_cursor_query_use_case: GetProductsCursorQueryUseCase,
@@ -201,10 +203,38 @@ export class ProductsService {
     });
 
     this.apply_product_rules(product);
+
+    if (dto.initial_serials) {
+      if (!product.track_serials) {
+        throw new DomainBadRequestException({
+          code: 'PRODUCT_SERIAL_TRACKING_DISABLED',
+          messageKey: 'inventory.product_serial_tracking_disabled',
+        });
+      }
+      if (!product.track_inventory) {
+        throw new DomainBadRequestException({
+          code: 'PRODUCT_SERIALS_REQUIRE_INVENTORY',
+          messageKey: 'inventory.product_serials_require_inventory',
+        });
+      }
+    }
+
     const saved_product = await this.products_repository.save(product);
-    await this.product_variants_service.ensure_default_variant_for_product(
-      saved_product,
-    );
+    const default_variant =
+      await this.product_variants_service.ensure_default_variant_for_product(
+        saved_product,
+      );
+
+    if (dto.initial_serials) {
+      await this.product_serials_service.register_serials(
+        current_user,
+        default_variant.id,
+        dto.initial_serials.serial_numbers,
+        dto.initial_serials.warehouse_id,
+        current_user.id,
+      );
+    }
+
     return this.serialize_product(
       await this.get_product_entity(business_id, saved_product.id),
     );
