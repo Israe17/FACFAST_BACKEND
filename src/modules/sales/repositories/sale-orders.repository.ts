@@ -139,6 +139,7 @@ export class SaleOrdersRepository {
     query: CursorQueryDto,
     mapper: (order: SaleOrder) => R,
     branch_ids?: number[],
+    filters: SaleOrdersCursorFilter = {},
   ): Promise<CursorResponseDto<R>> {
     const qb = this.sale_order_repository
       .createQueryBuilder('sale_order')
@@ -154,6 +155,12 @@ export class SaleOrdersRepository {
       qb.andWhere('1 = 0');
     } else if (branch_ids?.length) {
       qb.andWhere('sale_order.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    if (filters.created_by_user_id !== undefined) {
+      qb.andWhere('sale_order.created_by_user_id = :created_by_user_id', {
+        created_by_user_id: filters.created_by_user_id,
+      });
     }
 
     apply_search(qb, query.search, SALE_ORDER_SEARCH_COLUMNS);
@@ -262,3 +269,7 @@ export class SaleOrdersRepository {
     );
   }
 }
+
+export type SaleOrdersCursorFilter = {
+  created_by_user_id?: number;
+};

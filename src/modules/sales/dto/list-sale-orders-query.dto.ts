@@ -1,0 +1,16 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, Min } from 'class-validator';
+import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+
+export class ListSaleOrdersQueryDto extends CursorQueryDto {
+  @ApiPropertyOptional({
+    description: 'Filtrar por usuario que creó la orden de venta (created_by_user_id).',
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  created_by_user_id?: number;
+}

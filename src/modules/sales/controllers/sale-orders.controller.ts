@@ -25,7 +25,7 @@ import { AllowPlatformTenantContext } from '../../common/decorators/allow-platfo
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { IdempotencyKey } from '../../common/decorators/idempotency-key.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
+import { ListSaleOrdersQueryDto } from '../dto/list-sale-orders-query.dto';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -74,7 +74,7 @@ export class SaleOrdersController {
   @ApiOkResponse({ description: 'Lista cursor-first de ordenes de venta.' })
   get_sale_orders_cursor(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Query() query: CursorQueryDto,
+    @Query() query: ListSaleOrdersQueryDto,
   ) {
     return this.sale_orders_service.get_sale_orders_cursor(current_user, query);
   }

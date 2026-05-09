@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { QueryUseCase } from '../../common/application/interfaces/query-use-case.interface';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
+import { ListDispatchOrdersQueryDto } from '../dto/list-dispatch-orders-query.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import {
   resolve_effective_branch_scope_ids,
@@ -13,7 +13,7 @@ import { DispatchOrderSerializer } from '../serializers/dispatch-order.serialize
 
 export type GetDispatchOrdersCursorQuery = {
   current_user: AuthenticatedUserContext;
-  query: CursorQueryDto;
+  query: ListDispatchOrdersQueryDto;
 };
 
 @Injectable()
@@ -40,6 +40,7 @@ export class GetDispatchOrdersCursorQueryUseCase
       resolve_effective_branch_scope_ids(current_user),
       query,
       (order) => this.dispatch_order_serializer.serialize(order),
+      { created_by_user_id: query.created_by_user_id },
     );
   }
 }

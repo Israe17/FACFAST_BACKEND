@@ -132,6 +132,7 @@ export class DispatchOrdersRepository {
     branch_ids: number[] | undefined,
     query: CursorQueryDto,
     mapper: (dispatch_order: DispatchOrder) => T,
+    filters: DispatchOrdersCursorFilter = {},
   ): Promise<CursorResponseDto<T>> {
     if (branch_ids && branch_ids.length === 0) {
       return new CursorResponseDto([], null, false);
@@ -149,6 +150,12 @@ export class DispatchOrdersRepository {
 
     if (branch_ids?.length) {
       qb.andWhere('dispatch_order.branch_id IN (:...branch_ids)', { branch_ids });
+    }
+
+    if (filters.created_by_user_id !== undefined) {
+      qb.andWhere('dispatch_order.created_by_user_id = :created_by_user_id', {
+        created_by_user_id: filters.created_by_user_id,
+      });
     }
 
     apply_search(qb, query.search, DISPATCH_ORDER_SEARCH_COLUMNS);
@@ -208,3 +215,7 @@ export class DispatchOrdersRepository {
     await repository.remove(order);
   }
 }
+
+export type DispatchOrdersCursorFilter = {
+  created_by_user_id?: number;
+};
