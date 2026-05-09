@@ -13,4 +13,14 @@ export class ListSaleOrdersQueryDto extends CursorQueryDto {
   @IsInt()
   @Min(1)
   created_by_user_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por sucursal de la orden (branch_id).',
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  branch_id?: number;
 }

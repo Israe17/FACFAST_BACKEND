@@ -64,7 +64,10 @@ export class UsersService {
     const users = await this.users_repository.find_all_by_business(
       effective_business_id,
     );
-    return users.map((user) => this.serialize_user(user));
+    const visible_users = current_user.is_platform_admin
+      ? users
+      : users.filter((user) => !user.is_platform_admin);
+    return visible_users.map((user) => this.serialize_user(user));
   }
 
   async create_user(
@@ -296,6 +299,7 @@ export class UsersService {
     dto: AssignUserRolesDto,
   ) {
     const user = await this.get_user_entity(current_user, user_id);
+    this.user_management_policy.assert_target_takes_roles_and_branches(user);
     await this.sync_roles(current_user, user, dto.role_ids);
     return this.get_user(current_user, user_id);
   }
@@ -306,6 +310,7 @@ export class UsersService {
     dto: AssignUserBranchesDto,
   ) {
     const user = await this.get_user_entity(current_user, user_id);
+    this.user_management_policy.assert_target_takes_roles_and_branches(user);
     await this.sync_branches(current_user, user, dto.branch_ids);
     return this.get_user(current_user, user_id);
   }

@@ -163,6 +163,12 @@ export class SaleOrdersRepository {
       });
     }
 
+    if (filters.branch_id !== undefined) {
+      qb.andWhere('sale_order.branch_id = :filter_branch_id', {
+        filter_branch_id: filters.branch_id,
+      });
+    }
+
     apply_search(qb, query.search, SALE_ORDER_SEARCH_COLUMNS);
     qb.orderBy('sale_order.id', query.sort_order ?? 'DESC');
 
@@ -272,4 +278,5 @@ export class SaleOrdersRepository {
 
 export type SaleOrdersCursorFilter = {
   created_by_user_id?: number;
+  branch_id?: number;
 };

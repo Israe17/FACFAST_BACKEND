@@ -158,6 +158,12 @@ export class DispatchOrdersRepository {
       });
     }
 
+    if (filters.branch_id !== undefined) {
+      qb.andWhere('dispatch_order.branch_id = :filter_branch_id', {
+        filter_branch_id: filters.branch_id,
+      });
+    }
+
     apply_search(qb, query.search, DISPATCH_ORDER_SEARCH_COLUMNS);
     qb.orderBy('dispatch_order.id', query.sort_order ?? 'DESC');
 
@@ -218,4 +224,5 @@ export class DispatchOrdersRepository {
 
 export type DispatchOrdersCursorFilter = {
   created_by_user_id?: number;
+  branch_id?: number;
 };

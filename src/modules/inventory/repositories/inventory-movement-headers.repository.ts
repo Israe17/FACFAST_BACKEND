@@ -218,6 +218,12 @@ export class InventoryMovementHeadersRepository {
       });
     }
 
+    if (filters.branch_id !== undefined) {
+      qb.andWhere('header.branch_id = :filter_branch_id', {
+        filter_branch_id: filters.branch_id,
+      });
+    }
+
     apply_movement_line_filters(qb, filters);
 
     apply_search(qb, query.search, MOVEMENT_SEARCH_COLUMNS);
@@ -232,6 +238,7 @@ export type InventoryMovementsFilter = {
   product_variant_id?: number;
   product_id?: number;
   performed_by_user_id?: number;
+  branch_id?: number;
 };
 
 function apply_movement_line_filters(

@@ -40,7 +40,10 @@ export class GetDispatchOrdersCursorQueryUseCase
       resolve_effective_branch_scope_ids(current_user),
       query,
       (order) => this.dispatch_order_serializer.serialize(order),
-      { created_by_user_id: query.created_by_user_id },
+      {
+        created_by_user_id: query.created_by_user_id,
+        branch_id: query.branch_id,
+      },
     );
   }
 }

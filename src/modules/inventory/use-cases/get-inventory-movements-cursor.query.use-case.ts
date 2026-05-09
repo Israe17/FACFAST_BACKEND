@@ -46,6 +46,7 @@ export class GetInventoryMovementsCursorQueryUseCase
         product_variant_id: query.product_variant_id,
         product_id: query.product_id,
         performed_by_user_id: query.performed_by_user_id,
+        branch_id: query.branch_id,
       },
     );
   }

@@ -43,4 +43,14 @@ export class ListInventoryMovementsQueryDto extends CursorQueryDto {
   @IsInt()
   @Min(1)
   performed_by_user_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por sucursal del encabezado del movimiento (branch_id).',
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  branch_id?: number;
 }
