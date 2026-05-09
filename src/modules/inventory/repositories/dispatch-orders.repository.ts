@@ -164,6 +164,48 @@ export class DispatchOrdersRepository {
       });
     }
 
+    if (filters.status !== undefined) {
+      qb.andWhere('dispatch_order.status = :filter_status', {
+        filter_status: filters.status,
+      });
+    }
+
+    if (filters.dispatch_type !== undefined) {
+      qb.andWhere('dispatch_order.dispatch_type = :filter_dispatch_type', {
+        filter_dispatch_type: filters.dispatch_type,
+      });
+    }
+
+    if (filters.vehicle_id !== undefined) {
+      qb.andWhere('dispatch_order.vehicle_id = :filter_vehicle_id', {
+        filter_vehicle_id: filters.vehicle_id,
+      });
+    }
+
+    if (filters.driver_user_id !== undefined) {
+      qb.andWhere('dispatch_order.driver_user_id = :filter_driver_user_id', {
+        filter_driver_user_id: filters.driver_user_id,
+      });
+    }
+
+    if (filters.route_id !== undefined) {
+      qb.andWhere('dispatch_order.route_id = :filter_route_id', {
+        filter_route_id: filters.route_id,
+      });
+    }
+
+    if (filters.from) {
+      qb.andWhere('dispatch_order.scheduled_date >= :filter_from', {
+        filter_from: filters.from,
+      });
+    }
+
+    if (filters.to) {
+      qb.andWhere('dispatch_order.scheduled_date <= :filter_to', {
+        filter_to: filters.to,
+      });
+    }
+
     apply_search(qb, query.search, DISPATCH_ORDER_SEARCH_COLUMNS);
     qb.orderBy('dispatch_order.id', query.sort_order ?? 'DESC');
 
@@ -225,4 +267,11 @@ export class DispatchOrdersRepository {
 export type DispatchOrdersCursorFilter = {
   created_by_user_id?: number;
   branch_id?: number;
+  from?: string;
+  to?: string;
+  status?: string;
+  dispatch_type?: string;
+  vehicle_id?: number;
+  driver_user_id?: number;
+  route_id?: number;
 };

@@ -43,6 +43,13 @@ export class GetDispatchOrdersCursorQueryUseCase
       {
         created_by_user_id: query.created_by_user_id,
         branch_id: query.branch_id,
+        from: query.from,
+        to: query.to,
+        status: query.status,
+        dispatch_type: query.dispatch_type,
+        vehicle_id: query.vehicle_id,
+        driver_user_id: query.driver_user_id,
+        route_id: query.route_id,
       },
     );
   }

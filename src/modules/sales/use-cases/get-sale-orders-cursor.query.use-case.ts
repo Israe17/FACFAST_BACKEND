@@ -38,6 +38,11 @@ export class GetSaleOrdersCursorQueryUseCase
       {
         created_by_user_id: query.created_by_user_id,
         branch_id: query.branch_id,
+        from: query.from,
+        to: query.to,
+        status: query.status,
+        customer_contact_id: query.customer_contact_id,
+        warehouse_id: query.warehouse_id,
       },
     );
   }
