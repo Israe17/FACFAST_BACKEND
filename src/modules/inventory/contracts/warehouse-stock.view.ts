@@ -21,6 +21,11 @@ export interface WarehouseStockView {
     code?: string | null;
     name?: string;
     type?: string;
+    category?: {
+      id: number;
+      code?: string | null;
+      name?: string;
+    } | null;
   };
   quantity: number;
   reserved_quantity: number;

@@ -131,6 +131,7 @@ export class InventoryBalancesRepository {
       )
       .leftJoinAndSelect('inventory_balance.product_variant', 'product_variant')
       .leftJoinAndSelect('product_variant.product', 'product')
+      .leftJoinAndSelect('product.category', 'product_category')
       .where('inventory_balance.business_id = :business_id', { business_id });
 
     if (branch_ids?.length) {
@@ -157,6 +158,7 @@ export class InventoryBalancesRepository {
       .leftJoinAndSelect('inventory_balance.warehouse', 'warehouse')
       .leftJoinAndSelect('inventory_balance.product_variant', 'product_variant')
       .leftJoinAndSelect('product_variant.product', 'product')
+      .leftJoinAndSelect('product.category', 'product_category')
       .where('inventory_balance.business_id = :business_id', { business_id })
       .andWhere('inventory_balance.warehouse_id = :warehouse_id', {
         warehouse_id,

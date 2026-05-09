@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { QueryUseCase } from '../../common/application/interfaces/query-use-case.interface';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { resolve_effective_business_id } from '../../common/utils/tenant-context.util';
 import { InventoryMovementRecordView } from '../contracts/inventory-movement.view';
+import { ListInventoryMovementsQueryDto } from '../dto/list-inventory-movements-query.dto';
 import { InventoryMovementHeadersRepository } from '../repositories/inventory-movement-headers.repository';
 import { InventoryMovementSerializer } from '../serializers/inventory-movement.serializer';
 import { InventoryValidationService } from '../services/inventory-validation.service';
 
 export type GetInventoryMovementsCursorQuery = {
   current_user: AuthenticatedUserContext;
-  query: CursorQueryDto;
+  query: ListInventoryMovementsQueryDto;
 };
 
 @Injectable()
@@ -41,6 +41,11 @@ export class GetInventoryMovementsCursorQueryUseCase
       ),
       query,
       (header) => this.inventory_movement_serializer.serialize(header),
+      {
+        warehouse_id: query.warehouse_id,
+        product_variant_id: query.product_variant_id,
+        product_id: query.product_id,
+      },
     );
   }
 }

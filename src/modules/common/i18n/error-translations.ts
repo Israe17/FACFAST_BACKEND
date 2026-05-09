@@ -317,6 +317,10 @@ export const error_translations = {
       'Este producto no tiene habilitado el seguimiento por serie.',
     'inventory.product_serials_require_inventory':
       'Para registrar seriales el producto debe tener inventario activado.',
+    'inventory.warehouse_stock_max_below_min':
+      'El stock maximo no puede ser menor que el minimo.',
+    'inventory.warehouse_stock_update_error_fallback':
+      'No fue posible actualizar los minimos y maximos.',
     'inventory.serial_not_found':
       'El numero de serie no existe.',
     'inventory.serial_number_duplicate':
@@ -838,6 +842,10 @@ export const error_translations = {
       'This product does not have serial tracking enabled.',
     'inventory.product_serials_require_inventory':
       'To register serials the product must have inventory tracking enabled.',
+    'inventory.warehouse_stock_max_below_min':
+      'Max stock cannot be lower than min stock.',
+    'inventory.warehouse_stock_update_error_fallback':
+      'Unable to update min and max thresholds.',
     'inventory.serial_not_found':
       'The serial number does not exist.',
     'inventory.serial_number_duplicate':

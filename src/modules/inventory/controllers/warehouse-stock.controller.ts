@@ -1,4 +1,5 @@
 import {
+  ApiBody,
   ApiCookieAuth,
   ApiForbiddenResponse,
   ApiOperation,
@@ -7,10 +8,12 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -24,7 +27,9 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { UpdateWarehouseStockThresholdsDto } from '../dto/update-warehouse-stock-thresholds.dto';
 import { WarehouseStockService } from '../services/warehouse-stock.service';
+import { UpdateWarehouseStockThresholdsUseCase } from '../use-cases/update-warehouse-stock-thresholds.use-case';
 
 @ApiTags('warehouse-stock')
 @ApiCookieAuth('access-cookie')
@@ -37,6 +42,7 @@ import { WarehouseStockService } from '../services/warehouse-stock.service';
 export class WarehouseStockController {
   constructor(
     private readonly warehouse_stock_service: WarehouseStockService,
+    private readonly update_warehouse_stock_thresholds_use_case: UpdateWarehouseStockThresholdsUseCase,
   ) {}
 
   @Get()
@@ -84,5 +90,27 @@ export class WarehouseStockController {
       current_user,
       warehouse_id,
     );
+  }
+
+  @Patch(':warehouse_id/variants/:variant_id/thresholds')
+  @RequirePermissions(PermissionKey.WAREHOUSE_STOCK_UPDATE)
+  @ApiOperation({
+    summary: 'Actualizar minimos y maximos de stock por bodega y variante',
+  })
+  @ApiParam({ name: 'warehouse_id', type: Number })
+  @ApiParam({ name: 'variant_id', type: Number })
+  @ApiBody({ type: UpdateWarehouseStockThresholdsDto })
+  update_thresholds(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('warehouse_id', ParseIntPipe) warehouse_id: number,
+    @Param('variant_id', ParseIntPipe) variant_id: number,
+    @Body() dto: UpdateWarehouseStockThresholdsDto,
+  ) {
+    return this.update_warehouse_stock_thresholds_use_case.execute({
+      current_user,
+      warehouse_id,
+      product_variant_id: variant_id,
+      dto,
+    });
   }
 }

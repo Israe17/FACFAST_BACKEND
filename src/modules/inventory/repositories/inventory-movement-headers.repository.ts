@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, In, Repository } from 'typeorm';
+import { EntityManager, In, Repository, SelectQueryBuilder } from 'typeorm';
 import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
@@ -189,6 +189,7 @@ export class InventoryMovementHeadersRepository {
     branch_ids: number[] | undefined,
     query: CursorQueryDto,
     mapper: (header: InventoryMovementHeader) => R,
+    filters: InventoryMovementsFilter = {},
   ): Promise<CursorResponseDto<R>> {
     if (branch_ids && branch_ids.length === 0) {
       return new CursorResponseDto([], null, false);
@@ -211,9 +212,64 @@ export class InventoryMovementHeadersRepository {
       qb.andWhere('header.branch_id IN (:...branch_ids)', { branch_ids });
     }
 
+    apply_movement_line_filters(qb, filters);
+
     apply_search(qb, query.search, MOVEMENT_SEARCH_COLUMNS);
     qb.orderBy('header.id', query.sort_order ?? 'DESC');
 
     return apply_cursor(qb, query, 'header.id', mapper);
   }
+}
+
+export type InventoryMovementsFilter = {
+  warehouse_id?: number;
+  product_variant_id?: number;
+  product_id?: number;
+};
+
+function apply_movement_line_filters(
+  qb: SelectQueryBuilder<InventoryMovementHeader>,
+  filters: InventoryMovementsFilter,
+): void {
+  const conditions: string[] = [];
+  const params: Record<string, number> = {};
+
+  if (filters.warehouse_id !== undefined) {
+    conditions.push('filter_line.warehouse_id = :filter_warehouse_id');
+    params.filter_warehouse_id = filters.warehouse_id;
+  }
+  if (filters.product_variant_id !== undefined) {
+    conditions.push('filter_line.product_variant_id = :filter_product_variant_id');
+    params.filter_product_variant_id = filters.product_variant_id;
+  }
+  if (filters.product_id !== undefined) {
+    conditions.push(
+      'filter_variant.product_id = :filter_product_id',
+    );
+    params.filter_product_id = filters.product_id;
+  }
+
+  if (!conditions.length) {
+    return;
+  }
+
+  qb.andWhere(
+    (sub_qb) => {
+      const sub = sub_qb
+        .subQuery()
+        .select('1')
+        .from('inventory_movement_lines', 'filter_line')
+        .where('filter_line.header_id = header.id')
+        .andWhere(conditions.join(' AND '));
+      if (filters.product_id !== undefined) {
+        sub.leftJoin(
+          'product_variants',
+          'filter_variant',
+          'filter_variant.id = filter_line.product_variant_id',
+        );
+      }
+      return `EXISTS ${sub.getQuery()}`;
+    },
+    params,
+  );
 }

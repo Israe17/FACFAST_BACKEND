@@ -40,6 +40,7 @@ import { GetWarehouseStockCursorQueryUseCase } from './use-cases/get-warehouse-s
 import { GetWarehouseStockQueryUseCase } from './use-cases/get-warehouse-stock.query.use-case';
 import { GetWarehousesListQueryUseCase } from './use-cases/get-warehouses-list.query.use-case';
 import { UpdateWarehouseLocationUseCase } from './use-cases/update-warehouse-location.use-case';
+import { UpdateWarehouseStockThresholdsUseCase } from './use-cases/update-warehouse-stock-thresholds.use-case';
 import { UpdateWarehouseUseCase } from './use-cases/update-warehouse.use-case';
 
 @Module({
@@ -91,6 +92,7 @@ import { UpdateWarehouseUseCase } from './use-cases/update-warehouse.use-case';
     GetWarehouseStockCursorQueryUseCase,
     GetWarehouseStockByWarehouseQueryUseCase,
     GetWarehouseStockByWarehouseCursorQueryUseCase,
+    UpdateWarehouseStockThresholdsUseCase,
   ],
   exports: [
     WarehousesService,
