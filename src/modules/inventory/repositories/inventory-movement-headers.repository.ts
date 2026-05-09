@@ -237,15 +237,18 @@ export class InventoryMovementHeadersRepository {
     }
 
     if (filters.from) {
-      qb.andWhere('header.occurred_at >= :filter_from', {
+      qb.andWhere('header.occurred_at >= (:filter_from)::date', {
         filter_from: filters.from,
       });
     }
 
     if (filters.to) {
-      qb.andWhere('header.occurred_at <= :filter_to', {
-        filter_to: filters.to,
-      });
+      qb.andWhere(
+        "header.occurred_at < ((:filter_to)::date + INTERVAL '1 day')",
+        {
+          filter_to: filters.to,
+        },
+      );
     }
 
     apply_movement_line_filters(qb, filters);

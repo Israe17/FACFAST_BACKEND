@@ -188,15 +188,18 @@ export class SaleOrdersRepository {
     }
 
     if (filters.from) {
-      qb.andWhere('sale_order.order_date >= :filter_from', {
+      qb.andWhere('sale_order.order_date >= (:filter_from)::date', {
         filter_from: filters.from,
       });
     }
 
     if (filters.to) {
-      qb.andWhere('sale_order.order_date <= :filter_to', {
-        filter_to: filters.to,
-      });
+      qb.andWhere(
+        "sale_order.order_date < ((:filter_to)::date + INTERVAL '1 day')",
+        {
+          filter_to: filters.to,
+        },
+      );
     }
 
     apply_search(qb, query.search, SALE_ORDER_SEARCH_COLUMNS);
