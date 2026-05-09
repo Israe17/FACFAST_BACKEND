@@ -817,6 +817,11 @@ const base_permissions: PermissionSeed[] = [
   ...dispatch_permissions,
 ];
 
+// Role keys that must stay locked (is_system=true). Only the catch-all role
+// belongs here; the rest of the suggested roles are seeded as templates the
+// tenant can customize or delete freely.
+const SYSTEM_ROLE_KEYS = new Set<string>(['owner']);
+
 const suggested_role_permissions: Record<string, string[]> = {
   owner: base_permissions.map((permission) => permission.key),
   admin: base_permissions
@@ -1060,6 +1065,7 @@ export class RbacSeedService implements OnApplicationBootstrap {
     for (const [role_key, permission_keys] of Object.entries(
       suggested_role_permissions,
     )) {
+      const should_be_system = SYSTEM_ROLE_KEYS.has(role_key);
       let role = await role_repository.findOne({
         where: {
           business_id,
@@ -1067,6 +1073,16 @@ export class RbacSeedService implements OnApplicationBootstrap {
         },
         relations: this.role_relations,
       });
+      if (role) {
+        // Self-heal: previous seeds marked every suggested role as
+        // is_system=true, which made admin/branch_manager/etc. read-only in
+        // the UI. Reconcile the flag so only true catch-all roles stay
+        // locked.
+        if (role.is_system !== should_be_system) {
+          role.is_system = should_be_system;
+          role = await role_repository.save(role);
+        }
+      }
       if (!role) {
         role = role_repository.create({
           business_id,
@@ -1075,7 +1091,7 @@ export class RbacSeedService implements OnApplicationBootstrap {
             .map((segment) => segment[0].toUpperCase() + segment.slice(1))
             .join(' '),
           role_key,
-          is_system: true,
+          is_system: should_be_system,
         });
         const saved_role = await role_repository.save(role);
         role = await this.entity_code_service.ensure_code(
