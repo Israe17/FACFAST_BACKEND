@@ -315,6 +315,8 @@ export const error_translations = {
       'El lote no pertenece a la variante indicada.',
     'inventory.product_serial_tracking_disabled':
       'Este producto no tiene habilitado el seguimiento por serie.',
+    'inventory.product_serials_require_inventory':
+      'Para registrar seriales el producto debe tener inventario activado.',
     'inventory.serial_not_found':
       'El numero de serie no existe.',
     'inventory.serial_number_duplicate':
@@ -834,6 +836,8 @@ export const error_translations = {
       'The lot does not belong to the specified variant.',
     'inventory.product_serial_tracking_disabled':
       'This product does not have serial tracking enabled.',
+    'inventory.product_serials_require_inventory':
+      'To register serials the product must have inventory tracking enabled.',
     'inventory.serial_not_found':
       'The serial number does not exist.',
     'inventory.serial_number_duplicate':
