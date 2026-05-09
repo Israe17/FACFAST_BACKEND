@@ -93,7 +93,7 @@ export class WarehouseStockController {
   }
 
   @Patch(':warehouse_id/variants/:variant_id/thresholds')
-  @RequirePermissions(PermissionKey.WAREHOUSES_UPDATE)
+  @RequirePermissions(PermissionKey.WAREHOUSE_STOCK_UPDATE)
   @ApiOperation({
     summary: 'Actualizar minimos y maximos de stock por bodega y variante',
   })

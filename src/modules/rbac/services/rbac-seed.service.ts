@@ -366,6 +366,12 @@ const inventory_permissions: PermissionSeed[] = [
     description: 'Can view warehouse stock.',
   },
   {
+    key: PermissionKey.WAREHOUSE_STOCK_UPDATE,
+    module: 'warehouse_stock',
+    action: 'update',
+    description: 'Can update warehouse stock thresholds (min/max).',
+  },
+  {
     key: PermissionKey.INVENTORY_LOTS_VIEW,
     module: 'inventory_lots',
     action: 'view',
@@ -923,7 +929,10 @@ const derived_inventory_permissions: Partial<
     PermissionKey.PROMOTIONS_UPDATE_BRANCH_ASSIGNMENT,
     PermissionKey.PROMOTIONS_DELETE_BRANCH_ASSIGNMENT,
   ],
-  [PermissionKey.WAREHOUSES_UPDATE]: [PermissionKey.WAREHOUSES_DELETE],
+  [PermissionKey.WAREHOUSES_UPDATE]: [
+    PermissionKey.WAREHOUSES_DELETE,
+    PermissionKey.WAREHOUSE_STOCK_UPDATE,
+  ],
   [PermissionKey.INVENTORY_LOTS_UPDATE]: [PermissionKey.INVENTORY_LOTS_DELETE],
   [PermissionKey.INVENTORY_MOVEMENTS_ADJUST]: [
     PermissionKey.INVENTORY_MOVEMENTS_TRANSFER,

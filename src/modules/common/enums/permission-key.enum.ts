@@ -91,6 +91,7 @@ export enum PermissionKey {
   WAREHOUSE_LOCATIONS_CREATE = 'warehouse_locations.create',
   WAREHOUSE_LOCATIONS_UPDATE = 'warehouse_locations.update',
   WAREHOUSE_STOCK_VIEW = 'warehouse_stock.view',
+  WAREHOUSE_STOCK_UPDATE = 'warehouse_stock.update',
   INVENTORY_LOTS_VIEW = 'inventory_lots.view',
   INVENTORY_LOTS_CREATE = 'inventory_lots.create',
   INVENTORY_LOTS_UPDATE = 'inventory_lots.update',
