@@ -21,7 +21,6 @@ import { AllowPlatformTenantContext } from '../../common/decorators/allow-platfo
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { IdempotencyKey } from '../../common/decorators/idempotency-key.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -31,6 +30,7 @@ import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { CancelInventoryMovementDto } from '../dto/cancel-inventory-movement.dto';
 import { CreateInventoryAdjustmentDto } from '../dto/create-inventory-adjustment.dto';
 import { CreateInventoryTransferDto } from '../dto/create-inventory-transfer.dto';
+import { ListInventoryMovementsQueryDto } from '../dto/list-inventory-movements-query.dto';
 import { InventoryMovementsService } from '../services/inventory-movements.service';
 
 @ApiTags('inventory-movements')
@@ -61,10 +61,13 @@ export class InventoryMovementsController {
 
   @Get('cursor')
   @RequirePermissions(PermissionKey.INVENTORY_MOVEMENTS_VIEW)
-  @ApiOperation({ summary: 'Listar movimientos de inventario (cursor)' })
+  @ApiOperation({
+    summary:
+      'Listar movimientos de inventario (cursor); soporta filtros por bodega, variante o producto.',
+  })
   get_movements_cursor(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Query() query: CursorQueryDto,
+    @Query() query: ListInventoryMovementsQueryDto,
   ) {
     return this.inventory_movements_service.get_movements_cursor(
       current_user,

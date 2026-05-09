@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { ListInventoryMovementsQueryDto } from '../dto/list-inventory-movements-query.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import {
   CancelInventoryMovementResultView,
@@ -50,7 +50,7 @@ export class InventoryMovementsService {
 
   async get_movements_cursor(
     current_user: AuthenticatedUserContext,
-    query: CursorQueryDto,
+    query: ListInventoryMovementsQueryDto,
   ): Promise<CursorResponseDto<InventoryMovementRecordView>> {
     return this.get_inventory_movements_cursor_query_use_case.execute({
       current_user,
