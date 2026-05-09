@@ -94,6 +94,10 @@ export async function apply_cursor<T extends ObjectLiteral, R>(
   const limit = query.limit ?? 20;
   const sort_order = query.sort_order ?? 'DESC';
 
+  // Total matching records, computed before adding the cursor predicate so it
+  // reflects the full filtered set regardless of which page is being fetched.
+  const total = await qb.clone().getCount();
+
   if (query.cursor !== undefined) {
     if (sort_order === 'DESC') {
       qb.andWhere(`${id_column} < :cursor`, { cursor: query.cursor });
@@ -117,5 +121,6 @@ export async function apply_cursor<T extends ObjectLiteral, R>(
     await Promise.all(page_data.map(mapper)),
     next_cursor,
     has_more,
+    total,
   );
 }
