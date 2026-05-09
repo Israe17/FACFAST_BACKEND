@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
 import { DomainForbiddenException } from '../../common/errors/exceptions/domain-forbidden.exception';
 import { UserType } from '../../common/enums/user-type.enum';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -20,6 +21,16 @@ export class UserManagementPolicy {
       throw new DomainForbiddenException({
         code: 'USER_CROSS_BUSINESS_MANAGEMENT_FORBIDDEN',
         messageKey: 'users.cross_business_management_forbidden',
+      });
+    }
+
+    if (
+      target_user.is_platform_admin &&
+      !current_user.is_platform_admin
+    ) {
+      throw new DomainForbiddenException({
+        code: 'USER_PLATFORM_ADMIN_MANAGEMENT_FORBIDDEN',
+        messageKey: 'users.platform_admin_management_forbidden',
       });
     }
 
@@ -45,6 +56,15 @@ export class UserManagementPolicy {
       throw new DomainForbiddenException({
         code: 'USER_OWNER_MANAGEMENT_FORBIDDEN',
         messageKey: 'users.owner_management_forbidden',
+      });
+    }
+  }
+
+  assert_target_takes_roles_and_branches(target_user: User): void {
+    if (target_user.is_platform_admin) {
+      throw new DomainBadRequestException({
+        code: 'USER_PLATFORM_ADMIN_ASSIGNMENT_FORBIDDEN',
+        messageKey: 'users.platform_admin_assignment_forbidden',
       });
     }
   }

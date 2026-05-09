@@ -104,6 +104,10 @@ export const error_translations = {
     'users.self_delete_forbidden': 'Un usuario no puede eliminarse a si mismo.',
     'users.platform_admin_delete_forbidden':
       'Los usuarios platform admin no pueden eliminarse desde este contexto.',
+    'users.platform_admin_management_forbidden':
+      'Solo un platform admin puede ver o gestionar a otro platform admin.',
+    'users.platform_admin_assignment_forbidden':
+      'Los usuarios platform admin no requieren asignacion de roles ni sucursales: tienen acceso total.',
     'users.last_owner_delete_forbidden':
       'No se puede eliminar el ultimo usuario owner de la empresa.',
     'users.delete_forbidden':
@@ -626,6 +630,10 @@ export const error_translations = {
     'users.self_delete_forbidden': 'A user cannot delete itself.',
     'users.platform_admin_delete_forbidden':
       'Platform admin users cannot be deleted from this context.',
+    'users.platform_admin_management_forbidden':
+      'Only a platform admin can view or manage another platform admin.',
+    'users.platform_admin_assignment_forbidden':
+      'Platform admin users do not require role or branch assignment: they have full access.',
     'users.last_owner_delete_forbidden':
       'The last owner user of the business cannot be deleted.',
     'users.delete_forbidden':

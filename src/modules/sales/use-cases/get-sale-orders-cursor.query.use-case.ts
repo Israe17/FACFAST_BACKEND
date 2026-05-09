@@ -35,7 +35,15 @@ export class GetSaleOrdersCursorQueryUseCase
       query,
       (order) => this.sale_order_serializer.serialize(order),
       resolve_effective_branch_scope_ids(current_user),
-      { created_by_user_id: query.created_by_user_id },
+      {
+        created_by_user_id: query.created_by_user_id,
+        branch_id: query.branch_id,
+        from: query.from,
+        to: query.to,
+        status: query.status,
+        customer_contact_id: query.customer_contact_id,
+        warehouse_id: query.warehouse_id,
+      },
     );
   }
 }

@@ -163,6 +163,42 @@ export class SaleOrdersRepository {
       });
     }
 
+    if (filters.branch_id !== undefined) {
+      qb.andWhere('sale_order.branch_id = :filter_branch_id', {
+        filter_branch_id: filters.branch_id,
+      });
+    }
+
+    if (filters.status !== undefined) {
+      qb.andWhere('sale_order.status = :filter_status', {
+        filter_status: filters.status,
+      });
+    }
+
+    if (filters.customer_contact_id !== undefined) {
+      qb.andWhere('sale_order.customer_contact_id = :filter_customer_contact_id', {
+        filter_customer_contact_id: filters.customer_contact_id,
+      });
+    }
+
+    if (filters.warehouse_id !== undefined) {
+      qb.andWhere('sale_order.warehouse_id = :filter_warehouse_id', {
+        filter_warehouse_id: filters.warehouse_id,
+      });
+    }
+
+    if (filters.from) {
+      qb.andWhere('sale_order.order_date >= :filter_from', {
+        filter_from: filters.from,
+      });
+    }
+
+    if (filters.to) {
+      qb.andWhere('sale_order.order_date <= :filter_to', {
+        filter_to: filters.to,
+      });
+    }
+
     apply_search(qb, query.search, SALE_ORDER_SEARCH_COLUMNS);
     qb.orderBy('sale_order.id', query.sort_order ?? 'DESC');
 
@@ -272,4 +308,10 @@ export class SaleOrdersRepository {
 
 export type SaleOrdersCursorFilter = {
   created_by_user_id?: number;
+  branch_id?: number;
+  from?: string;
+  to?: string;
+  status?: string;
+  customer_contact_id?: number;
+  warehouse_id?: number;
 };
