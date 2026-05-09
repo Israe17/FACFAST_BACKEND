@@ -39,9 +39,17 @@ export class WarehouseStockSerializer {
             code: product.code,
             name: product.name,
             type: product.type,
+            category: product.category
+              ? {
+                  id: product.category.id,
+                  code: product.category.code ?? null,
+                  name: product.category.name,
+                }
+              : null,
           }
         : {
             id: balance.product_variant?.product_id ?? null,
+            category: null,
           },
       quantity: balance.on_hand_quantity,
       reserved_quantity: balance.reserved_quantity,
