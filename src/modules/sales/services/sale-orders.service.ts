@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { ListSaleOrdersQueryDto } from '../dto/list-sale-orders-query.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { CancelSaleOrderDto } from '../dto/cancel-sale-order.dto';
 import { CancelSaleOrderLineDto } from '../dto/cancel-sale-order-line.dto';
@@ -57,7 +57,7 @@ export class SaleOrdersService {
 
   async get_sale_orders_cursor(
     current_user: AuthenticatedUserContext,
-    query: CursorQueryDto,
+    query: ListSaleOrdersQueryDto,
   ): Promise<CursorResponseDto<SaleOrderView>> {
     return this.get_sale_orders_cursor_query_use_case.execute({
       current_user,

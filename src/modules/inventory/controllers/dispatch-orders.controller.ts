@@ -24,8 +24,8 @@ import { AllowPlatformTenantContext } from '../../common/decorators/allow-platfo
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { IdempotencyKey } from '../../common/decorators/idempotency-key.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
+import { ListDispatchOrdersQueryDto } from '../dto/list-dispatch-orders-query.dto';
 import { PermissionKey } from '../../common/enums/permission-key.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -66,7 +66,7 @@ export class DispatchOrdersController {
   @ApiOperation({ summary: 'Listar ordenes de despacho (cursor)' })
   get_dispatch_orders_cursor(
     @CurrentUser() current_user: AuthenticatedUserContext,
-    @Query() query: CursorQueryDto,
+    @Query() query: ListDispatchOrdersQueryDto,
   ) {
     return this.dispatch_orders_service.get_dispatch_orders_cursor(
       current_user,

@@ -212,6 +212,12 @@ export class InventoryMovementHeadersRepository {
       qb.andWhere('header.branch_id IN (:...branch_ids)', { branch_ids });
     }
 
+    if (filters.performed_by_user_id !== undefined) {
+      qb.andWhere('header.performed_by_user_id = :performed_by_user_id', {
+        performed_by_user_id: filters.performed_by_user_id,
+      });
+    }
+
     apply_movement_line_filters(qb, filters);
 
     apply_search(qb, query.search, MOVEMENT_SEARCH_COLUMNS);
@@ -225,6 +231,7 @@ export type InventoryMovementsFilter = {
   warehouse_id?: number;
   product_variant_id?: number;
   product_id?: number;
+  performed_by_user_id?: number;
 };
 
 function apply_movement_line_filters(

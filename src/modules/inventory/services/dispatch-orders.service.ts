@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CursorQueryDto } from '../../common/dto/cursor-query.dto';
 import { CursorResponseDto } from '../../common/dto/cursor-response.dto';
+import { ListDispatchOrdersQueryDto } from '../dto/list-dispatch-orders-query.dto';
 import { PaginatedQueryDto } from '../../common/dto/paginated-query.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
@@ -66,7 +66,7 @@ export class DispatchOrdersService {
 
   async get_dispatch_orders_cursor(
     current_user: AuthenticatedUserContext,
-    query: CursorQueryDto,
+    query: ListDispatchOrdersQueryDto,
   ): Promise<CursorResponseDto<DispatchOrderView>> {
     return this.get_dispatch_orders_cursor_query_use_case.execute({
       current_user,
