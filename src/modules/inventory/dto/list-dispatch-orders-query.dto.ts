@@ -89,4 +89,15 @@ export class ListDispatchOrdersQueryDto extends CursorQueryDto {
   @IsInt()
   @Min(1)
   route_id?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Filtrar por cliente (customer_contact_id). Coincide cuando alguna stop del despacho está asignada a ese contacto.',
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  customer_contact_id?: number;
 }

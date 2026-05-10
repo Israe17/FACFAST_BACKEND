@@ -251,6 +251,21 @@ export class InventoryMovementHeadersRepository {
       );
     }
 
+    if (filters.supplier_contact_id !== undefined) {
+      // Supplier vive en inventory_lots (no en el header). EXISTS via líneas →
+      // lots para coincidir el movimiento sin inflar conteos cuando varias
+      // líneas comparten el mismo supplier.
+      qb.andWhere(
+        `EXISTS (
+           SELECT 1 FROM inventory_movement_lines ml
+           JOIN inventory_lots il ON il.id = ml.inventory_lot_id
+           WHERE ml.header_id = header.id
+             AND il.supplier_contact_id = :filter_supplier_contact_id
+         )`,
+        { filter_supplier_contact_id: filters.supplier_contact_id },
+      );
+    }
+
     apply_movement_line_filters(qb, filters);
 
     apply_search(qb, query.search, MOVEMENT_SEARCH_COLUMNS);
@@ -270,6 +285,7 @@ export type InventoryMovementsFilter = {
   to?: string;
   status?: string;
   movement_type?: string;
+  supplier_contact_id?: number;
 };
 
 function apply_movement_line_filters(

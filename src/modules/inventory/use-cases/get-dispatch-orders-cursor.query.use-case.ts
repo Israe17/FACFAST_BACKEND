@@ -50,6 +50,7 @@ export class GetDispatchOrdersCursorQueryUseCase
         vehicle_id: query.vehicle_id,
         driver_user_id: query.driver_user_id,
         route_id: query.route_id,
+        customer_contact_id: query.customer_contact_id,
       },
     );
   }
