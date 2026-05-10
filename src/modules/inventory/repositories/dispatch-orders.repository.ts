@@ -194,6 +194,19 @@ export class DispatchOrdersRepository {
       });
     }
 
+    if (filters.customer_contact_id !== undefined) {
+      // EXISTS so the dispatch is matched once even if the customer has
+      // multiple stops on the same order; no row multiplication for `total`.
+      qb.andWhere(
+        `EXISTS (
+           SELECT 1 FROM dispatch_stops ds
+           WHERE ds.dispatch_order_id = dispatch_order.id
+             AND ds.customer_contact_id = :filter_customer_contact_id
+         )`,
+        { filter_customer_contact_id: filters.customer_contact_id },
+      );
+    }
+
     if (filters.from) {
       qb.andWhere('dispatch_order.scheduled_date >= :filter_from', {
         filter_from: filters.from,
@@ -274,4 +287,5 @@ export type DispatchOrdersCursorFilter = {
   vehicle_id?: number;
   driver_user_id?: number;
   route_id?: number;
+  customer_contact_id?: number;
 };

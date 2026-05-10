@@ -89,4 +89,15 @@ export class ListInventoryMovementsQueryDto extends CursorQueryDto {
   @IsOptional()
   @IsEnum(InventoryMovementHeaderType)
   movement_type?: InventoryMovementHeaderType;
+
+  @ApiPropertyOptional({
+    description:
+      'Filtrar por proveedor (supplier_contact_id). Coincide cuando alguna línea del movimiento referencia un lot con ese supplier.',
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  supplier_contact_id?: number;
 }

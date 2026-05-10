@@ -51,6 +51,7 @@ export class GetInventoryMovementsCursorQueryUseCase
         to: query.to,
         status: query.status,
         movement_type: query.movement_type,
+        supplier_contact_id: query.supplier_contact_id,
       },
     );
   }
