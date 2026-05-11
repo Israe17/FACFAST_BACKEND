@@ -13,6 +13,7 @@ import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserType } from '../../common/enums/user-type.enum';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { UserBranchAccess } from './user-branch-access.entity';
+import { UserPermission } from './user-permission.entity';
 import { UserRole } from './user-role.entity';
 
 @Entity('users')
@@ -100,6 +101,9 @@ export class User extends AuditedCodeEntity {
     (user_branch_access) => user_branch_access.user,
   )
   user_branch_access?: UserBranchAccess[];
+
+  @OneToMany(() => UserPermission, (user_permission) => user_permission.user)
+  user_permissions?: UserPermission[];
 
   @OneToMany(() => RefreshToken, (refresh_token) => refresh_token.user)
   refresh_tokens?: RefreshToken[];

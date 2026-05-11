@@ -89,4 +89,17 @@ export class CreateUserDto {
   @ArrayUnique({ message: validation_messages.array_unique() })
   @IsInt({ each: true, message: validation_messages.invalid_number() })
   branch_ids?: number[];
+
+  @ApiPropertyOptional({
+    type: [Number],
+    example: [1],
+    description:
+      'IDs de permisos directos a asignar al usuario (independiente de los roles). ' +
+      'Solo se aceptan permisos del namespace auth.*.',
+  })
+  @IsOptional()
+  @IsArray({ message: validation_messages.array_required() })
+  @ArrayUnique({ message: validation_messages.array_unique() })
+  @IsInt({ each: true, message: validation_messages.invalid_number() })
+  permission_ids?: number[];
 }

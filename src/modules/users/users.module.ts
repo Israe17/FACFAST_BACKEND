@@ -9,6 +9,7 @@ import { RbacModule } from '../rbac/rbac.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { UsersController } from './controllers/users.controller';
 import { UserBranchAccess } from './entities/user-branch-access.entity';
+import { UserPermission } from './entities/user-permission.entity';
 import { UserRole } from './entities/user-role.entity';
 import { User } from './entities/user.entity';
 import { UserManagementPolicy } from './policies/user-management.policy';
@@ -21,6 +22,7 @@ import { UsersService } from './services/users.service';
       User,
       UserRole,
       UserBranchAccess,
+      UserPermission,
       InventoryMovementHeader,
       InventoryMovement,
       SerialEvent,

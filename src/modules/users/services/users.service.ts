@@ -18,14 +18,17 @@ import { resolve_effective_business_id } from '../../common/utils/tenant-context
 import { InventoryMovementHeader } from '../../inventory/entities/inventory-movement-header.entity';
 import { InventoryMovement } from '../../inventory/entities/inventory-movement.entity';
 import { SerialEvent } from '../../inventory/entities/serial-event.entity';
+import { PermissionsRepository } from '../../rbac/repositories/permissions.repository';
 import { RolesRepository } from '../../rbac/repositories/roles.repository';
 import { AssignUserBranchesDto } from '../dto/assign-user-branches.dto';
+import { AssignUserPermissionsDto } from '../dto/assign-user-permissions.dto';
 import { AssignUserRolesDto } from '../dto/assign-user-roles.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UpdateUserPasswordDto } from '../dto/update-user-password.dto';
 import { UpdateUserStatusDto } from '../dto/update-user-status.dto';
 import { UserBranchAccess } from '../entities/user-branch-access.entity';
+import { UserPermission } from '../entities/user-permission.entity';
 import { UserRole } from '../entities/user-role.entity';
 import { User } from '../entities/user.entity';
 import { UserManagementPolicy } from '../policies/user-management.policy';
@@ -42,6 +45,7 @@ export class UsersService {
   constructor(
     private readonly users_repository: UsersRepository,
     private readonly roles_repository: RolesRepository,
+    private readonly permissions_repository: PermissionsRepository,
     private readonly branches_repository: BranchesRepository,
     private readonly businesses_repository: BusinessesRepository,
     private readonly user_management_policy: UserManagementPolicy,
@@ -52,6 +56,8 @@ export class UsersService {
     private readonly user_role_repository: Repository<UserRole>,
     @InjectRepository(UserBranchAccess)
     private readonly user_branch_access_repository: Repository<UserBranchAccess>,
+    @InjectRepository(UserPermission)
+    private readonly user_permission_repository: Repository<UserPermission>,
     @InjectRepository(InventoryMovementHeader)
     private readonly inventory_movement_header_repository: Repository<InventoryMovementHeader>,
     @InjectRepository(InventoryMovement)
@@ -112,6 +118,7 @@ export class UsersService {
     const saved_user = await this.users_repository.save(user);
     await this.sync_roles(current_user, saved_user, dto.role_ids ?? []);
     await this.sync_branches(current_user, saved_user, dto.branch_ids ?? []);
+    await this.sync_direct_permissions(saved_user, dto.permission_ids ?? []);
 
     const hydrated_user = await this.get_user_entity(
       current_user,
@@ -324,6 +331,23 @@ export class UsersService {
     return this.get_user(current_user, user_id);
   }
 
+  async assign_direct_permissions(
+    current_user: AuthenticatedUserContext,
+    user_id: number,
+    dto: AssignUserPermissionsDto,
+  ) {
+    const user = await this.get_user_entity(current_user, user_id);
+    this.user_management_policy.assert_target_takes_roles_and_branches(user);
+    await this.sync_direct_permissions(user, dto.permission_ids);
+    // Push the change so the user's open sessions re-render their permissions
+    // UI without waiting for a full re-login. Same pattern as assign_roles.
+    this.realtime_service.notify_permissions_changed(
+      user.id,
+      'roles_reassigned',
+    );
+    return this.get_user(current_user, user_id);
+  }
+
   async get_effective_permissions(
     current_user: AuthenticatedUserContext,
     user_id: number,
@@ -480,6 +504,52 @@ export class UsersService {
     }
   }
 
+  /**
+   * Replace the user's direct permission grants. Only permissions in the
+   * `auth.*` namespace are accepted: this is the operator-facing escape hatch
+   * for granting `auth.login` / `auth.refresh` without forcing the user into a
+   * role just to be able to sign in. Any other namespace must still go through
+   * the role system, where assignments stay auditable and reusable.
+   */
+  private async sync_direct_permissions(
+    user: User,
+    permission_ids: number[],
+  ): Promise<void> {
+    const permissions =
+      await this.permissions_repository.find_by_ids(permission_ids);
+    if (permissions.length !== permission_ids.length) {
+      throw new DomainBadRequestException({
+        code: 'USER_INVALID_PERMISSIONS_FOR_DIRECT_GRANT',
+        messageKey: 'users.invalid_permissions_for_direct_grant',
+        details: { field: 'permission_ids' },
+      });
+    }
+
+    const non_auth = permissions.filter((p) => !p.key.startsWith('auth.'));
+    if (non_auth.length) {
+      throw new DomainBadRequestException({
+        code: 'USER_DIRECT_PERMISSION_NOT_AUTH_NAMESPACE',
+        messageKey: 'users.direct_permission_not_auth_namespace',
+        details: {
+          field: 'permission_ids',
+          rejected_keys: non_auth.map((p) => p.key),
+        },
+      });
+    }
+
+    await this.user_permission_repository.delete({ user_id: user.id });
+    if (permissions.length) {
+      await this.user_permission_repository.save(
+        permissions.map((permission) =>
+          this.user_permission_repository.create({
+            user_id: user.id,
+            permission_id: permission.id,
+          }),
+        ),
+      );
+    }
+  }
+
   private assert_user_type_assignment(
     current_user: AuthenticatedUserContext,
     user_type?: UserType,
@@ -544,12 +614,27 @@ export class UsersService {
       }
     }
 
+    // Direct grants assigned to the user, independent of role membership.
+    // The set semantics dedupe against role-derived permissions automatically.
+    for (const user_permission of user.user_permissions ?? []) {
+      if (user_permission.permission?.key) {
+        permissions.add(user_permission.permission.key);
+      }
+    }
+
     if (user.is_platform_admin) {
       permissions.add('auth.login');
       permissions.add('auth.refresh');
     }
 
     return [...permissions].sort();
+  }
+
+  private collect_direct_permission_keys(user: User): string[] {
+    return (user.user_permissions ?? [])
+      .map((entry) => entry.permission?.key)
+      .filter((key): key is string => Boolean(key))
+      .sort();
   }
 
   private collect_branch_ids(user: User): number[] {
@@ -634,6 +719,10 @@ export class UsersService {
           branch_number: item.branch?.branch_number,
           business_name: item.branch?.business_name,
         })) ?? [],
+      direct_permission_ids: (user.user_permissions ?? [])
+        .map((entry) => entry.permission_id)
+        .sort((left, right) => left - right),
+      direct_permission_keys: this.collect_direct_permission_keys(user),
       effective_permissions: this.collect_permissions(user),
     };
   }

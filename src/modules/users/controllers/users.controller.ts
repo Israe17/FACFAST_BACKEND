@@ -30,6 +30,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantContextGuard } from '../../common/guards/tenant-context.guard';
 import type { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
 import { AssignUserBranchesDto } from '../dto/assign-user-branches.dto';
+import { AssignUserPermissionsDto } from '../dto/assign-user-permissions.dto';
 import { AssignUserRolesDto } from '../dto/assign-user-roles.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -150,6 +151,27 @@ export class UsersController {
     @Body() dto: AssignUserBranchesDto,
   ) {
     return this.users_service.assign_branches(current_user, user_id, dto);
+  }
+
+  @Put(':user_id/permissions')
+  @RequirePermissions(PermissionKey.USERS_ASSIGN_PERMISSIONS)
+  @ApiOperation({
+    summary:
+      'Asignar permisos directos al usuario (solo namespace auth.*).',
+  })
+  @ApiParam({ name: 'user_id', type: Number })
+  @ApiBody({ type: AssignUserPermissionsDto })
+  @ApiOkResponse({ description: 'Permisos directos actualizados.' })
+  assign_direct_permissions(
+    @CurrentUser() current_user: AuthenticatedUserContext,
+    @Param('user_id', ParseIntPipe) user_id: number,
+    @Body() dto: AssignUserPermissionsDto,
+  ) {
+    return this.users_service.assign_direct_permissions(
+      current_user,
+      user_id,
+      dto,
+    );
   }
 
   @Get(':user_id/effective-permissions')
