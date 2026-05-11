@@ -9,6 +9,7 @@ export enum PermissionKey {
   USERS_DELETE = 'users.delete',
   USERS_ASSIGN_ROLES = 'users.assign_roles',
   USERS_ASSIGN_BRANCHES = 'users.assign_branches',
+  USERS_ASSIGN_PERMISSIONS = 'users.assign_permissions',
   USERS_CHANGE_STATUS = 'users.change_status',
   USERS_CHANGE_PASSWORD = 'users.change_password',
   ROLES_VIEW = 'roles.view',

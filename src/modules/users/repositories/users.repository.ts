@@ -17,6 +17,9 @@ const user_relations = {
   user_branch_access: {
     branch: true,
   },
+  user_permissions: {
+    permission: true,
+  },
 } as const;
 
 @Injectable()
@@ -83,6 +86,8 @@ export class UsersRepository {
       .leftJoinAndSelect('role_permission.permission', 'permission')
       .leftJoinAndSelect('user.user_branch_access', 'user_branch_access')
       .leftJoinAndSelect('user_branch_access.branch', 'branch')
+      .leftJoinAndSelect('user.user_permissions', 'user_permission')
+      .leftJoinAndSelect('user_permission.permission', 'direct_permission')
       .where('user.id = :id', { id })
       .andWhere('user.business_id = :business_id', { business_id })
       .getOne();
@@ -99,6 +104,8 @@ export class UsersRepository {
       .leftJoinAndSelect('role_permission.permission', 'permission')
       .leftJoinAndSelect('user.user_branch_access', 'user_branch_access')
       .leftJoinAndSelect('user_branch_access.branch', 'branch')
+      .leftJoinAndSelect('user.user_permissions', 'user_permission')
+      .leftJoinAndSelect('user_permission.permission', 'direct_permission')
       .where('LOWER(user.email) = LOWER(:email)', { email })
       .getOne();
   }

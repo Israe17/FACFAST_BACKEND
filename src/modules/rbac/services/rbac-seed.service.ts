@@ -669,6 +669,12 @@ const base_permissions: PermissionSeed[] = [
     description: 'Can assign branch access.',
   },
   {
+    key: PermissionKey.USERS_ASSIGN_PERMISSIONS,
+    module: 'users',
+    action: 'assign_permissions',
+    description: 'Can assign direct auth permissions to a user.',
+  },
+  {
     key: PermissionKey.USERS_CHANGE_STATUS,
     module: 'users',
     action: 'change_status',
