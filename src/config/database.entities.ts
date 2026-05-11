@@ -53,6 +53,7 @@ import { Permission } from '../modules/rbac/entities/permission.entity';
 import { RolePermission } from '../modules/rbac/entities/role-permission.entity';
 import { Role } from '../modules/rbac/entities/role.entity';
 import { UserBranchAccess } from '../modules/users/entities/user-branch-access.entity';
+import { UserPermission } from '../modules/users/entities/user-permission.entity';
 import { UserRole } from '../modules/users/entities/user-role.entity';
 import { User } from '../modules/users/entities/user.entity';
 
@@ -64,6 +65,7 @@ export const database_entities = [
   UserRole,
   RolePermission,
   UserBranchAccess,
+  UserPermission,
   RefreshToken,
   Branch,
   Terminal,
