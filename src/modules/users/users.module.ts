@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BranchesModule } from '../branches/branches.module';
 import { BusinessesModule } from '../businesses/businesses.module';
@@ -6,6 +6,7 @@ import { InventoryMovementHeader } from '../inventory/entities/inventory-movemen
 import { InventoryMovement } from '../inventory/entities/inventory-movement.entity';
 import { SerialEvent } from '../inventory/entities/serial-event.entity';
 import { RbacModule } from '../rbac/rbac.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { UsersController } from './controllers/users.controller';
 import { UserBranchAccess } from './entities/user-branch-access.entity';
 import { UserRole } from './entities/user-role.entity';
@@ -27,6 +28,7 @@ import { UsersService } from './services/users.service';
     RbacModule,
     BranchesModule,
     BusinessesModule,
+    forwardRef(() => RealtimeModule),
   ],
   controllers: [UsersController],
   providers: [UsersRepository, UserManagementPolicy, UsersService],

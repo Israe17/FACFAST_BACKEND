@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Business } from '../common/entities/business.entity';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { UserRole } from '../users/entities/user-role.entity';
 import { PermissionsController } from './controllers/permissions.controller';
 import { RolesController } from './controllers/roles.controller';
@@ -33,6 +34,7 @@ import { UpdateRoleUseCase } from './use-cases/update-role.use-case';
       RolePermission,
       UserRole,
     ]),
+    RealtimeModule,
   ],
   controllers: [RolesController, PermissionsController],
   providers: [
