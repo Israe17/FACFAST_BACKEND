@@ -93,8 +93,6 @@ export const error_translations = {
       'Una o mas sucursales no pertenecen a la empresa activa.',
     'users.invalid_permissions_for_direct_grant':
       'Uno o mas permisos no existen.',
-    'users.direct_permission_not_auth_namespace':
-      'Solo se pueden asignar permisos del namespace auth.* directamente al usuario. El resto debe asignarse via roles.',
     'users.system_user_api_forbidden':
       'Los usuarios de sistema no pueden gestionarse desde esta operacion.',
     'users.owner_assignment_forbidden':
@@ -623,8 +621,6 @@ export const error_translations = {
       'One or more branches do not belong to the active business.',
     'users.invalid_permissions_for_direct_grant':
       'One or more permissions do not exist.',
-    'users.direct_permission_not_auth_namespace':
-      'Only permissions in the auth.* namespace can be granted directly to a user. Everything else must go through roles.',
     'users.system_user_api_forbidden':
       'System users cannot be managed through this operation.',
     'users.owner_assignment_forbidden':
