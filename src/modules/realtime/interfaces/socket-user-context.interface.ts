@@ -7,6 +7,13 @@ export interface SocketUserContext {
   user_room: string;
   /** Per-tenant room used for tenant-wide broadcasts (catalog updates, etc). */
   business_room: string;
+  /**
+   * Handle to the setTimeout that forces a disconnect when the JWT
+   * `exp` claim is reached. Cleared in handleDisconnect if the socket
+   * dies first (logout, network drop), so we never leak timers across
+   * the connect/disconnect cycle.
+   */
+  expiration_timer?: NodeJS.Timeout;
 }
 
 export const REALTIME_NAMESPACE = '/realtime';

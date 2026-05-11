@@ -60,14 +60,13 @@ export class RealtimeGateway
         return;
       }
 
-      const payload = await this.jwt_service.verifyAsync<JwtAccessPayload>(
-        token,
-        {
-          secret: this.config_service.getOrThrow<string>(
-            'auth.access_token_secret',
-          ),
-        },
-      );
+      const payload = await this.jwt_service.verifyAsync<
+        JwtAccessPayload & { exp?: number }
+      >(token, {
+        secret: this.config_service.getOrThrow<string>(
+          'auth.access_token_secret',
+        ),
+      });
 
       const user = await this.users_service.get_authenticated_context(
         payload.sub,
@@ -78,13 +77,38 @@ export class RealtimeGateway
         return;
       }
 
+      // Platform admins enter individual tenants via `acting_business_id`.
+      // Join the EFFECTIVE business room so emits targeted at that tenant
+      // reach them — joining their home business_id would silently route
+      // events to the wrong room.
+      const effective_business_id =
+        user.acting_business_id ?? user.business_id;
       const user_room = build_user_room(user.id);
-      const business_room = build_business_room(user.business_id);
+      const business_room = build_business_room(effective_business_id);
       await client.join(user_room);
       await client.join(business_room);
 
-      // socket.data is the canonical place to attach per-connection state
-      // in Socket.io v4. Typing handled by SocketUserContext consumers.
+      // Enforce JWT expiration on the socket. Without this the connection
+      // outlives the token: a "logged-out" operator keeps receiving events
+      // until they close the browser. Schedule a forced disconnect at the
+      // exp claim; if the cookie has been refreshed by the HTTP layer in
+      // the meantime, the client's automatic reconnect picks up the new
+      // token transparently.
+      if (typeof payload.exp === 'number') {
+        const ms_until_exp = payload.exp * 1000 - Date.now();
+        if (ms_until_exp <= 0) {
+          client.disconnect(true);
+          return;
+        }
+        const expiration_timer = setTimeout(() => {
+          client.disconnect(true);
+        }, ms_until_exp);
+        // socket.data is the canonical place to attach per-connection
+        // state in Socket.io v4. Keep the timer here so handleDisconnect
+        // can clear it on early disconnects (no leaked timers per socket).
+        client.data.expiration_timer = expiration_timer;
+      }
+
       client.data.user = user;
       client.data.user_room = user_room;
       client.data.business_room = business_room;
@@ -100,10 +124,17 @@ export class RealtimeGateway
     }
   }
 
-  handleDisconnect(_client: Socket): void {
-    // Nothing to clean up: rooms are released automatically when the
-    // socket disconnects, and we don't keep any per-socket state outside
-    // of socket.data.
+  handleDisconnect(client: Socket): void {
+    // Clear the expiration timer if the socket disconnected before the
+    // token actually expired (logout, network drop, server restart).
+    // Without this each cycle of connect/disconnect would leak a timer.
+    const timer = client.data.expiration_timer as
+      | NodeJS.Timeout
+      | undefined;
+    if (timer) {
+      clearTimeout(timer);
+      client.data.expiration_timer = undefined;
+    }
   }
 
   private extract_token(client: Socket): string | null {

@@ -11,7 +11,16 @@ export function configure_app(app: INestApplication): void {
   const cors_origin = config_service.get<string>('app.cors_origin');
   const node_env = config_service.get<string>('NODE_ENV');
 
-  app.use(helmet());
+  // This is an API server (JSON + WebSocket), not an HTML host — there's
+  // no document for the browser to apply CSP against. Helmet's default
+  // CSP (`connect-src 'self'`) actively breaks the realtime WebSocket
+  // upgrade in cross-origin deployments (frontend on app.example.com
+  // talking to api.example.com) without protecting anything, so we
+  // disable that one directive. All other helmet defaults stay: HSTS,
+  // X-Content-Type-Options, X-Frame-Options, Referrer-Policy, etc. The
+  // CSP that protects the user's browser is the responsibility of the
+  // Next.js frontend that serves the HTML.
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cookieParser());
   app.use(request_context_middleware);
   app.enableCors({
