@@ -156,8 +156,7 @@ export class UsersController {
   @Put(':user_id/permissions')
   @RequirePermissions(PermissionKey.USERS_ASSIGN_PERMISSIONS)
   @ApiOperation({
-    summary:
-      'Asignar permisos directos al usuario (solo namespace auth.*).',
+    summary: 'Asignar permisos directos al usuario.',
   })
   @ApiParam({ name: 'user_id', type: Number })
   @ApiBody({ type: AssignUserPermissionsDto })

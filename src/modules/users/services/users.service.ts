@@ -622,13 +622,6 @@ export class UsersService {
     return [...permissions].sort();
   }
 
-  private collect_direct_permission_keys(user: User): string[] {
-    return (user.user_permissions ?? [])
-      .map((entry) => entry.permission?.key)
-      .filter((key): key is string => Boolean(key))
-      .sort();
-  }
-
   private collect_branch_ids(user: User): number[] {
     return [
       ...new Set((user.user_branch_access ?? []).map((item) => item.branch_id)),
@@ -714,7 +707,10 @@ export class UsersService {
       direct_permission_ids: (user.user_permissions ?? [])
         .map((entry) => entry.permission_id)
         .sort((left, right) => left - right),
-      direct_permission_keys: this.collect_direct_permission_keys(user),
+      direct_permission_keys: (user.user_permissions ?? [])
+        .map((entry) => entry.permission?.key)
+        .filter((key): key is string => Boolean(key))
+        .sort(),
       effective_permissions: this.collect_permissions(user),
     };
   }
