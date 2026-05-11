@@ -74,6 +74,10 @@ export class CreateBranchUseCase
       is_active: dto.is_active ?? true,
       latitude: dto.latitude ?? null,
       longitude: dto.longitude ?? null,
+      country_id: dto.country_id ?? null,
+      province_id: dto.province_id ?? null,
+      canton_id: dto.canton_id ?? null,
+      district_id: dto.district_id ?? null,
     });
 
     const saved_branch = await this.branches_repository.save(branch);

@@ -17,6 +17,10 @@ export interface BranchView {
   canton: string;
   district: string;
   city: string | null;
+  country_id: number | null;
+  province_id: number | null;
+  canton_id: number | null;
+  district_id: number | null;
   phone: string | null;
   email: string | null;
   activity_code: string | null;

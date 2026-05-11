@@ -99,6 +99,10 @@ export class CreateContactUseCase
       exoneration_percentage: dto.exoneration_percentage ?? null,
       delivery_latitude: dto.delivery_latitude ?? null,
       delivery_longitude: dto.delivery_longitude ?? null,
+      country_id: dto.country_id ?? null,
+      province_id: dto.province_id ?? null,
+      canton_id: dto.canton_id ?? null,
+      district_id: dto.district_id ?? null,
     });
 
     const saved_contact = await this.contacts_repository.save(contact);

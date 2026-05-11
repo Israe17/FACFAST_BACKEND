@@ -150,4 +150,24 @@ export class UpdateContactDto {
   @IsOptional()
   @IsNumber({}, { message: validation_messages.invalid_number() })
   delivery_longitude?: number;
+
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  country_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  province_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  canton_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  district_id?: number | null;
 }

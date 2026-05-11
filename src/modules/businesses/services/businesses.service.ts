@@ -95,6 +95,18 @@ export class BusinessesService {
     if (dto.is_active !== undefined) {
       business.is_active = dto.is_active;
     }
+    if (dto.country_id !== undefined) {
+      business.country_id = dto.country_id ?? null;
+    }
+    if (dto.province_id !== undefined) {
+      business.province_id = dto.province_id ?? null;
+    }
+    if (dto.canton_id !== undefined) {
+      business.canton_id = dto.canton_id ?? null;
+    }
+    if (dto.district_id !== undefined) {
+      business.district_id = dto.district_id ?? null;
+    }
 
     return this.serialize_business(
       await this.businesses_repository.save(business),

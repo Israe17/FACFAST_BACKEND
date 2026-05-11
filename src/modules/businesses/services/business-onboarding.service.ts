@@ -103,6 +103,10 @@ export class BusinessOnboardingService {
           address: this.normalize_required_string(dto.business.address),
           postal_code: this.normalize_optional_string(dto.business.postal_code),
           is_active: dto.business.is_active ?? true,
+          country_id: dto.business.country_id ?? null,
+          province_id: dto.business.province_id ?? null,
+          canton_id: dto.business.canton_id ?? null,
+          district_id: dto.business.district_id ?? null,
         }),
         'BS',
       );
@@ -193,6 +197,10 @@ export class BusinessOnboardingService {
             dto.initial_branch.branch_district,
           ),
           city: this.normalize_optional_string(dto.initial_branch.branch_city),
+          country_id: dto.initial_branch.country_id ?? null,
+          province_id: dto.initial_branch.province_id ?? null,
+          canton_id: dto.initial_branch.canton_id ?? null,
+          district_id: dto.initial_branch.district_id ?? null,
           phone: this.normalize_optional_string(
             dto.initial_branch.branch_phone,
           ),
