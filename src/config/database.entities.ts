@@ -52,6 +52,10 @@ import { ElectronicDocument } from '../modules/sales/entities/electronic-documen
 import { Permission } from '../modules/rbac/entities/permission.entity';
 import { RolePermission } from '../modules/rbac/entities/role-permission.entity';
 import { Role } from '../modules/rbac/entities/role.entity';
+import { Canton } from '../modules/regions/entities/canton.entity';
+import { Country } from '../modules/regions/entities/country.entity';
+import { District } from '../modules/regions/entities/district.entity';
+import { Province } from '../modules/regions/entities/province.entity';
 import { UserBranchAccess } from '../modules/users/entities/user-branch-access.entity';
 import { UserPermission } from '../modules/users/entities/user-permission.entity';
 import { UserRole } from '../modules/users/entities/user-role.entity';
@@ -116,4 +120,8 @@ export const database_entities = [
   SaleOrderLineSerial,
   SaleOrderDeliveryCharge,
   ElectronicDocument,
+  Country,
+  Province,
+  Canton,
+  District,
 ];

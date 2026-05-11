@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   Length,
@@ -136,4 +137,24 @@ export class UpdateCurrentBusinessDto {
   @IsOptional()
   @IsBoolean({ message: validation_messages.invalid_boolean() })
   is_active?: boolean;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.countries.id' })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  country_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.provinces.id' })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  province_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.cantons.id' })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  canton_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.districts.id' })
+  @IsOptional()
+  @IsNumber({}, { message: validation_messages.invalid_number() })
+  district_id?: number | null;
 }

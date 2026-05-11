@@ -160,4 +160,24 @@ export class UpdateBranchDto {
   @IsOptional()
   @IsNumber()
   longitude?: number | null;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
+  country_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
+  province_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
+  canton_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
+  district_id?: number | null;
 }

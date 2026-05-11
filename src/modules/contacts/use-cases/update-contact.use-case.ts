@@ -108,6 +108,18 @@ export class UpdateContactUseCase
     if (dto.district !== undefined) {
       contact.district = this.normalize_optional_string(dto.district);
     }
+    if (dto.country_id !== undefined) {
+      contact.country_id = dto.country_id ?? null;
+    }
+    if (dto.province_id !== undefined) {
+      contact.province_id = dto.province_id ?? null;
+    }
+    if (dto.canton_id !== undefined) {
+      contact.canton_id = dto.canton_id ?? null;
+    }
+    if (dto.district_id !== undefined) {
+      contact.district_id = dto.district_id ?? null;
+    }
     if (dto.tax_condition !== undefined) {
       contact.tax_condition = this.normalize_optional_string(dto.tax_condition);
     }

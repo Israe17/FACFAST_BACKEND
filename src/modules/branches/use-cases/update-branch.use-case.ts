@@ -127,6 +127,18 @@ export class UpdateBranchUseCase
     if (dto.longitude !== undefined) {
       branch.longitude = dto.longitude ?? null;
     }
+    if (dto.country_id !== undefined) {
+      branch.country_id = dto.country_id ?? null;
+    }
+    if (dto.province_id !== undefined) {
+      branch.province_id = dto.province_id ?? null;
+    }
+    if (dto.canton_id !== undefined) {
+      branch.canton_id = dto.canton_id ?? null;
+    }
+    if (dto.district_id !== undefined) {
+      branch.district_id = dto.district_id ?? null;
+    }
 
     const saved_branch = await this.branches_repository.save(branch);
     const dependencies =

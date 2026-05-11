@@ -20,6 +20,7 @@ import { SalesModule } from './modules/sales/sales.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { RegionsModule } from './modules/regions/regions.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -63,6 +64,7 @@ import { UsersModule } from './modules/users/users.module';
     }),
     CommonModule,
     RbacModule,
+    RegionsModule,
     BusinessesModule,
     BranchesModule,
     ContactsModule,

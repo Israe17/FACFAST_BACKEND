@@ -10,6 +10,10 @@ import { Business } from '../../common/entities/business.entity';
 import { AuditedCodeEntity } from '../../common/entities/audited-code.entity';
 import { numeric_transformer } from '../../common/utils/numeric.transformer';
 import { IdentificationType } from '../../common/enums/identification-type.enum';
+import { Canton } from '../../regions/entities/canton.entity';
+import { Country } from '../../regions/entities/country.entity';
+import { District } from '../../regions/entities/district.entity';
+import { Province } from '../../regions/entities/province.entity';
 import { UserBranchAccess } from '../../users/entities/user-branch-access.entity';
 import { Terminal } from './terminal.entity';
 
@@ -105,6 +109,34 @@ export class Branch extends AuditedCodeEntity {
     nullable: true,
   })
   city!: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  country_id!: number | null;
+
+  @ManyToOne(() => Country, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'country_id' })
+  country_ref?: Country | null;
+
+  @Column({ type: 'int', nullable: true })
+  province_id!: number | null;
+
+  @ManyToOne(() => Province, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'province_id' })
+  province_ref?: Province | null;
+
+  @Column({ type: 'int', nullable: true })
+  canton_id!: number | null;
+
+  @ManyToOne(() => Canton, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'canton_id' })
+  canton_ref?: Canton | null;
+
+  @Column({ type: 'int', nullable: true })
+  district_id!: number | null;
+
+  @ManyToOne(() => District, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'district_id' })
+  district_ref?: District | null;
 
   @Column({
     type: 'varchar',

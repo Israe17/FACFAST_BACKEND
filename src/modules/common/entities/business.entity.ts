@@ -1,6 +1,10 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { AuditedCodeEntity } from './audited-code.entity';
 import { IdentificationType } from '../enums/identification-type.enum';
+import { Canton } from '../../regions/entities/canton.entity';
+import { Country } from '../../regions/entities/country.entity';
+import { District } from '../../regions/entities/district.entity';
+import { Province } from '../../regions/entities/province.entity';
 
 @Entity('businesses')
 export class Business extends AuditedCodeEntity {
@@ -127,6 +131,34 @@ export class Business extends AuditedCodeEntity {
     nullable: true,
   })
   postal_code!: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  country_id!: number | null;
+
+  @ManyToOne(() => Country, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'country_id' })
+  country_ref?: Country | null;
+
+  @Column({ type: 'int', nullable: true })
+  province_id!: number | null;
+
+  @ManyToOne(() => Province, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'province_id' })
+  province_ref?: Province | null;
+
+  @Column({ type: 'int', nullable: true })
+  canton_id!: number | null;
+
+  @ManyToOne(() => Canton, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'canton_id' })
+  canton_ref?: Canton | null;
+
+  @Column({ type: 'int', nullable: true })
+  district_id!: number | null;
+
+  @ManyToOne(() => District, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'district_id' })
+  district_ref?: District | null;
 
   @Column({
     type: 'boolean',

@@ -161,4 +161,24 @@ export class CreateBranchDto {
   @IsOptional()
   @IsNumber()
   longitude?: number | null;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.countries.id' })
+  @IsOptional()
+  @IsNumber()
+  country_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.provinces.id' })
+  @IsOptional()
+  @IsNumber()
+  province_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.cantons.id' })
+  @IsOptional()
+  @IsNumber()
+  canton_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, description: 'FK -> regions.districts.id' })
+  @IsOptional()
+  @IsNumber()
+  district_id?: number | null;
 }
