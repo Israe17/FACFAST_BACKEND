@@ -9,8 +9,7 @@ export class AssignUserPermissionsDto {
     example: [1, 2],
     description:
       'Replaces the full set of direct permission grants assigned to the user. ' +
-      'Only permissions in the auth.* namespace are accepted. ' +
-      'Send [] to clear all direct grants.',
+      'Any catalog permission is accepted. Send [] to clear all direct grants.',
   })
   @Type(() => Number)
   @IsArray({ message: validation_messages.array_required() })

@@ -95,7 +95,7 @@ export class CreateUserDto {
     example: [1],
     description:
       'IDs de permisos directos a asignar al usuario (independiente de los roles). ' +
-      'Solo se aceptan permisos del namespace auth.*.',
+      'Acepta cualquier permiso del catalogo.',
   })
   @IsOptional()
   @IsArray({ message: validation_messages.array_required() })

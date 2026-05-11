@@ -505,11 +505,15 @@ export class UsersService {
   }
 
   /**
-   * Replace the user's direct permission grants. Only permissions in the
-   * `auth.*` namespace are accepted: this is the operator-facing escape hatch
-   * for granting `auth.login` / `auth.refresh` without forcing the user into a
-   * role just to be able to sign in. Any other namespace must still go through
-   * the role system, where assignments stay auditable and reusable.
+   * Replace the user's direct permission grants. Any catalog permission is
+   * accepted — direct grants are the operator-facing escape hatch for one-off
+   * assignments that don't justify a dedicated role. Anything reusable across
+   * users should still go through roles where it stays auditable.
+   *
+   * Two UI surfaces feed this method: the user form for auth.* shortcuts,
+   * and the "Permisos efectivos" tab dialog for everything else. Each surface
+   * is responsible for merging its own scope with the user's existing grants
+   * so that updates from one don't silently wipe the other.
    */
   private async sync_direct_permissions(
     user: User,
@@ -522,18 +526,6 @@ export class UsersService {
         code: 'USER_INVALID_PERMISSIONS_FOR_DIRECT_GRANT',
         messageKey: 'users.invalid_permissions_for_direct_grant',
         details: { field: 'permission_ids' },
-      });
-    }
-
-    const non_auth = permissions.filter((p) => !p.key.startsWith('auth.'));
-    if (non_auth.length) {
-      throw new DomainBadRequestException({
-        code: 'USER_DIRECT_PERMISSION_NOT_AUTH_NAMESPACE',
-        messageKey: 'users.direct_permission_not_auth_namespace',
-        details: {
-          field: 'permission_ids',
-          rejected_keys: non_auth.map((p) => p.key),
-        },
       });
     }
 
