@@ -3,12 +3,14 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configure_app } from './configure-app';
+import { SocketCorsAdapter } from './modules/realtime/adapters/socket-cors.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
   configure_app(app);
+  app.useWebSocketAdapter(new SocketCorsAdapter(app));
   const config_service = app.get(ConfigService);
   const node_env = config_service.get<string>('NODE_ENV');
 

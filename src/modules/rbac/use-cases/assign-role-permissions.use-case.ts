@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CommandUseCase } from '../../common/application/interfaces/command-use-case.interface';
 import { AuthenticatedUserContext } from '../../common/interfaces/authenticated-user-context.interface';
+import { RealtimeService } from '../../realtime/services/realtime.service';
 import { RoleView } from '../contracts/role.view';
 import { AssignRolePermissionsDto } from '../dto/assign-role-permissions.dto';
 import { RolePermission } from '../entities/role-permission.entity';
@@ -28,6 +29,7 @@ export class AssignRolePermissionsUseCase
     private readonly role_serializer: RoleSerializer,
     @InjectRepository(RolePermission)
     private readonly role_permission_repository: Repository<RolePermission>,
+    private readonly realtime_service: RealtimeService,
   ) {}
 
   async execute({
@@ -70,6 +72,18 @@ export class AssignRolePermissionsUseCase
       await this.rbac_validation_service.count_role_delete_dependencies(
         resolved_role,
       );
+
+    // Broadcast tenant-wide so any user holding this role refetches
+    // their session and sees the new permission set on the next render.
+    // Targeting only the affected users would require a roles→users
+    // lookup that does not exist today; since the tenant audience is
+    // small, the broadcast cost is one extra session refetch per
+    // connected operator, which is fine.
+    this.realtime_service.notify_business_permissions_changed(
+      role.business_id,
+      `role_permissions_changed:${role.id}`,
+    );
+
     return this.role_serializer.serialize(
       resolved_role,
       this.role_lifecycle_policy.build_lifecycle(resolved_role, dependencies),

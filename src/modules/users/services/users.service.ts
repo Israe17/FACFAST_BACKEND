@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BranchAccessPolicy } from '../../branches/policies/branch-access.policy';
 import { BusinessesRepository } from '../../businesses/repositories/businesses.repository';
+import { RealtimeService } from '../../realtime/services/realtime.service';
 import { AuthenticatedUserMode } from '../../common/enums/authenticated-user-mode.enum';
 import { BranchesRepository } from '../../branches/repositories/branches.repository';
 import { DomainBadRequestException } from '../../common/errors/exceptions/domain-bad-request.exception';
@@ -57,6 +58,8 @@ export class UsersService {
     private readonly inventory_movement_repository: Repository<InventoryMovement>,
     @InjectRepository(SerialEvent)
     private readonly serial_event_repository: Repository<SerialEvent>,
+    @Inject(forwardRef(() => RealtimeService))
+    private readonly realtime_service: RealtimeService,
   ) {}
 
   async get_users(current_user: AuthenticatedUserContext) {
@@ -301,6 +304,12 @@ export class UsersService {
     const user = await this.get_user_entity(current_user, user_id);
     this.user_management_policy.assert_target_takes_roles_and_branches(user);
     await this.sync_roles(current_user, user, dto.role_ids);
+    // Push the change to any active session that user has open so their
+    // permissions UI re-renders without waiting for a full re-login.
+    this.realtime_service.notify_permissions_changed(
+      user.id,
+      'roles_reassigned',
+    );
     return this.get_user(current_user, user_id);
   }
 
