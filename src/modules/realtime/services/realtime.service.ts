@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 
 import {
   REALTIME_EVENTS,
@@ -24,7 +24,16 @@ import {
  */
 @Injectable()
 export class RealtimeService {
-  constructor(private readonly gateway: RealtimeGateway) {}
+  constructor(
+    // forwardRef breaks the file-level cycle
+    // realtime.service → realtime.gateway → users.service → realtime.service
+    // that exists because the gateway transitively imports this service via
+    // UsersService. Without it, RealtimeGateway resolves to `undefined` at
+    // construction time and Nest fails with "Cannot resolve dependency at
+    // index [0]".
+    @Inject(forwardRef(() => RealtimeGateway))
+    private readonly gateway: RealtimeGateway,
+  ) {}
 
   emit_to_user<E extends RealtimeEventName>(
     user_id: number,
